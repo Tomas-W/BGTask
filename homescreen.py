@@ -6,7 +6,7 @@ from kivy.uix.button import Button
 from kivy.metrics import dp
 from kivy.core.window import Window
 from kivy.properties import ListProperty
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
 
 import settings
@@ -26,7 +26,7 @@ class TaskGroup(BoxLayout):
             halign="left",
             font_size=dp(settings.HEADER_FONT_SIZE),
             bold=True,
-            color=settings.TEXT_BLUE,
+            color=settings.HEADER_COLOR,
             padding=[0, 0, 0, 0]  # Use consistent field padding
         )
         date_label.bind(size=date_label.setter("text_size"))
@@ -43,17 +43,21 @@ class TaskGroup(BoxLayout):
         self.tasks_container = BoxLayout(
             orientation="vertical",
             size_hint_y=None,
-            spacing=dp(settings.SPACE_Y_S),  # Spacing between tasks
+            spacing=dp(settings.SPACE_Y_L),  # Spacing between tasks
             padding=[0, dp(settings.SPACE_Y_M), 0, dp(settings.SPACE_Y_M)]  # Vertical padding
         )
         
         # Bind the container's height to its children
         self.tasks_container.bind(minimum_height=self.tasks_container.setter("height"))
         
-        # Set background for the tasks container
+        # Set background for the tasks container with rounded corners
         with self.tasks_container.canvas.before:
             Color(*settings.LIGHT_BLUE)
-            self.bg_rect = Rectangle(pos=self.tasks_container.pos, size=self.tasks_container.size)
+            self.bg_rect = RoundedRectangle(
+                pos=self.tasks_container.pos, 
+                size=self.tasks_container.size,
+                radius=[dp(settings.CORNER_RADIUS)]
+            )
             self.tasks_container.bind(pos=self.update_bg_rect, size=self.update_bg_rect)
         
         # Add task items
@@ -95,12 +99,12 @@ class TaskGroup(BoxLayout):
             halign="left",
             font_size=dp(settings.DEFAULT_FONT_SIZE),
             bold=True,
-            color=settings.TEXT_BLUE,
-            padding=[dp(settings.FIELD_PADDING_X), dp(0)]  # Use FIELD_PADDING_X for indentation
+            color=settings.TEXT_COLOR,
+            padding=[dp(settings.FIELD_PADDING_X), 0, dp(settings.FIELD_PADDING_X), 0]  # Use FIELD_PADDING_X for indentation
         )
         time_label.bind(size=time_label.setter("text_size"))
         
-        # Task message label with the same indentation
+        # Task message label with proper text wrapping
         message_label = Label(
             text=task.message,
             size_hint=(1, None),
@@ -108,12 +112,28 @@ class TaskGroup(BoxLayout):
             halign="left",
             valign="top",
             font_size=dp(settings.DEFAULT_FONT_SIZE),
-            color=settings.TEXT_BLUE,
+            color=settings.TEXT_COLOR,
             padding=[dp(settings.FIELD_PADDING_X), dp(0)]  # Use FIELD_PADDING_X for indentation
         )
-        # Bind the width to parent's width to ensure proper text wrapping
+        
+        # Improved text wrapping and height calculation
         def update_text_size(instance, value):
-            instance.text_size = (value[0], dp(settings.MESSAGE_TEXT_HEIGHT))  # Don't subtract padding here since it's handled by the padding property
+            # Set text width to parent width minus padding
+            width = value[0]
+            instance.text_size = (width, None)  # None height lets text determine needed height
+            
+            # After text renders with new size, check text height
+            def adjust_height(dt):
+                # Get actual height needed for text content
+                needed_height = max(dp(settings.MESSAGE_LABEL_HEIGHT), instance.texture_size[1])
+                instance.height = needed_height
+                
+                # Update overall task_layout height
+                task_layout.height = time_label.height + instance.height
+            
+            # Schedule the height adjustment for next frame
+            Clock.schedule_once(adjust_height, 0)
+        
         message_label.bind(size=update_text_size)
         
         task_layout.add_widget(time_label)
@@ -226,7 +246,7 @@ class HomeScreen(Screen):
                 text="No tasks yet. Add one by tapping the + button!",
                 size_hint=(1, None),
                 height=dp(settings.NO_TASKS_LABEL_HEIGHT),
-                color=settings.TEXT_BLUE
+                color=settings.TEXT_COLOR
             )
             self.task_container.add_widget(no_tasks_label)
             return

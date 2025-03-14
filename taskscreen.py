@@ -29,7 +29,7 @@ class DateTimeLabel(ButtonBehavior, Label):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.font_size = dp(settings.DEFAULT_FONT_SIZE)
-        self.color = settings.TEXT_BLUE
+        self.color = settings.TEXT_COLOR
         self.size_hint_y = None
         self.height = dp(settings.HEADER_HEIGHT)
         self.halign = "center"
@@ -66,7 +66,7 @@ class DateTimePickerPopup(Popup):
         # Month/year label
         self.month_year = Label(
             size_hint=(0.6, 1),
-            color=settings.TEXT_BLUE,
+            color=settings.TEXT_COLOR,
             font_size=dp(settings.CALENDAR_FONT_SIZE),
             bold=True
         )
@@ -93,7 +93,7 @@ class DateTimePickerPopup(Popup):
                 Label(
                     text=day,
                     bold=True,
-                    color=settings.TEXT_BLUE
+                    color=settings.TEXT_COLOR
                 )
             )
         
@@ -112,7 +112,7 @@ class DateTimePickerPopup(Popup):
         self.hour_label = Label(
             text="Hour:",
             size_hint=(0.2, 1),
-            color=settings.TEXT_BLUE
+            color=settings.TEXT_COLOR
         )
         
         self.hour_input = TextInput(
@@ -128,7 +128,7 @@ class DateTimePickerPopup(Popup):
         self.minute_label = Label(
             text="Minute:",
             size_hint=(0.2, 1),
-            color=settings.TEXT_BLUE
+            color=settings.TEXT_COLOR
         )
         
         self.minute_input = TextInput(
@@ -328,7 +328,7 @@ class TaskScreen(Screen):
             size_hint=(1, None),
             height=dp(settings.HEADER_HEIGHT),
             halign="left",
-            color=settings.TEXT_BLUE,
+            color=settings.TEXT_COLOR,
             font_size=dp(settings.DEFAULT_FONT_SIZE),
             bold=True,
             padding=[dp(settings.FIELD_PADDING_X), 0]
@@ -345,7 +345,7 @@ class TaskScreen(Screen):
             size_hint=(1, None),
             height=dp(settings.HEADER_HEIGHT),
             halign="left",
-            color=settings.TEXT_BLUE,
+            color=settings.TEXT_COLOR,
             font_size=dp(settings.DEFAULT_FONT_SIZE),
             bold=True,
             padding=[dp(settings.FIELD_PADDING_X), 0]

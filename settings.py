@@ -1,11 +1,12 @@
-LIGHT_BLUE = (0.85, 0.91, 0.98, 1.0)   # Background for task details - solid equivalent of semi-transparent light blue
+LIGHT_BLUE = (0.70, 0.86, 0.93, 1.0)   # Background for task details - solid equivalent of semi-transparent light blue
 BLUE = (0.45, 0.65, 0.95, 1.0)         # Save button, Date & Time button - slightly lighter blue
 DARK_BLUE = (0.35, 0.55, 0.85, 1.0)    # New Task bar, + button - slightly darker blue
 GREY = (0.7, 0.7, 0.7, 1.0)            # Cancel button and unselected datetime field
-TEXT_BLUE = (0.1, 0.1, 0.4, 1.0)       # Text color on home screen
+TEXT_COLOR = (0.0, 0.0, 0.0, 1.0)       # Text color on home screen
+HEADER_COLOR = (0.35, 0.35, 0.35, 1.0)       # Text color on home screen
 WHITE = (1.0, 1.0, 1.0, 1.0)           # Pure white
 
-BG_WHITE = (0.92, 0.92, 0.92, 1.0)     # Background color (light gray)
+BG_WHITE = (0.89, 0.89, 0.89, 1.0)     # Background color (light gray)
 
 
 # Vertical spacing
@@ -38,7 +39,8 @@ NO_TASKS_LABEL_HEIGHT = 100
 CALENDAR_HEADER_HEIGHT = 50
 CALENDAR_HEIGHT = 300
 
-
+# UI radius
+CORNER_RADIUS = 10  # Adjust this value to control roundness
 
 # Button sizes
 ADD_BUTTON_SIZE = 50
