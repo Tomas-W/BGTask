@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+
+# Virtual Environment
+.venv
+
+# Kivy specific
+*.pyc
+*.pyo
+*.pyd
+.buildozer/
+bin/
+
+# IDE specific
+.idea/
+.vscode/
+
+# Misc
+*.png
+*.json

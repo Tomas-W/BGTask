@@ -1,0 +1,50 @@
+LIGHT_BLUE = (0.85, 0.91, 0.98, 1.0)   # Background for task details - solid equivalent of semi-transparent light blue
+BLUE = (0.45, 0.65, 0.95, 1.0)         # Save button, Date & Time button - slightly lighter blue
+DARK_BLUE = (0.35, 0.55, 0.85, 1.0)    # New Task bar, + button - slightly darker blue
+GREY = (0.7, 0.7, 0.7, 1.0)            # Cancel button and unselected datetime field
+TEXT_BLUE = (0.1, 0.1, 0.4, 1.0)       # Text color on home screen
+WHITE = (1.0, 1.0, 1.0, 1.0)           # Pure white
+
+BG_WHITE = (0.92, 0.92, 0.92, 1.0)     # Background color (light gray)
+
+
+# Vertical spacing
+SPACE_Y_XS = 5
+SPACE_Y_S = 10
+SPACE_Y_M = 20
+SPACE_Y_L = 30
+SPACE_Y_XL = 40
+
+# New padding variables as requested
+FIELD_PADDING_X = 20  # Padding between task text and background edge (horizontal)
+FIELD_PADDING_Y = 10  # Padding between task text and background edge (vertical)
+SCREEN_PADDING_X = 20  # Padding between fields and screen edge
+DAY_SPACING_Y = 20  # Spacing between day groups (vertical)
+
+# Font sizes
+DEFAULT_FONT_SIZE = 16
+HEADER_FONT_SIZE = 20
+LARGE_FONT_SIZE = 30
+CALENDAR_FONT_SIZE = 18
+
+# UI element heights
+TOP_BAR_HEIGHT = 60
+HEADER_HEIGHT = HEADER_FONT_SIZE
+TASK_ITEM_HEIGHT = 40 
+TIME_LABEL_HEIGHT = 20
+MESSAGE_LABEL_HEIGHT = DEFAULT_FONT_SIZE
+BUTTON_HEIGHT = 50
+NO_TASKS_LABEL_HEIGHT = 100
+CALENDAR_HEADER_HEIGHT = 50
+CALENDAR_HEIGHT = 300
+
+
+
+# Button sizes
+ADD_BUTTON_SIZE = 50
+
+# Text wrapping
+MESSAGE_TEXT_HEIGHT = 30
+
+# Vertical padding (where not using SMALL_SPACING or LARGE_SPACING)
+VERTICAL_PADDING = 5  # Used for various small vertical paddings
