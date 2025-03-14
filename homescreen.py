@@ -17,9 +17,6 @@ class TaskGroup(BoxLayout):
     def __init__(self, date_str, tasks, **kwargs):
         super().__init__(**kwargs)
         self.orientation = "vertical"
-        self.padding = [0, 0, 0, 0]  # No padding at this level
-        self.spacing = 0  # Remove spacing between date header and task container
-        self.size_hint_y = None  # Allow height to be calculated
         
         # Add date header
         date_label = Label(
@@ -30,17 +27,24 @@ class TaskGroup(BoxLayout):
             font_size=dp(settings.HEADER_FONT_SIZE),
             bold=True,
             color=settings.TEXT_BLUE,
-            padding=[dp(0), dp(0)]  # Use consistent field padding
+            padding=[0, 0, 0, 0]  # Use consistent field padding
         )
         date_label.bind(size=date_label.setter("text_size"))
         self.add_widget(date_label)
+        
+        # Spacer below date label (height also added to overall height)
+        spacer = BoxLayout(
+            size_hint_y=None,
+            height=dp(settings.SPACE_Y_XS)  # linked with update_group_height
+        )
+        self.add_widget(spacer)
         
         # Create a container for tasks with background
         self.tasks_container = BoxLayout(
             orientation="vertical",
             size_hint_y=None,
-            spacing=dp(0),  # Spacing between tasks
-            padding=[0, dp(0), 0, dp(0)]  # Vertical padding
+            spacing=dp(settings.SPACE_Y_S),  # Spacing between tasks
+            padding=[0, dp(settings.SPACE_Y_M), 0, dp(settings.SPACE_Y_M)]  # Vertical padding
         )
         
         # Bind the container's height to its children
@@ -66,8 +70,8 @@ class TaskGroup(BoxLayout):
     
     def update_group_height(self, instance, value):
         """Update the overall height when tasks_container height changes"""
-        # DATE_HEADER_HEIGHT for date_label + tasks_container height
-        self.height = dp(settings.HEADER_HEIGHT) + value  # Remove extra spacing
+        # Spacer + DATE_HEADER_HEIGHT for date_label + tasks_container height
+        self.height = dp(settings.SPACE_Y_XS) + dp(settings.HEADER_HEIGHT) + value
     
     def update_bg_rect(self, instance, value):
         self.bg_rect.pos = instance.pos
@@ -80,7 +84,7 @@ class TaskGroup(BoxLayout):
             orientation="vertical",
             size_hint=(1, None),
             height=dp(settings.TASK_ITEM_HEIGHT),
-            padding=[0, 0, 0, 0]  # No padding at this level
+            padding=[0, 0, 0, 0],  # No padding at this level
         )
         
         # Time label with the same indentation as message
@@ -129,7 +133,7 @@ class HomeScreen(Screen):
         # Top bar with + button
         self.top_bar = BoxLayout(
             size_hint=(1, None),
-            height=dp(settings.TOP_BAR_HEIGHT)
+            height=dp(settings.NAV_HEIGHT)
         )
         
         # Top bar background
@@ -141,7 +145,8 @@ class HomeScreen(Screen):
         # Add button
         self.add_button = Button(
             text="+",
-            font_size=dp(settings.LARGE_FONT_SIZE),
+            font_size=dp(settings.NAV_FONT_SIZE),
+            bold=True,
             background_color=(0, 0, 0, 0),
             color=settings.WHITE,
             size_hint=(None, None),
@@ -164,7 +169,7 @@ class HomeScreen(Screen):
         self.task_container = BoxLayout(
             orientation="vertical",
             size_hint_y=None,
-            spacing=dp(0),  # Larger spacing between day groups
+            spacing=dp(settings.SPACE_Y_XL),  # Larger spacing between day groups
             padding=[dp(settings.SCREEN_PADDING_X), dp(0), 
                      dp(settings.SCREEN_PADDING_X), dp(0)]  # Padding around all content
         )
@@ -181,6 +186,14 @@ class HomeScreen(Screen):
         self.content_layout.add_widget(self.scroll_view)
         
         self.layout.add_widget(self.top_bar)
+        
+        # Add spacer after top bar
+        spacer = BoxLayout(
+            size_hint_y=None,
+            height=dp(settings.SPACE_Y_XL)
+        )
+        self.layout.add_widget(spacer)
+        
         self.layout.add_widget(self.content_layout)
         
         self.add_widget(self.layout)

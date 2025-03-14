@@ -282,7 +282,7 @@ class TaskScreen(Screen):
         # Top bar with title and cancel button
         self.top_bar = BoxLayout(
             size_hint=(1, None),
-            height=dp(settings.TOP_BAR_HEIGHT),
+            height=dp(settings.NAV_HEIGHT),
             padding=[dp(0), 0, dp(0), 0]
         )
         
