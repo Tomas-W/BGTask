@@ -1,5 +1,6 @@
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -8,6 +9,8 @@ from kivy.core.window import Window
 from kivy.properties import ListProperty
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.clock import Clock
+from kivy.animation import Animation
+from kivy.animation import AnimationTransition
 
 import settings
 from taskmanager import TaskManager
@@ -143,38 +146,31 @@ class TaskGroup(BoxLayout):
 class HomeScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        # Task manager
         self.task_manager = TaskManager()
-        
-        # Root layout
-        self.layout = BoxLayout(orientation="vertical")
-        
-        # Top bar with + button
-        self.top_bar = BoxLayout(
-            size_hint=(1, None),
-            height=dp(settings.NAV_HEIGHT)
+        self.root_layout = FloatLayout()
+        self.layout = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, 1),
+            pos_hint={"top": 1, "center_x": 0.5}
         )
         
+        # Top bar with + button
+        self.top_bar = Button(
+            size_hint=(1, None),
+            height=dp(settings.TOP_BAR_HEIGHT),
+            background_color=settings.OPAQUE,
+            text="+",
+            font_size=dp(settings.TOP_BAR_FONT_SIZE),
+            bold=True,
+            color=settings.WHITE
+        )
         # Top bar background
         with self.top_bar.canvas.before:
             Color(*settings.DARK_BLUE)
             self.top_rect = Rectangle(pos=self.top_bar.pos, size=self.top_bar.size)
             self.top_bar.bind(pos=self.update_top_rect, size=self.update_top_rect)
         
-        # Add button
-        self.add_button = Button(
-            text="+",
-            font_size=dp(settings.NAV_FONT_SIZE),
-            bold=True,
-            background_color=(0, 0, 0, 0),
-            color=settings.WHITE,
-            size_hint=(None, None),
-            size=(dp(settings.ADD_BUTTON_SIZE), dp(settings.ADD_BUTTON_SIZE)),
-            pos_hint={"center_x": 0.5, "center_y": 0.5}
-        )
-        self.add_button.bind(on_press=self.go_to_task_screen)
-        self.top_bar.add_widget(self.add_button)
+        self.top_bar.bind(on_press=self.go_to_task_screen)
         
         # Content area
         self.content_layout = BoxLayout(orientation="vertical")
@@ -184,6 +180,9 @@ class HomeScreen(Screen):
             do_scroll_x=False,
             do_scroll_y=True
         )
+        
+        # Track scroll position for bottom bar visibility
+        self.scroll_view.bind(scroll_y=self.on_scroll)
         
         # Container for task groups
         self.task_container = BoxLayout(
@@ -216,7 +215,105 @@ class HomeScreen(Screen):
         
         self.layout.add_widget(self.content_layout)
         
-        self.add_widget(self.layout)
+        # Add main layout to root
+        self.root_layout.add_widget(self.layout)
+        
+        # Add bottom scroll-to-top bar as floating overlay
+        self.setup_bottom_bar()
+        
+        self.add_widget(self.root_layout)
+    
+    def setup_bottom_bar(self):
+        """Set up the bottom scroll-to-top bar as a floating overlay"""
+        # Bottom bar with arrow up button (as floating overlay)
+        self.bottom_bar = Button(
+            size_hint=(1, None),
+            height=dp(settings.BOTTOM_BAR_HEIGHT),
+            padding=[0, dp(settings.SPACE_Y_M), 0, 0],
+            pos_hint={"center_x": 0.5, "y": -0.15},  # Start position just below screen
+            background_color=settings.OPAQUE,
+            text="^",
+            font_size=dp(settings.TOP_BAR_FONT_SIZE),
+            bold=True,
+            color=settings.WHITE
+        )
+        
+        # Bottom bar background
+        with self.bottom_bar.canvas.before:
+            Color(*settings.DARK_BLUE)
+            self.bottom_rect = Rectangle(pos=self.bottom_bar.pos, size=self.bottom_bar.size)
+            self.bottom_bar.bind(pos=self.update_bottom_rect, size=self.update_bottom_rect)
+        
+        self.bottom_bar.bind(on_press=self.scroll_to_top)
+        
+        # Add to root layout as a floating element
+        self.root_layout.add_widget(self.bottom_bar)
+        
+        # Initially hide the bar
+        self.bottom_bar.opacity = 0
+        self.bottom_bar_visible = False
+        
+        # Flag to handle fast scrolling
+        self.scroll_timer = None
+    
+    def update_bottom_rect(self, instance, value):
+        """Update bottom bar rectangle dimensions"""
+        self.bottom_rect.pos = instance.pos
+        self.bottom_rect.size = instance.size
+    
+    def on_scroll(self, instance, value):
+        """Handle scroll events to show/hide bottom bar"""
+        # Cancel any pending scroll timer
+        if self.scroll_timer:
+            Clock.unschedule(self.scroll_timer)
+        
+        # For immediate response when reaching top
+        if value >= 0.8 and self.bottom_bar_visible:
+            self.hide_bottom_bar()
+            return
+            
+        # Schedule a short delay before processing scroll position
+        # This helps with handling fast scrolling
+        self.scroll_timer = Clock.schedule_once(lambda dt: self.process_scroll_position(value), 0.1)
+    
+    def process_scroll_position(self, value):
+        """Process the scroll position after a small delay"""
+        # Show bottom bar when scrolled down (scroll_y decreases when scrolling down)
+        if value < 0.8 and not self.bottom_bar_visible:
+            self.show_bottom_bar()
+        # Hide bottom bar when at/near the top
+        elif value >= 0.8 and self.bottom_bar_visible:
+            self.hide_bottom_bar()
+    
+    def show_bottom_bar(self):
+        """Animate the bottom bar into view with smooth sliding"""
+        self.bottom_bar_visible = True
+        
+        # Simple animation: slide up and fade in simultaneously
+        anim = Animation(
+            opacity=1, 
+            pos_hint={"center_x": 0.5, "y": 0}, 
+            duration=0.6,
+            transition=AnimationTransition.in_out_sine
+        )
+        anim.start(self.bottom_bar)
+    
+    def hide_bottom_bar(self):
+        """Animate the bottom bar out of view with smooth sliding"""
+        self.bottom_bar_visible = False
+        
+        # Simple animation: slide down and fade out simultaneously
+        anim = Animation(
+            opacity=0, 
+            pos_hint={"center_x": 0.5, "y": -0.15}, 
+            duration=0.6,
+            transition=AnimationTransition.in_out_sine
+        )
+        anim.start(self.bottom_bar)
+    
+    def scroll_to_top(self, instance):
+        """Scroll to the top of the scroll view"""
+        self.scroll_view.scroll_y = 1
     
     def update_top_rect(self, instance, value):
         self.top_rect.pos = instance.pos

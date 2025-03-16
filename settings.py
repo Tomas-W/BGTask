@@ -1,4 +1,5 @@
-LIGHT_BLUE = (0.70, 0.86, 0.93, 1.0)   # Background for task details - solid equivalent of semi-transparent light blue
+OPAQUE = (0, 0, 0, 0)
+LIGHT_BLUE = (0.77, 0.91, 0.98, 1.0)   # Background for task details - solid equivalent of semi-transparent light blue
 BLUE = (0.45, 0.65, 0.95, 1.0)         # Save button, Date & Time button - slightly lighter blue
 DARK_BLUE = (0.35, 0.55, 0.85, 1.0)    # New Task bar, + button - slightly darker blue
 GREY = (0.7, 0.7, 0.7, 1.0)            # Cancel button and unselected datetime field
@@ -6,7 +7,7 @@ TEXT_COLOR = (0.0, 0.0, 0.0, 1.0)       # Text color on home screen
 HEADER_COLOR = (0.35, 0.35, 0.35, 1.0)       # Text color on home screen
 WHITE = (1.0, 1.0, 1.0, 1.0)           # Pure white
 
-BG_WHITE = (0.89, 0.89, 0.89, 1.0)     # Background color (light gray)
+BG_WHITE = (0.93, 0.93, 0.93, 1.0)     # Background color (light gray)
 
 
 # Vertical spacing
@@ -25,11 +26,13 @@ DAY_SPACING_Y = 20  # Spacing between day groups (vertical)
 # Font sizes
 DEFAULT_FONT_SIZE = 16
 HEADER_FONT_SIZE = 20
-NAV_FONT_SIZE = 35
+TOP_BAR_FONT_SIZE = 35
+BOTTOM_BAR_FONT_SIZE = 20
 CALENDAR_FONT_SIZE = 18
 
 # UI element heights
-NAV_HEIGHT = 50
+TOP_BAR_HEIGHT = 50
+BOTTOM_BAR_HEIGHT = 30
 HEADER_HEIGHT = HEADER_FONT_SIZE
 TASK_ITEM_HEIGHT = 40 
 TIME_LABEL_HEIGHT = 20
