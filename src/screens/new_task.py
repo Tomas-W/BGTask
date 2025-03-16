@@ -12,26 +12,25 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.properties import StringProperty, NumericProperty
 from datetime import datetime, date, time, timedelta
 import calendar
-import settings
-
+from src.settings import COL, SPACE, SIZE, STYLE
 class DateTimeButton(Button):
     """Button for date and time selection"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.background_color = settings.BLUE
-        self.color = settings.WHITE
+        self.background_color = COL.BG_WHITE
+        self.color = COL.WHITE
         self.size_hint = (1, None)
-        self.height = dp(settings.BUTTON_HEIGHT)
-        self.font_size = dp(settings.DEFAULT_FONT_SIZE)
+        self.height = dp(SIZE.BUTTON_HEIGHT)
+        self.font_size = dp(SIZE.DEFAULT_FONT)
 
 class DateTimeLabel(ButtonBehavior, Label):
     """Label that behaves like a button"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.font_size = dp(settings.DEFAULT_FONT_SIZE)
-        self.color = settings.TEXT_COLOR
+        self.font_size = dp(SIZE.DEFAULT_FONT)
+        self.color = COL.TEXT_COLOR
         self.size_hint_y = None
-        self.height = dp(settings.HEADER_HEIGHT)
+        self.height = dp(SIZE.HEADER_HEIGHT)
         self.halign = "center"
         self.valign = "middle"
         self.bind(size=self.setter("text_size"))
@@ -49,16 +48,16 @@ class DateTimePickerPopup(Popup):
         self.selected_time = selected_time if selected_time else datetime.now().time()
         
         # Set up content
-        self.content = BoxLayout(orientation="vertical", spacing=dp(0), padding=dp(settings.FIELD_PADDING_X))
+        self.content = BoxLayout(orientation="vertical", spacing=dp(0), padding=dp(SPACE.FIELD_PADDING_X))
         
         # Calendar header
-        self.calendar_header = BoxLayout(size_hint=(1, None), height=dp(settings.CALENDAR_HEADER_HEIGHT))
+        self.calendar_header = BoxLayout(size_hint=(1, None), height=dp(SIZE.CALENDAR_HEADER_HEIGHT))
         
         # Previous month button
         self.prev_month_btn = Button(
             text="<",
-            background_color=settings.GREY,
-            color=settings.WHITE,
+            background_color=COL.GREY,
+            color=COL.WHITE,
             size_hint=(0.2, 1)
         )
         self.prev_month_btn.bind(on_press=self.go_to_prev_month)
@@ -66,16 +65,16 @@ class DateTimePickerPopup(Popup):
         # Month/year label
         self.month_year = Label(
             size_hint=(0.6, 1),
-            color=settings.TEXT_COLOR,
-            font_size=dp(settings.CALENDAR_FONT_SIZE),
+            color=COL.TEXT,
+            font_size=dp(SIZE.CALENDAR_FONT),
             bold=True
         )
         
         # Next month button
         self.next_month_btn = Button(
             text=">",
-            background_color=settings.GREY,
-            color=settings.WHITE,
+            background_color=COL.GREY,
+            color=COL.WHITE,
             size_hint=(0.2, 1)
         )
         self.next_month_btn.bind(on_press=self.go_to_next_month)
@@ -85,7 +84,7 @@ class DateTimePickerPopup(Popup):
         self.calendar_header.add_widget(self.next_month_btn)
         
         # Calendar grid
-        self.calendar_grid = GridLayout(cols=7, spacing=dp(2), size_hint=(1, None), height=dp(settings.CALENDAR_HEIGHT))
+        self.calendar_grid = GridLayout(cols=7, spacing=dp(2), size_hint=(1, None), height=dp(SIZE.CALENDAR_HEIGHT))
         
         # Day of week headers
         for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]:
@@ -93,7 +92,7 @@ class DateTimePickerPopup(Popup):
                 Label(
                     text=day,
                     bold=True,
-                    color=settings.TEXT_COLOR
+                    color=COL.TEXT
                 )
             )
         
@@ -104,7 +103,7 @@ class DateTimePickerPopup(Popup):
         self.time_layout = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
-            height=dp(settings.BUTTON_HEIGHT),
+            height=dp(SIZE.BUTTON_HEIGHT),
             spacing=dp(0)
         )
         
@@ -112,7 +111,7 @@ class DateTimePickerPopup(Popup):
         self.hour_label = Label(
             text="Hour:",
             size_hint=(0.2, 1),
-            color=settings.TEXT_COLOR
+            color=COL.TEXT
         )
         
         self.hour_input = TextInput(
@@ -120,7 +119,7 @@ class DateTimePickerPopup(Popup):
             multiline=False,
             input_filter="int",
             size_hint=(0.2, 1),
-            font_size=dp(settings.HEADER_FONT_SIZE),
+            font_size=dp(SIZE.HEADER_FONT),
             halign="center"
         )
         
@@ -128,7 +127,7 @@ class DateTimePickerPopup(Popup):
         self.minute_label = Label(
             text="Minute:",
             size_hint=(0.2, 1),
-            color=settings.TEXT_COLOR
+            color=COL.TEXT
         )
         
         self.minute_input = TextInput(
@@ -136,7 +135,7 @@ class DateTimePickerPopup(Popup):
             multiline=False,
             input_filter="int",
             size_hint=(0.2, 1),
-            font_size=dp(settings.HEADER_FONT_SIZE),
+            font_size=dp(SIZE.HEADER_FONT),
             halign="center"
         )
         
@@ -148,22 +147,22 @@ class DateTimePickerPopup(Popup):
         # Action buttons
         self.buttons_layout = BoxLayout(
             size_hint=(1, None),
-            height=dp(settings.BUTTON_HEIGHT),
+            height=dp(SIZE.BUTTON_HEIGHT),
             spacing=dp(0)
         )
         
         self.cancel_btn = Button(
             text="Cancel",
-            background_color=settings.GREY,
-            color=settings.WHITE,
+            background_color=COL.GREY,
+            color=COL.WHITE,
             size_hint=(0.5, 1)
         )
         self.cancel_btn.bind(on_press=self.dismiss)
         
         self.ok_btn = Button(
             text="OK",
-            background_color=settings.BLUE,
-            color=settings.WHITE,
+            background_color=COL.BLUE,
+            color=COL.WHITE,
             size_hint=(0.5, 1)
         )
         self.ok_btn.bind(on_press=self.confirm_selection)
@@ -209,9 +208,9 @@ class DateTimePickerPopup(Popup):
                         self.current_month == self.selected_date.month and 
                         self.current_year == self.selected_date.year):
                         with day_button.canvas.before:
-                            Color(*settings.BLUE)
+                            Color(*COL.FIELD_BG)
                             Rectangle(pos=day_button.pos, size=day_button.size)
-                        day_button.color = settings.WHITE
+                        day_button.color = COL.WHITE
                         day_button.bind(pos=self.update_selected_day, 
                                        size=self.update_selected_day)
                     
@@ -282,13 +281,13 @@ class TaskScreen(Screen):
         # Top bar with title and cancel button
         self.top_bar = BoxLayout(
             size_hint=(1, None),
-            height=dp(settings.TOP_BAR_HEIGHT),
+            height=dp(SIZE.TOP_BAR_HEIGHT),
             padding=[dp(0), 0, dp(0), 0]
         )
         
         # Top bar background
         with self.top_bar.canvas.before:
-            Color(*settings.DARK_BLUE)
+            Color(*COL.BAR)
             self.rect = Rectangle(pos=self.top_bar.pos, size=self.top_bar.size)
             self.top_bar.bind(pos=self.update_rect, size=self.update_rect)
         
@@ -296,18 +295,18 @@ class TaskScreen(Screen):
         title_label = Label(
             text="New Task",
             bold=True,
-            color=settings.WHITE,
+            color=COL.WHITE,
             size_hint=(0.7, 1),
-            font_size=dp(settings.HEADER_FONT_SIZE)
+            font_size=dp(SIZE.HEADER_FONT)
         )
         
         # Cancel button
         self.cancel_button = Button(
             text="Cancel",
-            background_color=(0, 0, 0, 0),
-            color=settings.WHITE,
+            background_color=COL.BUTTON_INACTIVE,
+            color=COL.WHITE,
             size_hint=(0.3, 1),
-            font_size=dp(settings.DEFAULT_FONT_SIZE)
+            font_size=dp(SIZE.DEFAULT_FONT)
         )
         self.cancel_button.bind(on_press=self.cancel_task)
         
@@ -317,8 +316,8 @@ class TaskScreen(Screen):
         # Content area
         self.content_layout = BoxLayout(
             orientation="vertical",
-            padding=[dp(settings.SCREEN_PADDING_X), dp(0),
-                     dp(settings.SCREEN_PADDING_X), dp(0)],
+            padding=[dp(SPACE.SCREEN_PADDING_X), dp(0),
+                     dp(SPACE.SCREEN_PADDING_X), dp(0)],
             spacing=dp(0)
         )
         
@@ -326,12 +325,12 @@ class TaskScreen(Screen):
         self.datetime_label = Label(
             text="Date & Time:",
             size_hint=(1, None),
-            height=dp(settings.HEADER_HEIGHT),
+            height=dp(SIZE.HEADER_HEIGHT),
             halign="left",
-            color=settings.TEXT_COLOR,
-            font_size=dp(settings.DEFAULT_FONT_SIZE),
+            color=COL.TEXT,
+            font_size=dp(SIZE.DEFAULT_FONT),
             bold=True,
-            padding=[dp(settings.FIELD_PADDING_X), 0]
+            padding=[dp(SPACE.FIELD_PADDING_X), 0]
         )
         self.datetime_label.bind(size=self.datetime_label.setter("text_size"))
         
@@ -343,31 +342,31 @@ class TaskScreen(Screen):
         self.task_label = Label(
             text="Task:",
             size_hint=(1, None),
-            height=dp(settings.HEADER_HEIGHT),
+            height=dp(SIZE.HEADER_HEIGHT),
             halign="left",
-            color=settings.TEXT_COLOR,
-            font_size=dp(settings.DEFAULT_FONT_SIZE),
+            color=COL.TEXT,
+            font_size=dp(SIZE.DEFAULT_FONT),
             bold=True,
-            padding=[dp(settings.FIELD_PADDING_X), 0]
+            padding=[dp(SPACE.FIELD_PADDING_X), 0]
         )
         self.task_label.bind(size=self.task_label.setter("text_size"))
         
         self.task_input = TextInput(
             hint_text="Enter your task here",
             size_hint=(1, None),
-            height=dp(settings.BUTTON_HEIGHT * 3),  # Taller input for multiline text
+            height=dp(SIZE.BUTTON_HEIGHT * 3),  # Taller input for multiline text
             multiline=True,
-            font_size=dp(settings.DEFAULT_FONT_SIZE),
-            padding=[dp(settings.FIELD_PADDING_X), dp(settings.FIELD_PADDING_Y)]
+            font_size=dp(SIZE.DEFAULT_FONT),
+            padding=[dp(SPACE.FIELD_PADDING_X), dp(SPACE.FIELD_PADDING_Y)]
         )
         
         # Save button
         self.save_button = Button(
             text="Save Task",
-            background_color=settings.BLUE,
-            color=settings.WHITE,
+            background_color=COL.BUTTON_ACTIVE,
+            color=COL.WHITE,
             size_hint=(1, None),
-            height=dp(settings.BUTTON_HEIGHT)
+            height=dp(SIZE.BUTTON_HEIGHT)
         )
         self.save_button.bind(on_press=self.save_task)
         
@@ -380,7 +379,7 @@ class TaskScreen(Screen):
         
         # Background color
         with self.layout.canvas.before:
-            Color(*settings.BG_WHITE)
+            Color(*COL.BG_WHITE)
             self.bg_rect = Rectangle(pos=self.layout.pos, size=self.layout.size)
             self.layout.bind(pos=self.update_rect, size=self.update_rect)
         

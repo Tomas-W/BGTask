@@ -7,13 +7,13 @@ from kivy.core.window import Window
 from kivy.utils import platform
 from kivy.metrics import dp
 
-from homescreen import HomeScreen
-from taskscreen import TaskScreen
-import settings
+from src.screens.home import HomeScreen
+from src.screens.new_task import TaskScreen
+import src.settings as settings
 
 # Set window size for desktop testing
 if platform != "android":
-    Window.size = (400, 700)  # This is specific to desktop testing, we'll leave it as hardcoded
+    Window.size = (412, 915)  # This is specific to desktop testing, we'll leave it as hardcoded
 
 class TaskApp(App):
     def build(self):

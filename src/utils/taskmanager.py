@@ -1,7 +1,8 @@
 import os
 import json
 from datetime import datetime
-from task import Task
+from src.utils.task import Task
+from src.settings import COL, SPACE, SIZE, PATH
 
 class TaskManager:
     def __init__(self):
@@ -16,7 +17,7 @@ class TaskManager:
             from android.storage import app_storage_path
             return os.path.join(app_storage_path(), "tasks.json")
         else:
-            return os.path.join(os.path.dirname(os.path.abspath(__file__)), "tasks.json")
+            return os.path.join(PATH.SRC, "tasks.json")
     
     def add_task(self, message, timestamp):
         """Add a new task"""
