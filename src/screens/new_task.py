@@ -1,408 +1,111 @@
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.metrics import dp
-from kivy.graphics import Color, Rectangle
-from kivy.clock import Clock
-from kivy.uix.popup import Popup
-from kivy.uix.behaviors import ButtonBehavior
-from kivy.properties import StringProperty, NumericProperty
-from datetime import datetime, date, time, timedelta
-import calendar
-from src.settings import COL, SPACE, SIZE, STYLE
-class DateTimeButton(Button):
-    """Button for date and time selection"""
+from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.uix.floatlayout import FloatLayout
+from datetime import datetime
+
+from src.utils.widgets import TopBar, ScrollContainer, ButtonActive, ButtonInactive, ButtonFieldActive, ButtonFieldInactive, Spacer
+from src.screens.calendar import DateTimeButton, DateTimeLabel, DateTimePickerPopup
+from src.settings import COL, SPACE, SIZE, STYLE, FONT
+
+
+class NewTaskScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.background_color = COL.BG_WHITE
-        self.color = COL.WHITE
-        self.size_hint = (1, None)
-        self.height = dp(SIZE.BUTTON_HEIGHT)
-        self.font_size = dp(SIZE.DEFAULT_FONT)
-
-class DateTimeLabel(ButtonBehavior, Label):
-    """Label that behaves like a button"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_size = dp(SIZE.DEFAULT_FONT)
-        self.color = COL.TEXT_COLOR
-        self.size_hint_y = None
-        self.height = dp(SIZE.HEADER_HEIGHT)
-        self.halign = "center"
-        self.valign = "middle"
-        self.bind(size=self.setter("text_size"))
-
-class DateTimePickerPopup(Popup):
-    """Custom popup with calendar and time picker"""
-    def __init__(self, selected_date=None, selected_time=None, callback=None, **kwargs):
-        super().__init__(**kwargs)
-        self.title = "Select Date & Time"
-        self.size_hint = (0.9, 0.9)
-        self.callback = callback
-        
-        # Set default values if not provided
-        self.selected_date = selected_date if selected_date else datetime.now().date()
-        self.selected_time = selected_time if selected_time else datetime.now().time()
-        
-        # Set up content
-        self.content = BoxLayout(orientation="vertical", spacing=dp(0), padding=dp(SPACE.FIELD_PADDING_X))
-        
-        # Calendar header
-        self.calendar_header = BoxLayout(size_hint=(1, None), height=dp(SIZE.CALENDAR_HEADER_HEIGHT))
-        
-        # Previous month button
-        self.prev_month_btn = Button(
-            text="<",
-            background_color=COL.GREY,
-            color=COL.WHITE,
-            size_hint=(0.2, 1)
-        )
-        self.prev_month_btn.bind(on_press=self.go_to_prev_month)
-        
-        # Month/year label
-        self.month_year = Label(
-            size_hint=(0.6, 1),
-            color=COL.TEXT,
-            font_size=dp(SIZE.CALENDAR_FONT),
-            bold=True
-        )
-        
-        # Next month button
-        self.next_month_btn = Button(
-            text=">",
-            background_color=COL.GREY,
-            color=COL.WHITE,
-            size_hint=(0.2, 1)
-        )
-        self.next_month_btn.bind(on_press=self.go_to_next_month)
-        
-        self.calendar_header.add_widget(self.prev_month_btn)
-        self.calendar_header.add_widget(self.month_year)
-        self.calendar_header.add_widget(self.next_month_btn)
-        
-        # Calendar grid
-        self.calendar_grid = GridLayout(cols=7, spacing=dp(2), size_hint=(1, None), height=dp(SIZE.CALENDAR_HEIGHT))
-        
-        # Day of week headers
-        for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]:
-            self.calendar_grid.add_widget(
-                Label(
-                    text=day,
-                    bold=True,
-                    color=COL.TEXT
-                )
-            )
-        
-        # Calendar days (will be populated in update_calendar)
-        self.day_buttons = []
-        
-        # Time picker
-        self.time_layout = BoxLayout(
-            orientation="horizontal",
-            size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT),
-            spacing=dp(0)
-        )
-        
-        # Hour picker
-        self.hour_label = Label(
-            text="Hour:",
-            size_hint=(0.2, 1),
-            color=COL.TEXT
-        )
-        
-        self.hour_input = TextInput(
-            text=str(self.selected_time.hour).zfill(2),
-            multiline=False,
-            input_filter="int",
-            size_hint=(0.2, 1),
-            font_size=dp(SIZE.HEADER_FONT),
-            halign="center"
-        )
-        
-        # Minute picker
-        self.minute_label = Label(
-            text="Minute:",
-            size_hint=(0.2, 1),
-            color=COL.TEXT
-        )
-        
-        self.minute_input = TextInput(
-            text=str(self.selected_time.minute).zfill(2),
-            multiline=False,
-            input_filter="int",
-            size_hint=(0.2, 1),
-            font_size=dp(SIZE.HEADER_FONT),
-            halign="center"
-        )
-        
-        self.time_layout.add_widget(self.hour_label)
-        self.time_layout.add_widget(self.hour_input)
-        self.time_layout.add_widget(self.minute_label)
-        self.time_layout.add_widget(self.minute_input)
-        
-        # Action buttons
-        self.buttons_layout = BoxLayout(
-            size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT),
-            spacing=dp(0)
-        )
-        
-        self.cancel_btn = Button(
-            text="Cancel",
-            background_color=COL.GREY,
-            color=COL.WHITE,
-            size_hint=(0.5, 1)
-        )
-        self.cancel_btn.bind(on_press=self.dismiss)
-        
-        self.ok_btn = Button(
-            text="OK",
-            background_color=COL.BLUE,
-            color=COL.WHITE,
-            size_hint=(0.5, 1)
-        )
-        self.ok_btn.bind(on_press=self.confirm_selection)
-        
-        self.buttons_layout.add_widget(self.cancel_btn)
-        self.buttons_layout.add_widget(self.ok_btn)
-        
-        # Add all components to content
-        self.content.add_widget(self.calendar_header)
-        self.content.add_widget(self.calendar_grid)
-        self.content.add_widget(self.time_layout)
-        self.content.add_widget(self.buttons_layout)
-        
-        # Initialize calendar
-        self.current_month = self.selected_date.month
-        self.current_year = self.selected_date.year
-        self.update_calendar()
-    
-    def update_calendar(self):
-        """Update the calendar grid for the current month/year"""
-        # Update month/year label
-        month_name = calendar.month_name[self.current_month]
-        self.month_year.text = f"{month_name} {self.current_year}"
-        
-        # Clear existing day buttons
-        for child in list(self.calendar_grid.children)[:-7]:  # Keep day headers
-            self.calendar_grid.remove_widget(child)
-        
-        # Get calendar for current month
-        cal = calendar.monthcalendar(self.current_year, self.current_month)
-        
-        # Add day buttons
-        for week in cal:
-            for day in week:
-                if day == 0:
-                    # Empty cell for days not in current month
-                    self.calendar_grid.add_widget(Label(text=""))
-                else:
-                    day_button = DateTimeLabel(text=str(day))
-                    
-                    # Highlight the selected date
-                    if (day == self.selected_date.day and 
-                        self.current_month == self.selected_date.month and 
-                        self.current_year == self.selected_date.year):
-                        with day_button.canvas.before:
-                            Color(*COL.FIELD_BG)
-                            Rectangle(pos=day_button.pos, size=day_button.size)
-                        day_button.color = COL.WHITE
-                        day_button.bind(pos=self.update_selected_day, 
-                                       size=self.update_selected_day)
-                    
-                    day_button.bind(on_press=lambda btn, d=day: self.select_day(d))
-                    self.calendar_grid.add_widget(day_button)
-    
-    def update_selected_day(self, instance, value):
-        """Update the background rectangle for the selected day"""
-        for child in self.calendar_grid.children:
-            if isinstance(child, DateTimeLabel) and child.text == str(self.selected_date.day):
-                for instr in child.canvas.before.children:
-                    if isinstance(instr, Rectangle):
-                        instr.pos = child.pos
-                        instr.size = child.size
-    
-    def select_day(self, day):
-        """Handle day selection"""
-        try:
-            self.selected_date = date(self.current_year, self.current_month, day)
-            self.update_calendar()  # Refresh calendar to highlight the selected day
-        except ValueError:
-            pass  # Invalid date
-    
-    def go_to_prev_month(self, instance):
-        """Go to previous month"""
-        self.current_month -= 1
-        if self.current_month < 1:
-            self.current_month = 12
-            self.current_year -= 1
-        self.update_calendar()
-    
-    def go_to_next_month(self, instance):
-        """Go to next month"""
-        self.current_month += 1
-        if self.current_month > 12:
-            self.current_month = 1
-            self.current_year += 1
-        self.update_calendar()
-    
-    def confirm_selection(self, instance):
-        """Confirm the date and time selection"""
-        try:
-            # Get hour and minute from input fields
-            hour = int(self.hour_input.text) % 24
-            minute = int(self.minute_input.text) % 60
-            
-            # Create time object
-            self.selected_time = time(hour, minute)
-            
-            # Call the callback function with selected date and time
-            if self.callback:
-                self.callback(self.selected_date, self.selected_time)
-            
-            self.dismiss()
-        except ValueError:
-            # Handle invalid time input
-            self.hour_input.text = "00"
-            self.minute_input.text = "00"
-
-
-class TaskScreen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        
-        # Root layout
-        self.layout = BoxLayout(orientation="vertical")
-        
-        # Top bar with title and cancel button
-        self.top_bar = BoxLayout(
-            size_hint=(1, None),
-            height=dp(SIZE.TOP_BAR_HEIGHT),
-            padding=[dp(0), 0, dp(0), 0]
-        )
-        
-        # Top bar background
-        with self.top_bar.canvas.before:
-            Color(*COL.BAR)
-            self.rect = Rectangle(pos=self.top_bar.pos, size=self.top_bar.size)
-            self.top_bar.bind(pos=self.update_rect, size=self.update_rect)
-        
-        # Title
-        title_label = Label(
-            text="New Task",
-            bold=True,
-            color=COL.WHITE,
-            size_hint=(0.7, 1),
-            font_size=dp(SIZE.HEADER_FONT)
-        )
-        
-        # Cancel button
-        self.cancel_button = Button(
-            text="Cancel",
-            background_color=COL.BUTTON_INACTIVE,
-            color=COL.WHITE,
-            size_hint=(0.3, 1),
-            font_size=dp(SIZE.DEFAULT_FONT)
-        )
-        self.cancel_button.bind(on_press=self.cancel_task)
-        
-        self.top_bar.add_widget(title_label)
-        self.top_bar.add_widget(self.cancel_button)
-        
-        # Content area
-        self.content_layout = BoxLayout(
+        self.root_layout = FloatLayout()
+        self.layout = BoxLayout(
             orientation="vertical",
-            padding=[dp(SPACE.SCREEN_PADDING_X), dp(0),
-                     dp(SPACE.SCREEN_PADDING_X), dp(0)],
-            spacing=dp(0)
+            size_hint=(1, 1),
+            pos_hint={"top": 1, "center_x": 0.5}
         )
         
-        # Date and time selection
-        self.datetime_label = Label(
-            text="Date & Time:",
-            size_hint=(1, None),
-            height=dp(SIZE.HEADER_HEIGHT),
-            halign="left",
+        # Top bar
+        self.top_bar = TopBar(text="New Task", button=False)
+        self.layout.add_widget(self.top_bar)
+        
+        # Scroll container
+        self.scroll_container = ScrollContainer()
+
+        spacer = Spacer(height=dp(SPACE.SPACE_Y_XL))
+        self.scroll_container.container.add_widget(spacer)
+
+        # Date picker button
+        self.pick_date_button = ButtonActive(text="Pick Date", width=1)
+        self.pick_date_button.bind(on_press=self.show_datetime_picker)
+        self.scroll_container.container.add_widget(self.pick_date_button)  # Add to container
+        
+        # Date display box (initially empty)
+        self.date_display = ButtonFieldInactive(width=1)
+        # Label inside the date display box - centered text
+        self.date_display_label = Label(
+            text="",  # Initially empty
             color=COL.TEXT,
-            font_size=dp(SIZE.DEFAULT_FONT),
-            bold=True,
-            padding=[dp(SPACE.FIELD_PADDING_X), 0]
+            font_size=dp(FONT.DEFAULT),
+            halign="center",  # Centered text
+            valign="middle",
+            size_hint=(1, 1)
         )
-        self.datetime_label.bind(size=self.datetime_label.setter("text_size"))
-        
-        # Date and time button
-        self.datetime_button = DateTimeButton(text="Select Date & Time")
-        self.datetime_button.bind(on_press=self.show_datetime_picker)
-        
+        self.date_display_label.bind(size=self.date_display_label.setter("text_size"))
+        self.date_display.add_widget(self.date_display_label)
+        self.scroll_container.container.add_widget(self.date_display)
+
         # Task input
-        self.task_label = Label(
-            text="Task:",
-            size_hint=(1, None),
-            height=dp(SIZE.HEADER_HEIGHT),
-            halign="left",
-            color=COL.TEXT,
-            font_size=dp(SIZE.DEFAULT_FONT),
-            bold=True,
-            padding=[dp(SPACE.FIELD_PADDING_X), 0]
-        )
-        self.task_label.bind(size=self.task_label.setter("text_size"))
-        
         self.task_input = TextInput(
             hint_text="Enter your task here",
             size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT * 3),  # Taller input for multiline text
+            height=dp(SIZE.BUTTON_HEIGHT * 3),
             multiline=True,
-            font_size=dp(SIZE.DEFAULT_FONT),
+            font_size=dp(FONT.DEFAULT),
             padding=[dp(SPACE.FIELD_PADDING_X), dp(SPACE.FIELD_PADDING_Y)]
         )
-        
-        # Save button
-        self.save_button = Button(
-            text="Save Task",
-            background_color=COL.BUTTON_ACTIVE,
-            color=COL.WHITE,
+        self.scroll_container.container.add_widget(self.task_input)
+
+        # Button row with cancel and save side by side
+        self.button_row = BoxLayout(
+            orientation="horizontal",
             size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT)
+            height=dp(SIZE.BUTTON_HEIGHT),
+            spacing=dp(SPACE.SPACE_Y_M)
         )
+        # Cancel button on the left
+        self.cancel_button = ButtonInactive(text="Cancel", width=2)
+        self.cancel_button.bind(on_press=self.cancel_task)
+        self.button_row.add_widget(self.cancel_button)
+        
+        # Save button on the right
+        self.save_button = ButtonActive(text="Save Task", width=2)
         self.save_button.bind(on_press=self.save_task)
+        self.button_row.add_widget(self.save_button)
+
+        self.scroll_container.container.add_widget(self.button_row)  # Add to container
+
+        # Add scroll_container to layout
+        self.layout.add_widget(self.scroll_container)
         
-        # Add widgets to content layout
-        self.content_layout.add_widget(self.datetime_label)
-        self.content_layout.add_widget(self.datetime_button)
-        self.content_layout.add_widget(self.task_label)
-        self.content_layout.add_widget(self.task_input)
-        self.content_layout.add_widget(self.save_button)
+        # Add layout to root_layout - THIS WAS MISSING
+        self.root_layout.add_widget(self.layout)
         
-        # Background color
-        with self.layout.canvas.before:
-            Color(*COL.BG_WHITE)
-            self.bg_rect = Rectangle(pos=self.layout.pos, size=self.layout.size)
-            self.layout.bind(pos=self.update_rect, size=self.update_rect)
-        
-        # Assemble the layout
-        self.layout.add_widget(self.top_bar)
-        self.layout.add_widget(self.content_layout)
-        
-        self.add_widget(self.layout)
+        # Add root_layout to screen
+        self.add_widget(self.root_layout)
         
         # Initialize datetime
         self.selected_date = datetime.now().date()
         self.selected_time = datetime.now().time()
-        self.update_datetime_button()
+        self.update_datetime_display()
     
-    def update_rect(self, instance, value):
-        self.rect.pos = instance.pos
-        self.rect.size = instance.size
     
-    def update_datetime_button(self):
-        """Update the datetime button text with the selected date and time"""
-        date_str = self.selected_date.strftime("%A, %B %d, %Y")
-        time_str = self.selected_time.strftime("%H:%M")
-        self.datetime_button.text = f"Date & Time: {date_str} at {time_str}"
+    
+    def update_datetime_display(self):
+        """Update the date display with the selected date and time"""
+        if hasattr(self, 'selected_date') and hasattr(self, 'selected_time'):
+            date_str = self.selected_date.strftime("%A, %B %d, %Y")
+            time_str = self.selected_time.strftime("%H:%M")
+            self.date_display_label.text = f"{date_str} at {time_str}"
+        else:
+            self.date_display_label.text = ""
     
     def show_datetime_picker(self, instance):
         """Show the datetime picker popup"""
@@ -417,7 +120,7 @@ class TaskScreen(Screen):
         """Callback when date and time are selected in the popup"""
         self.selected_date = selected_date
         self.selected_time = selected_time
-        self.update_datetime_button()
+        self.update_datetime_display()
     
     def cancel_task(self, instance):
         """Cancel task creation and return to home screen"""
@@ -429,7 +132,7 @@ class TaskScreen(Screen):
         message = self.task_input.text.strip()
         
         if not message:
-            # Show error message (could be improved with a popup)
+            # Show error message
             self.task_input.hint_text = "Task message is required!"
             self.task_input.background_color = (1, 0.8, 0.8, 1)
             return
@@ -453,7 +156,7 @@ class TaskScreen(Screen):
         
         self.selected_date = datetime.now().date()
         self.selected_time = datetime.now().time()
-        self.update_datetime_button()
+        self.update_datetime_display()
     
     def on_enter(self):
         """Called when screen is entered"""

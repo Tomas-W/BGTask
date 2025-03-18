@@ -7,8 +7,8 @@ from kivy.core.window import Window
 from kivy.utils import platform
 from kivy.metrics import dp
 
-from src.screens.home import HomeScreen
-from src.screens.new_task import TaskScreen
+from src.screens.home.home_screen import HomeScreen
+from src.screens.new_task import NewTaskScreen
 import src.settings as settings
 
 # Set window size for desktop testing
@@ -23,7 +23,7 @@ class TaskApp(App):
         
         # Add screens
         self.home_screen = HomeScreen(name="home")
-        self.task_screen = TaskScreen(name="task")
+        self.task_screen = NewTaskScreen(name="task")
         
         self.sm.add_widget(self.home_screen)
         self.sm.add_widget(self.task_screen)
