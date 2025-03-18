@@ -2,15 +2,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
-from kivy.uix.button import Button
-from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 
 from src.utils.taskmanager import TaskManager
-from src.utils.widgets import TopBar, BottomBar, ScrollContainer, Spacer
-from src.settings import COL, SPACE, SIZE, STYLE, FONT
 from src.screens.home.task_group import TaskGroup
+
+from src.utils.widgets import TopBar, BottomBar, ScrollContainer
+from src.settings import COL, SIZE
 
 
 class HomeScreen(Screen):
@@ -41,24 +39,19 @@ class HomeScreen(Screen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.root_layout.add_widget(self.bottom_bar)
-
         self.add_widget(self.root_layout)
     
     def go_to_task_screen(self, instance):
         self.manager.current = "task"
     
     def load_tasks(self):
-        """Load and display tasks"""
         self.task_manager.load_tasks()
         self.update_task_display()
     
     def update_task_display(self):
-        """Update the task display with current tasks"""
         self.scroll_container.clear_widgets()
         
-        # Get tasks grouped by date
         task_groups = self.task_manager.get_tasks_by_date()
-        
         if not task_groups:
             no_tasks_label = Label(
                 text="No tasks yet. Add one by tapping the + button!",
@@ -74,12 +67,11 @@ class HomeScreen(Screen):
             task_group = TaskGroup(
                 date_str=group["date"],
                 tasks=group["tasks"],
-                size_hint=(1, None)  # Allow height to be calculated
+                size_hint=(1, None)
             )
             self.scroll_container.add_widget_to_container(task_group)
     
     def on_enter(self):
         """Called when screen is entered"""
-        # Update task display whenever we return to this screen
         self.update_task_display() 
     

@@ -5,7 +5,45 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
 from src.settings import COL, SIZE, SPACE, FONT, STYLE
+
+
+class TaskContainerHeader(Label):
+    def __init__(self, text: str,**kwargs):
+        super().__init__(**kwargs)
+        self.text = text
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.HEADER_HEIGHT)
+        self.halign = "left"
+        self.font_size = dp(FONT.HEADER)
+        self.bold = True
+        self.color = COL.HEADER
+        self.bind(size=self.setter("text_size"))
+        
+
+class TaskContainer(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.size_hint_y = None
+        self.spacing = dp(SPACE.SPACE_Y_M)
+        self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
+        self.bind(minimum_height=self.setter("height"))
+
+        with self.canvas.before:
+            Color(*COL.FIELD_BG)
+            self.bg_rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[dp(STYLE.CORNER_RADIUS)]
+            )
+            self.bind(pos=self._update, size=self._update)
+
+    def _update(self, instance, value):
+        """Update background rectangle on resize/reposition"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
 
 
 class StyledTextInput(BoxLayout):

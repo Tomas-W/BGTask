@@ -4,8 +4,8 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
-from src.utils.widgets import Spacer
-from src.settings import COL, SPACE, SIZE, STYLE, FONT
+from src.utils.widgets import Spacer, TaskContainer, TaskContainerHeader
+from src.settings import COL, SPACE, SIZE, FONT
 
 
 class TaskGroup(BoxLayout):
@@ -17,16 +17,7 @@ class TaskGroup(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         
-        day_header = Label(
-            text=date_str,
-            size_hint=(1, None),
-            height=dp(SIZE.HEADER_HEIGHT),
-            halign="left",
-            font_size=dp(FONT.HEADER),
-            bold=True,
-            color=COL.HEADER,
-        )
-        day_header.bind(size=day_header.setter("text_size"))
+        day_header = TaskContainerHeader(text=date_str)
         self.add_widget(day_header)
         
         # Spacer below date label
@@ -34,29 +25,12 @@ class TaskGroup(BoxLayout):
         self.add_widget(spacer)
         
         # Tasks container
-        self.tasks_container = BoxLayout(
-            orientation="vertical",
-            size_hint_y=None,
-            spacing=dp(SPACE.SPACE_Y_L),
-            padding=[0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
-        )
-        self.tasks_container.bind(minimum_height=self.tasks_container.setter("height"))
-        # Set background
-        with self.tasks_container.canvas.before:
-            Color(*COL.FIELD_BG)
-            self.bg_rect = RoundedRectangle(
-                pos=self.tasks_container.pos, 
-                size=self.tasks_container.size,
-                radius=[dp(STYLE.CORNER_RADIUS)]
-            )
-            self.tasks_container.bind(pos=self.update_bg_rect, size=self.update_bg_rect)
-        
+        self.tasks_container = TaskContainer()
         for task in tasks:
             self.add_task_item(task)
-            
         self.add_widget(self.tasks_container)
         
-        self.height = day_header.height + self.tasks_container.height  # Remove extra spacing
+        self.height = day_header.height + self.tasks_container.height
         self.tasks_container.bind(height=self.update_group_height)
     
     def update_group_height(self, instance, value):

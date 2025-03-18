@@ -25,8 +25,13 @@ class Task:
         )
     
     def get_date_str(self):
-        """Return formatted date string for grouping"""
-        return self.timestamp.strftime("%A %d")  # e.g. "Friday 14"
+        """Format date as 'Day DD Month' (e.g., 'Friday 14 March')"""
+        # Check if timestamp is already a datetime object
+        if isinstance(self.timestamp, datetime):
+            dt = self.timestamp
+        else:
+            dt = datetime.fromtimestamp(self.timestamp)
+        return dt.strftime("%A %d %b")  # Format like "Friday 14 Feb"
     
     def get_time_str(self):
         """Return formatted time string for display"""
