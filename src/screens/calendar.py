@@ -18,7 +18,7 @@ class DateTimeButton(Button):
     """Button for date and time selection"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.background_color = COL.BG_WHITE
+        self.background_color = COL.BG
         self.color = COL.WHITE
         self.size_hint = (1, None)
         self.height = dp(SIZE.BUTTON_HEIGHT)

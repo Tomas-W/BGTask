@@ -4,8 +4,69 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
-
+from kivy.uix.textinput import TextInput
 from src.settings import COL, SIZE, SPACE, FONT, STYLE
+
+
+class StyledTextInput(BoxLayout):
+    """TextInput with TaskGroup-style background"""
+    def __init__(self, hint_text="", **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.BUTTON_HEIGHT * 3)
+        self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
+        
+        with self.canvas.before:
+            Color(*COL.FIELD_BG)
+            self.bg_rect = RoundedRectangle(
+                pos=self.pos, 
+                size=self.size,
+                radius=[dp(STYLE.CORNER_RADIUS)]
+            )
+            self.bind(pos=self.update_bg_rect, size=self.update_bg_rect)
+        
+        self.text_input = TextInput(
+            hint_text=hint_text,
+            size_hint=(1, None),
+            height=dp(SIZE.BUTTON_HEIGHT * 3) - dp(SPACE.SPACE_Y_M) * 2,
+            multiline=True,
+            font_size=dp(FONT.DEFAULT),
+            background_color=COL.OPAQUE,
+            foreground_color=COL.TEXT,
+            padding=[dp(SPACE.FIELD_PADDING_X), 0]
+        )
+        
+        self.add_widget(self.text_input)
+    
+    def update_bg_rect(self, instance, value):
+        """Update background rectangle on resize/reposition"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+        
+    @property
+    def text(self):
+        return self.text_input.text
+        
+    @text.setter
+    def text(self, value):
+        self.text_input.text = value
+        
+    @property
+    def hint_text(self):
+        return self.text_input.hint_text
+        
+    @hint_text.setter
+    def hint_text(self, value):
+        self.text_input.hint_text = value
+        
+    @property
+    def background_color(self):
+        return self.text_input.background_color
+        
+    @background_color.setter
+    def background_color(self, value):
+        self.text_input.background_color = value
 
 
 class ButtonActive(Button):
@@ -111,7 +172,7 @@ class MainContainer(BoxLayout):
         self.bind(minimum_height=self.setter("height"))
         
         with self.canvas.before:
-            Color(*COL.BG_WHITE)
+            Color(*COL.BG)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
     
@@ -126,7 +187,7 @@ class ScrollContainer(BoxLayout):
         
         # Set background for entire scroll area
         with self.canvas.before:
-            Color(*COL.BG_WHITE)
+            Color(*COL.BG)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update_bg, size=self._update_bg)
         
@@ -197,7 +258,7 @@ class TopBar(Button):
         )
         
         with self.canvas.before:
-            Color(*COL.BAR)
+            Color(*COL.BUTTON_ACTIVE)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
     
@@ -223,7 +284,7 @@ class BottomBar(Button):
         )
         
         with self.canvas.before:
-            Color(*COL.BAR)
+            Color(*COL.BUTTON_ACTIVE)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
         

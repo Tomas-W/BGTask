@@ -7,7 +7,7 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.floatlayout import FloatLayout
 from datetime import datetime
 
-from src.utils.widgets import TopBar, ScrollContainer, ButtonActive, ButtonInactive, ButtonFieldActive, ButtonFieldInactive, Spacer
+from src.utils.widgets import TopBar, ScrollContainer, ButtonActive, ButtonInactive, ButtonFieldActive, ButtonFieldInactive, Spacer, StyledTextInput
 from src.screens.calendar import DateTimeButton, DateTimeLabel, DateTimePickerPopup
 from src.settings import COL, SPACE, SIZE, STYLE, FONT
 
@@ -33,9 +33,9 @@ class NewTaskScreen(Screen):
         self.scroll_container.container.add_widget(spacer)
 
         # Date picker button
-        self.pick_date_button = ButtonActive(text="Pick Date", width=1)
+        self.pick_date_button = ButtonActive(text="Select Date", width=1)
         self.pick_date_button.bind(on_press=self.show_datetime_picker)
-        self.scroll_container.container.add_widget(self.pick_date_button)  # Add to container
+        self.scroll_container.container.add_widget(self.pick_date_button)
         
         # Date display box (initially empty)
         self.date_display = ButtonFieldInactive(width=1)
@@ -52,15 +52,8 @@ class NewTaskScreen(Screen):
         self.date_display.add_widget(self.date_display_label)
         self.scroll_container.container.add_widget(self.date_display)
 
-        # Task input
-        self.task_input = TextInput(
-            hint_text="Enter your task here",
-            size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT * 3),
-            multiline=True,
-            font_size=dp(FONT.DEFAULT),
-            padding=[dp(SPACE.FIELD_PADDING_X), dp(SPACE.FIELD_PADDING_Y)]
-        )
+        # Task input with styled background (like TaskGroup)
+        self.task_input = StyledTextInput(hint_text="Enter your task here")
         self.scroll_container.container.add_widget(self.task_input)
 
         # Button row with cancel and save side by side
@@ -80,12 +73,12 @@ class NewTaskScreen(Screen):
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
 
-        self.scroll_container.container.add_widget(self.button_row)  # Add to container
+        self.scroll_container.container.add_widget(self.button_row)
 
         # Add scroll_container to layout
         self.layout.add_widget(self.scroll_container)
         
-        # Add layout to root_layout - THIS WAS MISSING
+        # Add layout to root_layout
         self.root_layout.add_widget(self.layout)
         
         # Add root_layout to screen
@@ -95,8 +88,6 @@ class NewTaskScreen(Screen):
         self.selected_date = datetime.now().date()
         self.selected_time = datetime.now().time()
         self.update_datetime_display()
-    
-    
     
     def update_datetime_display(self):
         """Update the date display with the selected date and time"""
@@ -134,7 +125,8 @@ class NewTaskScreen(Screen):
         if not message:
             # Show error message
             self.task_input.hint_text = "Task message is required!"
-            self.task_input.background_color = (1, 0.8, 0.8, 1)
+            # Make the error visible against the blue background
+            self.task_input.text_input.background_color = (1, 0.8, 0.8, 0.3)
             return
         
         # Create datetime from selected date and time
@@ -152,7 +144,7 @@ class NewTaskScreen(Screen):
         """Reset the form to default values"""
         self.task_input.text = ""
         self.task_input.hint_text = "Enter your task here"
-        self.task_input.background_color = (1, 1, 1, 1)
+        self.task_input.background_color = (0, 0, 0, 0)  # Keep transparent
         
         self.selected_date = datetime.now().date()
         self.selected_time = datetime.now().time()

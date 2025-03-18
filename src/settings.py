@@ -7,20 +7,20 @@ class Paths:
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
-    # FIELD_BG = (0.77, 0.91, 0.98, 1.0)        # Light Blue - Background for text fields
-    FIELD_BG = (50/255, 100/255, 230/255, 0.2)
-    BUTTON_ACTIVE = (0.45, 0.65, 0.95, 1.0)   # Blue       - Regular buttons
-    TEXT = (0, 0, 0, 1.0)                     # Black       - Regular text
-    # BAR = (0.35, 0.55, 0.85, 1.0)      # Dark BLue  - Navigation buttons
-    BAR = (50/255, 100/255, 255/255, 1.0)
-    BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)    # Grey       - Cancel button and unselected fields
-    BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)        # Whitr      - Button text
-    HEADER = (0.4, 0.4, 0.4, 1.0)          # Pale Blue  - Headers
-    WHITE = (1.0, 1.0, 1.0, 1.0)              # White      - Pure white
-    BG_WHITE = (0.93, 0.93, 0.93, 1.0)        # Light Grey - Background color
-
+    WHITE = (1.0, 1.0, 1.0, 1.0)
+    BLACK = (0.0, 0.0, 0.0, 1.0)
     RED = (1.0, 0.0, 0.0, 1.0)
 
+    BG = (0.93, 0.93, 0.93, 1.0)
+    
+    BUTTON_ACTIVE = (0.2, 0.4, 0.7, 1.0)
+    BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
+    BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)
+
+    HEADER = (0.4, 0.4, 0.4, 1.0)
+    FIELD_BG = (0.45, 0.65, 0.95, 0.3)
+    TEXT = (0, 0, 0, 1.0)
+    
 
 class Spacing:
     SPACE_Y_XS = 5
