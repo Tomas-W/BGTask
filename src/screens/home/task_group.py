@@ -18,10 +18,11 @@ class TaskGroup(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         
+        # Header with day name and int
         day_header = TaskHeader(text=date_str)
         self.add_widget(day_header)
         
-        # Spacer below date label
+        # Spacer
         spacer = Spacer(height=dp(SPACE.SPACE_Y_XS))
         self.add_widget(spacer)
         
@@ -38,17 +39,11 @@ class TaskGroup(BoxLayout):
         """Update the overall height when tasks_container height changes"""
         self.height = dp(SPACE.SPACE_Y_XS) + dp(SIZE.HEADER_HEIGHT) + value
     
-    def update_bg_rect(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
-    
     def add_task_item(self, task):
         """Add a task item widget"""
         # Time stamp and task message
         task_container = TaskContainer()
-        
         time_label = TimeLabel(text=task.get_time_str())
-        
         task_label = TaskLabel(text=task.message)
         
         def update_text_size(instance, value):

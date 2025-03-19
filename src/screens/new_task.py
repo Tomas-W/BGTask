@@ -36,37 +36,31 @@ class NewTaskScreen(Screen):
         
         # Date display box
         self.date_display = ButtonField(text="", width=1, color_state="inactive")
-        # self.date_display_label = ButtonFieldLabel(text="")
-        # self.date_display.add_widget(self.date_display_label)
         self.scroll_container.container.add_widget(self.date_display)
 
-        # Task input with styled background
+        # Task input
         self.task_input = TextField(hint_text="Enter your task here")
         self.scroll_container.container.add_widget(self.task_input)
 
         # Button row
         self.button_row = ButtonRow()
-        # Cancel button on the left
+        # Cancel button
         self.cancel_button = CustomButton(text="Cancel", width=2, color_state="inactive")
         self.cancel_button.bind(on_press=self.cancel_task)
         self.button_row.add_widget(self.cancel_button)
-        # Save button on the right
+        # Save button
         self.save_button = CustomButton(text="Save Task", width=2, color_state="active")
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
-
         self.scroll_container.container.add_widget(self.button_row)
 
-        # Add scroll_container to layout
+        # Add layouts
         self.layout.add_widget(self.scroll_container)
-        
-        # Add layout to root_layout
         self.root_layout.add_widget(self.layout)
-        
-        # Add root_layout to screen
         self.add_widget(self.root_layout)
     
     def clear_inputs(self):
+        """Clear the task input and date display data"""
         self.task_input.text = ""
         del self.selected_date
         del self.selected_time
@@ -97,7 +91,7 @@ class NewTaskScreen(Screen):
         self.selected_time = selected_time
         self.update_datetime_display()
         
-        # Reset the date picker button to normal state
+        # Reset the date picker button styles
         self.date_display.hide_border()
     
     def cancel_task(self, instance):
@@ -109,18 +103,18 @@ class NewTaskScreen(Screen):
         message = self.task_input.text.strip()
         has_error = False
         
-        # Validate task message
+        # Visual error when no message
         if not message:
             self.task_input.show_error_border()
             has_error = True
         
+        # Visual error when message too short
         if len(message.strip()) < 3:
             self.task_input.show_error_border()
             has_error = True
         
-        # Validate date selection
+        # Visual error when no date selected
         if not hasattr(self, "selected_date") or not hasattr(self, "selected_time"):
-            # Set button to error state
             self.date_display.show_error_border()
             self.date_display.set_text("No date selected")
             has_error = True
@@ -128,10 +122,8 @@ class NewTaskScreen(Screen):
         if has_error:
             return
         
-        # Create datetime from selected date and time
+        # Create and add task
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
-        
-        # Get task manager from home screen and add task
         home_screen = self.manager.get_screen(SCREEN.HOME)
         home_screen.task_manager.add_task(message=message, timestamp=task_datetime)
         self.clear_inputs()
@@ -140,9 +132,9 @@ class NewTaskScreen(Screen):
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""
-        self.task_input.hide_border()  # Reset the input border
-        self.date_display.hide_border()  # Reset the date display border
+        self.task_input.hide_border()
+        self.date_display.hide_border()
 
     def on_enter(self):
         """Called when screen is entered"""
-        self.date_display._set_inactive_state()  # Set date display to inactive state
+        self.date_display._set_inactive_state()

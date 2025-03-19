@@ -1,17 +1,21 @@
 import os
 import json
-from datetime import datetime
+
 from src.utils.task import Task
-from src.settings import COL, SPACE, SIZE, PATH
+
+from src.settings import PATH
 
 
 class TaskManager:
+    """
+    Manages tasks and their storage.
+    """
     def __init__(self):
         self.storage_path = self._get_storage_path()
         self.tasks = self.load_tasks()
         
     def _get_storage_path(self):
-        """Get the appropriate storage path based on platform"""
+        """Get the storage path based on platform"""
         from kivy.utils import platform
         
         if platform == "android":

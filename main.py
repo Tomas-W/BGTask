@@ -1,11 +1,7 @@
-import os
-import json
-from datetime import datetime
 from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.core.window import Window
+from kivy.uix.screenmanager import ScreenManager, SlideTransition
 from kivy.utils import platform
-from kivy.metrics import dp
 
 from src.screens.home.home_screen import HomeScreen
 from src.screens.new_task import NewTaskScreen
