@@ -7,8 +7,8 @@ from src.settings import COL, SPACE, SIZE, PATH
 
 class TaskManager:
     def __init__(self):
-        self.tasks = []
         self.storage_path = self._get_storage_path()
+        self.tasks = self.load_tasks()
         
     def _get_storage_path(self):
         """Get the appropriate storage path based on platform"""

@@ -1,23 +1,23 @@
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
+from datetime import datetime
 from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
-from datetime import datetime
+from kivy.uix.screenmanager import Screen
 
-from src.utils.widgets import TopBar, ScrollContainer, CustomButton, ButtonRow, ButtonField, Spacer, TextField
 from src.screens.calendar import DateTimePickerPopup
-from src.settings import SPACE
+from src.utils.buttons import TopBar, CustomButton
+from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow
+from src.utils.fields import TextField, ButtonField
+from src.utils.misc import Spacer
+
+from src.settings import SCREEN, SPACE
 
 
 class NewTaskScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.root_layout = FloatLayout()
-        self.layout = BoxLayout(
-            orientation="vertical",
-            size_hint=(1, 1),
-            pos_hint={"top": 1, "center_x": 0.5}
-        )
+        self.layout = BaseLayout()
+
         # Top bar
         self.top_bar = TopBar(text="New Task", button=False)
         self.layout.add_widget(self.top_bar)
@@ -66,6 +66,12 @@ class NewTaskScreen(Screen):
         # Add root_layout to screen
         self.add_widget(self.root_layout)
     
+    def clear_inputs(self):
+        self.task_input.text = ""
+        del self.selected_date
+        del self.selected_time
+        self.date_display.set_text("")
+
     def update_datetime_display(self):
         """Update the date display with the selected date and time"""
         if hasattr(self, 'selected_date') and hasattr(self, 'selected_time'):
@@ -96,7 +102,7 @@ class NewTaskScreen(Screen):
     
     def cancel_task(self, instance):
         """Cancel task creation and return to home screen"""
-        self.manager.current = "home"
+        self.manager.current = SCREEN.HOME
     
     def save_task(self, instance):
         """Save the task and return to home screen"""
@@ -105,6 +111,10 @@ class NewTaskScreen(Screen):
         
         # Validate task message
         if not message:
+            self.task_input.show_error_border()
+            has_error = True
+        
+        if len(message.strip()) < 3:
             self.task_input.show_error_border()
             has_error = True
         
@@ -122,25 +132,17 @@ class NewTaskScreen(Screen):
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
         
         # Get task manager from home screen and add task
-        home_screen = self.manager.get_screen("home")
+        home_screen = self.manager.get_screen(SCREEN.HOME)
         home_screen.task_manager.add_task(message=message, timestamp=task_datetime)
-        
-        # Reset form and go back to home
-        # self.reset_form()
-        self.manager.current = "home"
-    
-    # def reset_form(self):
-    #     """Reset the form to default values"""
-    #     self.task_input.text = ""
-    #     self.task_input.hint_text = "Enter your task here"
-    #     self.task_input.background_color = (0, 0, 0, 0)  # Keep transparent
-        
-        # self.selected_date = datetime.now().date()
-        # self.selected_time = datetime.now().time()
-        # self.update_datetime_display()
-    
+        self.clear_inputs()
+
+        self.manager.current = SCREEN.HOME
+
+    def on_pre_enter(self):
+        """Called just before the screen is entered"""
+        self.task_input.hide_border()  # Reset the input border
+        self.date_display.hide_border()  # Reset the date display border
+
     def on_enter(self):
         """Called when screen is entered"""
-        self.date_display._set_inactive_state()
-        # Reset the form
-        # self.reset_form()
+        self.date_display._set_inactive_state()  # Set date display to inactive state

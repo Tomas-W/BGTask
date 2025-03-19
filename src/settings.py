@@ -72,6 +72,12 @@ class Styles:
 class Text:
     TYPE_HINT = "Start typing.."
     TYPE_ERROR = "Input is required!"
+    NO_TASKS = "Create a new task by clicking the + button!"
+
+
+class Screens:
+    HOME = "HOME"
+    NEW_TASK = "NEW_TASK"
 
 
 PATH = Paths()
@@ -81,3 +87,4 @@ SIZE = Sizes()
 STYLE = Styles()
 FONT = Fonts()
 TEXT = Text()
+SCREEN = Screens()

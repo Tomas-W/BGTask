@@ -1,11 +1,12 @@
 from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 
-from src.utils.widgets import Spacer, TaskContainer, TaskHeader, TimeLabel, TaskLabel, TaskBox
-from src.settings import COL, SPACE, SIZE, FONT
+from src.utils.containers import TaskContainer, TaskBox
+from src.utils.labels import TaskHeader, TimeLabel, TaskLabel
+from src.utils.misc import Spacer
+
+from src.settings import SPACE, SIZE
 
 
 class TaskGroup(BoxLayout):
