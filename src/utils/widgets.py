@@ -6,7 +6,7 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
-from src.settings import COL, SIZE, SPACE, FONT, STYLE
+from src.settings import COL, SIZE, SPACE, FONT, STYLE, TEXT
 
 
 class TaskContainer(BoxLayout):
@@ -93,8 +93,10 @@ class TextField(BoxLayout):
         self.height = dp(SIZE.BUTTON_HEIGHT * 3)
         self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
         self.border_width = dp(2)
-        self._error_message = "Task message is required!"
-        
+        self._hint_text = TEXT.TYPE_HINT
+        self._error_message = TEXT.TYPE_ERROR
+        self.current_text = ""
+
         with self.canvas.before:
             # Background color
             Color(*COL.FIELD_ACTIVE)
@@ -137,10 +139,11 @@ class TextField(BoxLayout):
     def _on_text_change(self, instance, value):
         """Remove error border when user starts typing"""
         if value.strip():
-            self.border_color_instr.rgba = COL.OPAQUE
+            self.set_border_color(COL.OPAQUE)
+            self.set_text_color(COL.TEXT)
             # Reset hint text if it was showing an error
             if self.hint_text == self._error_message:
-                self.hint_text = "Enter your task here"
+                self.hint_text = self._hint_text
     
     def update_rects(self, instance, value):
         """Update background and border rectangles on resize/reposition"""
@@ -154,10 +157,38 @@ class TextField(BoxLayout):
             dp(STYLE.CORNER_RADIUS)
         )
     
-    def show_error(self):
+    def set_border_color(self, color):
+        self.border_color_instr.rgba = color
+
+    def show_border(self, color=None):
+        """Show border with optional color"""
+        if color:
+            self.set_border_color(color)
+        else:
+            self.set_border_color(COL.WHITE)
+    
+    def hide_border(self):
+        """Hide the border"""
+        self.border_color_instr.rgba = COL.OPAQUE
+        self.set_text_color(COL.TEXT)
+
+    def show_error_border(self):
         """Show error styling on the field"""
-        self.hint_text = self._error_message
-        self.border_color_instr.rgba = COL.FIELD_ERROR
+        self.set_hint_text(self._error_message)
+        self.set_text_color(COL.ERROR_TEXT)
+        self.set_border_color(COL.FIELD_ERROR)
+    
+    def set_hint_text(self, text):
+        self.hint_text = text
+    
+    def set_text_color(self, color):
+        self.text_input.foreground_color = color
+    
+    def load_text(self):
+        self.text_input.text = self.current_text
+    
+    def save_text(self, text):
+        self.current_text = text
     
     # Keep the basic properties
     @property
@@ -175,14 +206,6 @@ class TextField(BoxLayout):
     @hint_text.setter
     def hint_text(self, value):
         self.text_input.hint_text = value
-        
-    @property
-    def background_color(self):
-        return self.text_input.background_color
-        
-    @background_color.setter
-    def background_color(self, value):
-        self.text_input.background_color = value
 
 
 class ButtonRow(BoxLayout):
@@ -254,7 +277,7 @@ class CustomButton(Button):
         self.color_instr.rgba = self.color_inactive
 
 
-class ButtonFieldActive(BoxLayout):
+class ButtonField(BoxLayout):
     """Button field with state management and optional border"""
     # Define state constants
     STATE_ACTIVE = "active"

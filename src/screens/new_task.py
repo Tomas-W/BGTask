@@ -1,14 +1,12 @@
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 from kivy.metrics import dp
-from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.floatlayout import FloatLayout
 from datetime import datetime
 
-from src.utils.widgets import TopBar, ScrollContainer, CustomButton, ButtonRow, ButtonFieldActive, Spacer, TextField, ButtonFieldLabel
+from src.utils.widgets import TopBar, ScrollContainer, CustomButton, ButtonRow, ButtonField, Spacer, TextField
 from src.screens.calendar import DateTimePickerPopup
-from src.settings import COL, SPACE, SIZE, FONT
+from src.settings import SPACE
 
 
 class NewTaskScreen(Screen):
@@ -37,7 +35,7 @@ class NewTaskScreen(Screen):
         self.scroll_container.container.add_widget(self.pick_date_button)
         
         # Date display box
-        self.date_display = ButtonFieldActive(text="", width=1, color_state="inactive")
+        self.date_display = ButtonField(text="", width=1, color_state="inactive")
         # self.date_display_label = ButtonFieldLabel(text="")
         # self.date_display.add_widget(self.date_display_label)
         self.scroll_container.container.add_widget(self.date_display)
@@ -98,7 +96,6 @@ class NewTaskScreen(Screen):
     
     def cancel_task(self, instance):
         """Cancel task creation and return to home screen"""
-        self.reset_form()
         self.manager.current = "home"
     
     def save_task(self, instance):
@@ -108,7 +105,7 @@ class NewTaskScreen(Screen):
         
         # Validate task message
         if not message:
-            self.task_input.show_error()
+            self.task_input.show_error_border()
             has_error = True
         
         # Validate date selection
@@ -129,14 +126,14 @@ class NewTaskScreen(Screen):
         home_screen.task_manager.add_task(message=message, timestamp=task_datetime)
         
         # Reset form and go back to home
-        self.reset_form()
+        # self.reset_form()
         self.manager.current = "home"
     
-    def reset_form(self):
-        """Reset the form to default values"""
-        self.task_input.text = ""
-        self.task_input.hint_text = "Enter your task here"
-        self.task_input.background_color = (0, 0, 0, 0)  # Keep transparent
+    # def reset_form(self):
+    #     """Reset the form to default values"""
+    #     self.task_input.text = ""
+    #     self.task_input.hint_text = "Enter your task here"
+    #     self.task_input.background_color = (0, 0, 0, 0)  # Keep transparent
         
         # self.selected_date = datetime.now().date()
         # self.selected_time = datetime.now().time()

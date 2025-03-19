@@ -69,9 +69,15 @@ class Styles:
     CORNER_RADIUS = 10
 
 
+class Text:
+    TYPE_HINT = "Start typing.."
+    TYPE_ERROR = "Input is required!"
+
+
 PATH = Paths()
 COL = Colors()
 SPACE = Spacing()
 SIZE = Sizes()
 STYLE = Styles()
 FONT = Fonts()
+TEXT = Text()
