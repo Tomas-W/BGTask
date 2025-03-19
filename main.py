@@ -9,19 +9,16 @@ from kivy.metrics import dp
 
 from src.screens.home.home_screen import HomeScreen
 from src.screens.new_task import NewTaskScreen
-import src.settings as settings
 
-# Set window size for desktop testing
+
 if platform != "android":
-    Window.size = (412, 915)  # This is specific to desktop testing, we'll leave it as hardcoded
+    Window.size = (412, 915)
 
 class TaskApp(App):
     def build(self):
-        # Create and return the screen manager
         self.title = "Task Manager"
         self.sm = ScreenManager(transition=SlideTransition())
         
-        # Add screens
         self.home_screen = HomeScreen(name="home")
         self.task_screen = NewTaskScreen(name="task")
         
@@ -31,7 +28,6 @@ class TaskApp(App):
         return self.sm
     
     def on_start(self):
-        # Load tasks from storage if available
         self.home_screen.load_tasks()
 
 if __name__ == "__main__":

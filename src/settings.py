@@ -9,17 +9,20 @@ class Colors:
     OPAQUE = (0, 0, 0, 0)
     WHITE = (1.0, 1.0, 1.0, 1.0)
     BLACK = (0.0, 0.0, 0.0, 1.0)
-    RED = (1.0, 0.0, 0.0, 1.0)
 
     BG = (0.93, 0.93, 0.93, 1.0)
     
     BUTTON_ACTIVE = (0.2, 0.4, 0.7, 1.0)
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
+    BUTTON_ERROR = (0.6, 0, 0, 0.7)
     BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)
 
-    HEADER = (0.4, 0.4, 0.4, 1.0)
-    FIELD_BG = (0.45, 0.65, 0.95, 0.3)
     TEXT = (0, 0, 0, 1.0)
+    ERROR_TEXT = (1.0, 0.0, 0.0, 0.8)
+    HEADER = (0.4, 0.4, 0.4, 1.0)
+    FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
+    FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
+    FIELD_ERROR = (1, 0.6, 0.6, 1.0)
     
 
 class Spacing:
@@ -38,12 +41,12 @@ class Spacing:
 class Fonts:
     DEFAULT = 16
 
-    TOP_BAR_SYMBOL = 35
     TOP_BAR = 25
+    TOP_BAR_SYMBOL = 35
     BOTTOM_BAR = 35
 
     HEADER = 20
-    BUTTON = 20
+    BUTTON = 18
     CALENDAR = 18
 
 

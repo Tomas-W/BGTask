@@ -4,7 +4,7 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
-from src.utils.widgets import Spacer, TaskContainer, TaskContainerHeader
+from src.utils.widgets import Spacer, TaskContainer, TaskHeader, TimeLabel, TaskLabel, TaskBox
 from src.settings import COL, SPACE, SIZE, FONT
 
 
@@ -17,7 +17,7 @@ class TaskGroup(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         
-        day_header = TaskContainerHeader(text=date_str)
+        day_header = TaskHeader(text=date_str)
         self.add_widget(day_header)
         
         # Spacer below date label
@@ -25,7 +25,7 @@ class TaskGroup(BoxLayout):
         self.add_widget(spacer)
         
         # Tasks container
-        self.tasks_container = TaskContainer()
+        self.tasks_container = TaskBox()
         for task in tasks:
             self.add_task_item(task)
         self.add_widget(self.tasks_container)
@@ -44,34 +44,11 @@ class TaskGroup(BoxLayout):
     def add_task_item(self, task):
         """Add a task item widget"""
         # Time stamp and task message
-        task_layout = BoxLayout(
-            orientation="vertical",
-            size_hint=(1, None),
-            height=dp(SIZE.TASK_ITEM_HEIGHT),
-        )
+        task_container = TaskContainer()
         
-        time_label = Label(
-            text=task.get_time_str(),
-            size_hint=(1, None),
-            height=dp(SIZE.TIME_LABEL_HEIGHT),
-            halign="left",
-            font_size=dp(FONT.DEFAULT),
-            bold=True,
-            color=COL.TEXT,
-            padding=[dp(SPACE.FIELD_PADDING_X), 0, dp(SPACE.FIELD_PADDING_X), 0]
-        )
-        time_label.bind(size=time_label.setter("text_size"))
+        time_label = TimeLabel(text=task.get_time_str())
         
-        task_message_label = Label(
-            text=task.message,
-            size_hint=(1, None),
-            height=dp(SIZE.MESSAGE_LABEL_HEIGHT),
-            halign="left",
-            valign="top",
-            font_size=dp(FONT.DEFAULT),
-            color=COL.TEXT,
-            padding=[dp(SPACE.FIELD_PADDING_X), dp(0)]
-        )
+        task_label = TaskLabel(text=task.message)
         
         def update_text_size(instance, value):
             width = value[0]
@@ -81,13 +58,14 @@ class TaskGroup(BoxLayout):
                 needed_height = max(dp(SIZE.MESSAGE_LABEL_HEIGHT), instance.texture_size[1])
                 instance.height = needed_height
                 
-                task_layout.height = time_label.height + instance.height
+                task_container.height = time_label.height + instance.height
             
             # Schedule the height adjustment for next frame
             Clock.schedule_once(adjust_height, 0)
         
-        task_message_label.bind(size=update_text_size)
+        task_label.bind(size=update_text_size)
         
-        task_layout.add_widget(time_label)
-        task_layout.add_widget(task_message_label)
-        self.tasks_container.add_widget(task_layout)
+        task_container.add_widget(time_label)
+        task_container.add_widget(task_label)
+        self.tasks_container.add_widget(task_container)
+        

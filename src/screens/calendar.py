@@ -211,7 +211,7 @@ class DateTimePickerPopup(Popup):
                         self.current_month == self.selected_date.month and 
                         self.current_year == self.selected_date.year):
                         with day_button.canvas.before:
-                            Color(*COL.FIELD_BG)
+                            Color(*COL.FIELD_ACTIVE)
                             Rectangle(pos=day_button.pos, size=day_button.size)
                         day_button.color = COL.WHITE
                         day_button.bind(pos=self.update_selected_day, 

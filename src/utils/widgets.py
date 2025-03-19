@@ -1,5 +1,5 @@
 from kivy.animation import Animation, AnimationTransition
-from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle, Line
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -9,7 +9,45 @@ from kivy.uix.label import Label
 from src.settings import COL, SIZE, SPACE, FONT, STYLE
 
 
-class TaskContainerHeader(Label):
+class TaskContainer(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.TASK_ITEM_HEIGHT)
+
+
+class TimeLabel(Label):
+    def __init__(self, text: str, **kwargs):
+        super().__init__(**kwargs)
+        self.text = text
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.TIME_LABEL_HEIGHT)
+        self.halign = "left"
+        self.font_size = dp(FONT.DEFAULT)
+        self.bold = True
+        self.color = COL.TEXT
+        self.padding = [dp(SPACE.FIELD_PADDING_X), 0, dp(SPACE.FIELD_PADDING_X), 0]
+        
+        self.bind(size=self.setter("text_size"))
+
+
+class TaskLabel(Label):
+    def __init__(self, text: str, **kwargs):
+        super().__init__(**kwargs)
+        self.text = text
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.MESSAGE_LABEL_HEIGHT)
+        self.halign = "left"
+        self.valign = "top"
+        self.font_size = dp(FONT.DEFAULT)
+        self.color = COL.TEXT
+        self.padding = [dp(SPACE.FIELD_PADDING_X), dp(0)]
+        
+        self.bind(size=self.setter("text_size"))
+
+
+class TaskHeader(Label):
     def __init__(self, text: str,**kwargs):
         super().__init__(**kwargs)
         self.text = text
@@ -22,7 +60,7 @@ class TaskContainerHeader(Label):
         self.bind(size=self.setter("text_size"))
         
 
-class TaskContainer(BoxLayout):
+class TaskBox(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = "vertical"
@@ -32,7 +70,7 @@ class TaskContainer(BoxLayout):
         self.bind(minimum_height=self.setter("height"))
 
         with self.canvas.before:
-            Color(*COL.FIELD_BG)
+            Color(*COL.FIELD_ACTIVE)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos,
                 size=self.size,
@@ -46,7 +84,7 @@ class TaskContainer(BoxLayout):
         self.bg_rect.size = instance.size
 
 
-class StyledTextInput(BoxLayout):
+class TextField(BoxLayout):
     """TextInput with TaskGroup-style background"""
     def __init__(self, hint_text="", **kwargs):
         super().__init__(**kwargs)
@@ -54,15 +92,31 @@ class StyledTextInput(BoxLayout):
         self.size_hint = (1, None)
         self.height = dp(SIZE.BUTTON_HEIGHT * 3)
         self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
+        self.border_width = dp(2)
+        self._error_message = "Task message is required!"
         
         with self.canvas.before:
-            Color(*COL.FIELD_BG)
+            # Background color
+            Color(*COL.FIELD_ACTIVE)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size,
                 radius=[dp(STYLE.CORNER_RADIUS)]
             )
-            self.bind(pos=self.update_bg_rect, size=self.update_bg_rect)
+            
+            # Border - always there but with transparent color by default
+            self.border_color_instr = Color(*COL.OPAQUE)
+            self.border_rect = Line(
+                rounded_rectangle=(
+                    self.pos[0], self.pos[1], 
+                    self.size[0], self.size[1], 
+                    dp(STYLE.CORNER_RADIUS)
+                ),
+                width=self.border_width
+            )
+            
+            # Bind position and size updates
+            self.bind(pos=self.update_rects, size=self.update_rects)
         
         self.text_input = TextInput(
             hint_text=hint_text,
@@ -75,13 +129,37 @@ class StyledTextInput(BoxLayout):
             padding=[dp(SPACE.FIELD_PADDING_X), 0]
         )
         
+        # Bind to text changes to remove error styling when typing starts
+        self.text_input.bind(text=self._on_text_change)
+        
         self.add_widget(self.text_input)
     
-    def update_bg_rect(self, instance, value):
-        """Update background rectangle on resize/reposition"""
+    def _on_text_change(self, instance, value):
+        """Remove error border when user starts typing"""
+        if value.strip():
+            self.border_color_instr.rgba = COL.OPAQUE
+            # Reset hint text if it was showing an error
+            if self.hint_text == self._error_message:
+                self.hint_text = "Enter your task here"
+    
+    def update_rects(self, instance, value):
+        """Update background and border rectangles on resize/reposition"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
         
+        # Update border rounded rectangle
+        self.border_rect.rounded_rectangle = (
+            instance.pos[0], instance.pos[1],
+            instance.size[0], instance.size[1],
+            dp(STYLE.CORNER_RADIUS)
+        )
+    
+    def show_error(self):
+        """Show error styling on the field"""
+        self.hint_text = self._error_message
+        self.border_color_instr.rgba = COL.FIELD_ERROR
+    
+    # Keep the basic properties
     @property
     def text(self):
         return self.text_input.text
@@ -107,9 +185,23 @@ class StyledTextInput(BoxLayout):
         self.text_input.background_color = value
 
 
-class ButtonActive(Button):
-    """Full width active button"""
-    def __init__(self, width: int, **kwargs):
+class ButtonRow(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "horizontal"
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.BUTTON_HEIGHT)
+        self.spacing = dp(SPACE.SPACE_Y_M)
+
+
+class CustomButton(Button):
+    """Button with state management"""
+    # Define state constants
+    STATE_ACTIVE = "active"
+    STATE_INACTIVE = "inactive" 
+    STATE_ERROR = "error"
+    
+    def __init__(self, width: int, color_state: str, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (width, None)
         self.height = dp(SIZE.BUTTON_HEIGHT)
@@ -120,60 +212,158 @@ class ButtonActive(Button):
         self.radius = [dp(STYLE.CORNER_RADIUS)]
         self.color_active = COL.BUTTON_ACTIVE
         self.color_inactive = COL.BUTTON_INACTIVE
-
+        self.color_error = COL.BUTTON_ERROR
+        
+        # Set initial state
+        self.color_state = color_state
+        
+        # Create the canvas instructons, but don't set color yet
         with self.canvas.before:
-            Color(*self.color_active)
+            self.color_instr = Color(1, 1, 1)  # Temporary color
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.radius)
             self.bind(pos=self._update, size=self._update)
+        
+        # Apply the initial state
+        if self.color_state == self.STATE_ACTIVE:
+            self.set_active_state()
+        elif self.color_state == self.STATE_INACTIVE:
+            self.set_inactive_state()
+        elif self.color_state == self.STATE_ERROR:
+            self.set_error_state()
+        else:
+            raise ValueError(f"Invalid state: {self.color_state}")
 
     def _update(self, instance, value):
+        """Update background rectangle on resize/reposition"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
 
-
-class ButtonInactive(Button):
-    """Full width inactive button"""
-    def __init__(self, width: int, **kwargs):
-        super().__init__(**kwargs)
-        self.size_hint = (width, None)
-        self.height = dp(SIZE.BUTTON_HEIGHT)
-        self.font_size = dp(FONT.BUTTON)
-        self.color = COL.WHITE
-        self.background_color = COL.OPAQUE
-        
-        self.radius = [dp(STYLE.CORNER_RADIUS)]
-        self.color_active = COL.BUTTON_ACTIVE
-        self.color_inactive = COL.BUTTON_INACTIVE
-
-        with self.canvas.before:
-            Color(*self.color_inactive)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(STYLE.CORNER_RADIUS)])
-            self.bind(pos=self._update, size=self._update)
-        
-    def _update(self, instance, value):
-        """Update the date display background"""
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+    def set_error_state(self):
+        """Set button to error state"""
+        self.color_state = self.STATE_ERROR
+        self.color_instr.rgba = self.color_error
+    
+    def set_active_state(self):
+        """Set button back to normal state"""
+        self.color_state = self.STATE_ACTIVE
+        self.color_instr.rgba = self.color_active
+    
+    def set_inactive_state(self):
+        """Set button to inactive state"""
+        self.color_state = self.STATE_INACTIVE
+        self.color_instr.rgba = self.color_inactive
 
 
 class ButtonFieldActive(BoxLayout):
-    """Button field active"""
-    def __init__(self, width: int, **kwargs):
+    """Button field with state management and optional border"""
+    # Define state constants
+    STATE_ACTIVE = "active"
+    STATE_INACTIVE = "inactive" 
+    STATE_ERROR = "error"
+    
+    def __init__(self, text: str, width: int, color_state="active", **kwargs):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         self.size_hint = (width, None)
         self.height = dp(SIZE.BUTTON_HEIGHT)
         self.padding = [dp(SPACE.FIELD_PADDING_X), dp(SPACE.FIELD_PADDING_Y)]
+        
+        # Color properties
+        self.color_active = COL.BUTTON_ACTIVE
+        self.color_inactive = COL.BUTTON_INACTIVE
+        self.color_error = COL.BUTTON_ERROR
+        
+        # Set initial state
+        self.border_width = dp(2)
+        self.color_state = color_state
+
+        self.text = text
 
         with self.canvas.before:
-            Color(*COL.BUTTON_ACTIVE)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(STYLE.CORNER_RADIUS)])
+            # Background color - will be set based on state
+            self.color_instr = Color(1, 1, 1)  # Temporary color
+            self.bg_rect = RoundedRectangle(
+                pos=self.pos, 
+                size=self.size, 
+                radius=[dp(STYLE.CORNER_RADIUS)]
+            )
+            
+            # Border - initially transparent
+            self.border_color_instr = Color(*COL.OPAQUE)
+            self.border_rect = Line(
+                rounded_rectangle=(
+                    self.pos[0], self.pos[1], 
+                    self.size[0], self.size[1], 
+                    dp(STYLE.CORNER_RADIUS)
+                ),
+                width=self.border_width
+            )
+            
+            # Bind position and size updates
             self.bind(pos=self._update, size=self._update)
+        
+        self.label = ButtonFieldLabel(text=self.text)
+        self.add_widget(self.label)
+        
+        # Apply the initial state
+        if self.color_state == self.STATE_ACTIVE:
+            self._set_active_state()
+        elif self.color_state == self.STATE_INACTIVE:
+            self._set_inactive_state()
+        elif self.color_state == self.STATE_ERROR:
+            self._set_error_state()
+        else:
+            raise ValueError(f"Invalid state: {self.color_state}")
     
     def _update(self, instance, value):
-        """Update the date display background"""
+        """Update the background and border on resize/reposition"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
+        
+        # Update border rounded rectangle
+        self.border_rect.rounded_rectangle = (
+            instance.pos[0], instance.pos[1],
+            instance.size[0], instance.size[1],
+            dp(STYLE.CORNER_RADIUS)
+        )
+    
+    def set_text(self, text):
+        self.label.text = text
+    
+    def set_text_color(self, color):
+        self.label.color = color
+
+    def _set_error_state(self):
+        """Set button to error state"""
+        self.color_instr.rgba = self.color_error
+        self.set_text_color(COL.ERROR_TEXT)
+    
+    def _set_active_state(self):
+        """Set button to active state"""
+        self.color_instr.rgba = self.color_active
+        self.set_text_color(COL.TEXT)
+
+    def _set_inactive_state(self):
+        """Set button to inactive state"""
+        self.color_instr.rgba = self.color_inactive
+        self.set_text_color(COL.TEXT)
+
+    def show_border(self, color=None):
+        """Show border with optional color"""
+        if color:
+            self.border_color_instr.rgba = color
+        else:
+            self.border_color_instr.rgba = COL.WHITE
+    
+    def hide_border(self):
+        """Hide the border"""
+        self.border_color_instr.rgba = COL.OPAQUE
+        self.set_text_color(COL.TEXT)
+
+    def show_error_border(self):
+        """Show error border"""
+        self.border_color_instr.rgba = COL.FIELD_ERROR
+        self.set_text_color(COL.ERROR_TEXT)
 
 
 class ButtonFieldInactive(BoxLayout):
@@ -195,6 +385,18 @@ class ButtonFieldInactive(BoxLayout):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
 
+
+class ButtonFieldLabel(Label):
+    def __init__(self, text="", **kwargs):
+        super().__init__(**kwargs)
+        self.text = text
+        self.size_hint = (1, 1)
+        self.halign = "center"
+        self.valign = "middle"
+        self.color = COL.TEXT
+        self.font_size = dp(FONT.DEFAULT)
+
+        self.bind(size=self.setter("text_size"))
 
 
 class MainContainer(BoxLayout):

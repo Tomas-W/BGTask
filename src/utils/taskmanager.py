@@ -4,6 +4,7 @@ from datetime import datetime
 from src.utils.task import Task
 from src.settings import COL, SPACE, SIZE, PATH
 
+
 class TaskManager:
     def __init__(self):
         self.tasks = []
@@ -63,7 +64,7 @@ class TaskManager:
                 tasks_by_date[date_str] = []
             tasks_by_date[date_str].append(task)
         
-        # Sort dates by timestamp (oldest first - e.g., 14th on top, then 15th, 16th)
+        # Sort by timestamp (oldest first)
         sorted_dates = sorted(tasks_by_date.keys(), 
                              key=lambda date: next(iter(tasks_by_date[date])).timestamp,
                              reverse=False)
