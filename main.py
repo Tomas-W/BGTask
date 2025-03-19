@@ -11,6 +11,8 @@ from src.settings import SCREEN
 
 if platform != "android":
     Window.size = (412, 915)
+    Window.left = -450
+    Window.top = 350
 
 
 class TaskApp(App):

@@ -40,6 +40,7 @@ class Spacing:
 
 class Fonts:
     DEFAULT = 16
+    SMALL = 13
 
     TOP_BAR = 25
     TOP_BAR_SYMBOL = 35
