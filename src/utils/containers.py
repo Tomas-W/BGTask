@@ -45,6 +45,8 @@ class ScrollContainer(BoxLayout):
                 allow_scroll_x=False,
                 **kwargs
         ):
+        # Container for content
+        self.container = MainContainer()
         super().__init__(
             orientation="vertical",
             **kwargs
@@ -57,8 +59,7 @@ class ScrollContainer(BoxLayout):
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update_bg, size=self._update_bg)
         
-        # Container for content
-        self.container = MainContainer()
+        
         
         # Scrolling
         self.scroll_view = ScrollView(
@@ -159,7 +160,7 @@ class TaskBox(BoxLayout):
             self.bg_rect = RoundedRectangle(
                 pos=self.pos,
                 size=self.size,
-                radius=[dp(STYLE.CORNER_RADIUS)]
+                radius=[dp(STYLE.RADIUS_L)]
             )
             self.bind(pos=self._update, size=self._update)
 

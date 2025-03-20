@@ -13,7 +13,7 @@ class PartitionHeader(Label):
         self.valign = "center"
         self.font_size = dp(FONT.HEADER)
         self.bold = True
-        self.color = COL.HEADER
+        self.color = COL.TEXT_GREY
         
         self.bind(size=self.setter("text_size"))
 
@@ -57,7 +57,7 @@ class TaskHeader(Label):
         self.halign = "left"
         self.font_size = dp(FONT.HEADER)
         self.bold = True
-        self.color = COL.HEADER
+        self.color = COL.TEXT_GREY
         self.bind(size=self.setter("text_size"))
 
 

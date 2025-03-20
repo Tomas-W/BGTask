@@ -20,8 +20,8 @@ class Colors:
     BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)
 
     TEXT = (0, 0, 0, 1.0)
+    TEXT_GREY = (0.4, 0.4, 0.4, 1.0)
     ERROR_TEXT = (1.0, 0.0, 0.0, 0.8)
-    HEADER = (0.4, 0.4, 0.4, 1.0)
     FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
     FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
     FIELD_ERROR = (1, 0.6, 0.6, 1.0)
@@ -34,6 +34,7 @@ class Spacing:
     SPACE_Y_L = 25
     SPACE_Y_XL = 40
     SPACE_Y_XXL = 50
+    SPACE_Y_MAX = 70
     FIELD_PADDING_X = 20   # Padding between bg color and text
     FIELD_PADDING_Y = 10   # Padding between bg color and text
     SCREEN_PADDING_X = 20  # Padding between fields and screen edge
@@ -50,6 +51,7 @@ class Fonts:
 
     HEADER = 20
     BUTTON = 18
+    BUTTON_SYMBOL = 30
     CALENDAR = 12
 
 
@@ -69,7 +71,8 @@ class Sizes:
 
 
 class Styles:
-    CORNER_RADIUS = 10
+    RADIUS_L = 10
+    RADIUS_S = 5
 
 
 class Text:

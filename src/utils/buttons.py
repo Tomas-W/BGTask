@@ -12,15 +12,16 @@ class CustomButton(Button):
     STATE_INACTIVE = "inactive" 
     STATE_ERROR = "error"
     
-    def __init__(self, width: int, color_state: str, **kwargs):
+    def __init__(self, width: int, color_state: str, symbol: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (width, None)
         self.height = dp(SIZE.BUTTON_HEIGHT)
-        self.font_size = dp(FONT.BUTTON)
+        self.font_size = dp(FONT.BUTTON) if not symbol else dp(FONT.BUTTON_SYMBOL)
+        self.bold = True if symbol else False
         self.color = COL.WHITE
         self.background_color = COL.OPAQUE
         
-        self.radius = [dp(STYLE.CORNER_RADIUS)]
+        self.radius = [dp(STYLE.RADIUS_L)]
         self.color_active = COL.BUTTON_ACTIVE
         self.color_inactive = COL.BUTTON_INACTIVE
         self.color_error = COL.BUTTON_ERROR
