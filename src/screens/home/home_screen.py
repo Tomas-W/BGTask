@@ -7,7 +7,7 @@ from src.utils.buttons import TopBar, BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
 from src.utils.taskmanager import TaskManager
 
-from src.settings import SCREEN, TEXT
+from src.settings import SCREEN, TEXT, SPACE
 
 
 class HomeScreen(Screen):
@@ -25,6 +25,7 @@ class HomeScreen(Screen):
         
         # Scrollable container for task groups
         self.scroll_container = ScrollContainer()
+        self.scroll_container.container.spacing = SPACE.SPACE_Y_L
         
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")

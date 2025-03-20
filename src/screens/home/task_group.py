@@ -4,7 +4,6 @@ from kivy.uix.boxlayout import BoxLayout
 
 from src.utils.containers import TaskContainer, TaskBox
 from src.utils.labels import TaskHeader, TimeLabel, TaskLabel
-from src.utils.misc import Spacer
 
 from src.settings import SPACE, SIZE
 
@@ -21,10 +20,6 @@ class TaskGroup(BoxLayout):
         # Header with day name and int
         day_header = TaskHeader(text=date_str)
         self.add_widget(day_header)
-        
-        # Spacer
-        spacer = Spacer(height=dp(SPACE.SPACE_Y_XS))
-        self.add_widget(spacer)
         
         # Tasks container
         self.tasks_container = TaskBox()

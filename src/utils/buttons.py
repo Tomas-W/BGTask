@@ -79,7 +79,7 @@ class TopBar(Button):
         )
         
         with self.canvas.before:
-            Color(*COL.BUTTON_ACTIVE)
+            Color(*COL.BAR)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
     
@@ -105,7 +105,7 @@ class BottomBar(Button):
         )
         
         with self.canvas.before:
-            Color(*COL.BUTTON_ACTIVE)
+            Color(*COL.BAR)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
         

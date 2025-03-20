@@ -3,6 +3,20 @@ from kivy.uix.label import Label
 from src.settings import COL, SIZE, SPACE, FONT
 
 
+class PartitionHeader(Label):
+    def __init__(self, text: str, **kwargs):
+        super().__init__(**kwargs)
+        self.text = text
+        self.size_hint = (1, None)
+        self.height = dp(SIZE.BUTTON_HEIGHT)
+        self.halign = "center"
+        self.valign = "center"
+        self.font_size = dp(FONT.HEADER)
+        self.bold = True
+        self.color = COL.HEADER
+        
+        self.bind(size=self.setter("text_size"))
+
 
 class TimeLabel(Label):
     def __init__(self, text: str, **kwargs):

@@ -12,7 +12,9 @@ class Colors:
 
     BG = (0.93, 0.93, 0.93, 1.0)
     
-    BUTTON_ACTIVE = (0.2, 0.4, 0.7, 1.0)
+    BAR = (0.2, 0.4, 0.7, 1.0)
+
+    BUTTON_ACTIVE = (0.2, 0.4, 0.7, 0.8)
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
     BUTTON_ERROR = (0.6, 0, 0, 0.7)
     BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)
@@ -29,7 +31,7 @@ class Spacing:
     SPACE_Y_XS = 5
     SPACE_Y_S = 10
     SPACE_Y_M = 15
-    SPACE_Y_L = 30
+    SPACE_Y_L = 25
     SPACE_Y_XL = 40
     SPACE_Y_XXL = 50
     FIELD_PADDING_X = 20   # Padding between bg color and text
@@ -48,12 +50,12 @@ class Fonts:
 
     HEADER = 20
     BUTTON = 18
-    CALENDAR = 18
+    CALENDAR = 12
 
 
 class Sizes:
-    TOP_BAR_HEIGHT = 50
-    BOTTOM_BAR_HEIGHT = 30
+    TOP_BAR_HEIGHT = 60
+    BOTTOM_BAR_HEIGHT = 40
 
     HEADER_HEIGHT = Fonts.HEADER
     TASK_ITEM_HEIGHT = 40 
@@ -63,7 +65,7 @@ class Sizes:
     BUTTON_HEIGHT = 60
     NO_TASKS_LABEL_HEIGHT = 100
     CALENDAR_HEADER_HEIGHT = 50
-    CALENDAR_HEIGHT = 300
+    CALENDAR_HEIGHT = 120
 
 
 class Styles:
@@ -79,7 +81,7 @@ class Text:
 class Screens:
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
-
+    CALENDAR = "CALENDAR"
 
 PATH = Paths()
 COL = Colors()

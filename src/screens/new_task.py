@@ -5,11 +5,10 @@ from kivy.uix.screenmanager import Screen
 
 from src.screens.calendar import DateTimePickerPopup
 from src.utils.buttons import TopBar, CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow
+from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow, Partition
 from src.utils.fields import TextField, ButtonField
-from src.utils.misc import Spacer
 
-from src.settings import SCREEN, SPACE
+from src.settings import SCREEN
 
 
 class NewTaskScreen(Screen):
@@ -23,24 +22,28 @@ class NewTaskScreen(Screen):
         self.layout.add_widget(self.top_bar)
         
         # Scroll container
-        self.scroll_container = ScrollContainer()
+        self.scroll_container = ScrollContainer(allow_scroll_y=False)
 
-        # Spacer
-        spacer = Spacer(height=dp(SPACE.SPACE_Y_XL))
-        self.scroll_container.container.add_widget(spacer)
+        # Date picker partition
+        self.date_picker_partition = Partition()
 
         # Date picker button
         self.pick_date_button = CustomButton(text="Select Date", width=1, color_state="active")
         self.pick_date_button.bind(on_press=self.show_datetime_picker)
-        self.scroll_container.container.add_widget(self.pick_date_button)
+        self.date_picker_partition.add_widget(self.pick_date_button)
         
         # Date display box
         self.date_display = ButtonField(text="", width=1, color_state="inactive")
-        self.scroll_container.container.add_widget(self.date_display)
+        self.date_picker_partition.add_widget(self.date_display)
+
+        self.scroll_container.container.add_widget(self.date_picker_partition)
+
+        # Task input partition
+        self.task_input_partition = Partition()
 
         # Task input
         self.task_input = TextField(hint_text="Enter your task here")
-        self.scroll_container.container.add_widget(self.task_input)
+        self.task_input_partition.add_widget(self.task_input)
 
         # Button row
         self.button_row = ButtonRow()
@@ -52,7 +55,8 @@ class NewTaskScreen(Screen):
         self.save_button = CustomButton(text="Save Task", width=2, color_state="active")
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
-        self.scroll_container.container.add_widget(self.button_row)
+        self.task_input_partition.add_widget(self.button_row)
+        self.scroll_container.container.add_widget(self.task_input_partition)
 
         # Add layouts
         self.layout.add_widget(self.scroll_container)
@@ -77,16 +81,21 @@ class NewTaskScreen(Screen):
             self.date_display.set_text("")
     
     def show_datetime_picker(self, instance):
-        """Show the datetime picker popup"""
-        popup = DateTimePickerPopup(
-            selected_date=self.selected_date if hasattr(self, 'selected_date') else datetime.now().date(),
-            selected_time=self.selected_time if hasattr(self, 'selected_time') else datetime.now().time(),
-            callback=self.on_datetime_selected
-        )
-        popup.open()
-    
+        """Show the calendar screen"""
+        calendar_screen = self.manager.get_screen(SCREEN.CALENDAR)
+        # Set the initial date and time if they exist
+        if hasattr(self, 'selected_date'):
+            calendar_screen.selected_date = self.selected_date
+            calendar_screen.selected_time = self.selected_time
+            calendar_screen.current_month = self.selected_date.month
+            calendar_screen.current_year = self.selected_date.year
+        # Set the callback
+        calendar_screen.set_callback(self.on_datetime_selected)
+        calendar_screen.update_calendar()  # Update the calendar display
+        self.manager.current = SCREEN.CALENDAR
+
     def on_datetime_selected(self, selected_date, selected_time):
-        """Callback when date and time are selected in the popup"""
+        """Callback when date and time are selected in calendar"""
         self.selected_date = selected_date
         self.selected_time = selected_time
         self.update_datetime_display()

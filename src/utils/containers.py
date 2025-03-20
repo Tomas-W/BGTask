@@ -23,7 +23,7 @@ class MainContainer(BoxLayout):
             orientation="vertical",
             size_hint_y=None,
             spacing=dp(SPACE.SPACE_Y_XL),
-            padding=[dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_Y_XL), 
+            padding=[dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_Y_XXL), 
                     dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_Y_XXL)],
             **kwargs
         )
@@ -40,8 +40,15 @@ class MainContainer(BoxLayout):
 
 
 class ScrollContainer(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(orientation="vertical", **kwargs)
+    def __init__(self,
+                allow_scroll_y=True,
+                allow_scroll_x=False,
+                **kwargs
+        ):
+        super().__init__(
+            orientation="vertical",
+            **kwargs
+        )
         self.scroll_threshold_pixels = 200
         
         # Set background for entire scroll area
@@ -55,8 +62,8 @@ class ScrollContainer(BoxLayout):
         
         # Scrolling
         self.scroll_view = ScrollView(
-            do_scroll_x=False,
-            do_scroll_y=True
+            do_scroll_x=allow_scroll_x,
+            do_scroll_y=allow_scroll_y
         )
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
@@ -107,6 +114,27 @@ class ScrollContainer(BoxLayout):
     def add_widget_to_container(self, widget):
         """Add widget to the container"""
         self.container.add_widget(widget)
+
+
+class Partition(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.size_hint = (1, None)  # Allow variable height
+        self.spacing = dp(SPACE.SPACE_Y_M)
+
+        # Bind the height to the minimum height of the children
+        self.bind(minimum_height=self.setter('height'))
+
+    def add_widget(self, widget):
+        """Override add_widget to automatically adjust height when a widget is added."""
+        super().add_widget(widget)
+        # Optionally, you can bind the height of the widget if needed
+        widget.bind(size=self._update_height)
+
+    def _update_height(self, instance, value):
+        """Update the height of the partition based on its children's heights."""
+        self.height = self.minimum_height  # Automatically adjust to fit children
 
 
 class TaskContainer(BoxLayout):
