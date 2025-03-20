@@ -3,7 +3,6 @@ from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
-from src.screens.calendar import DateTimePickerPopup
 from src.utils.buttons import TopBar, CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow, Partition
 from src.utils.fields import TextField, ButtonField

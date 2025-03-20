@@ -4,9 +4,6 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from src.settings import SPACE, COL
 
-from kivy.utils import get_color_from_hex
-from kivy_gradient import Gradient
-
 
 class Spacer(BoxLayout):
     def __init__(self, height=SPACE.SPACE_Y_M, **kwargs):
