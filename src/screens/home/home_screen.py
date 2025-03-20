@@ -25,7 +25,7 @@ class HomeScreen(Screen):
         
         # Scrollable container for task groups
         self.scroll_container = ScrollContainer()
-        self.scroll_container.container.spacing = SPACE.SPACE_Y_L
+        self.scroll_container.container.spacing = SPACE.SPACE_Y_XXL
         
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")

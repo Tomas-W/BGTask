@@ -42,17 +42,16 @@ class Spacing:
 
 
 class Fonts:
-    DEFAULT = 16
+    DEFAULT = 20
     SMALL = 13
 
     TOP_BAR = 25
     TOP_BAR_SYMBOL = 35
     BOTTOM_BAR = 35
 
-    HEADER = 20
+    HEADER = 25
     BUTTON = 18
     BUTTON_SYMBOL = 30
-    CALENDAR = 12
 
 
 class Sizes:
@@ -67,7 +66,7 @@ class Sizes:
     BUTTON_HEIGHT = 60
     NO_TASKS_LABEL_HEIGHT = 100
     CALENDAR_HEADER_HEIGHT = 50
-    CALENDAR_HEIGHT = 120
+    CALENDAR_HEIGHT = 200
 
 
 class Styles:

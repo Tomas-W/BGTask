@@ -25,7 +25,7 @@ class DateTimeLabel(ButtonBehavior, Label):
         self.color = COL.TEXT_GREY
         self.bold = True
         self.size_hint_y = None
-        self.height = dp(SIZE.HEADER_HEIGHT)
+        self.height = dp(SIZE.HEADER_HEIGHT*1.5)
         self.halign = "center"
         self.valign = "middle"
         self.bind(size=self.setter("text_size"))
@@ -33,7 +33,7 @@ class DateTimeLabel(ButtonBehavior, Label):
     def set_bold(self, is_bold):
         """Set the font size to make the text bold or normal"""
         if is_bold:
-            self.font_size = dp(FONT.DEFAULT + 2)  # Increase font size for bold
+            self.font_size = dp(FONT.DEFAULT + 4)  # Increase font size for bold
         else:
             self.font_size = dp(FONT.DEFAULT)  # Reset to normal size
 
@@ -60,7 +60,7 @@ class CalendarScreen(Screen):
 
 # Select month partition
         self.select_month_partition = Partition()
-        self.select_month_partition.spacing = dp(SPACE.SPACE_Y_XS)
+        # self.select_month_partition.spacing = dp(SPACE.SPACE_Y_S)
 
         # Month button row
         self.month_button_row = ButtonRow()
@@ -157,9 +157,8 @@ class CalendarScreen(Screen):
         # Week days container
         headers_container = GridLayout(
             cols=7,
-            spacing=dp(1),
             size_hint=(1, None),
-            height=dp(SIZE.HEADER_HEIGHT)
+            height=dp(SIZE.HEADER_HEIGHT),
         )
         
         # Week day headers
@@ -168,9 +167,9 @@ class CalendarScreen(Screen):
                 text=day,
                 bold=True,
                 color=COL.TEXT,
-                font_size=dp(FONT.CALENDAR),
+                font_size=dp(FONT.DEFAULT),
                 size_hint_y=None,
-                height=dp(FONT.CALENDAR)
+                height=dp(FONT.DEFAULT)
             )
             headers_container.add_widget(header_label)
         
@@ -179,7 +178,8 @@ class CalendarScreen(Screen):
             cols=7,
             spacing=dp(1),
             size_hint=(1, None),
-            height=dp(SIZE.CALENDAR_HEIGHT)
+            height=dp(SIZE.CALENDAR_HEIGHT),
+            padding=[0, dp(SPACE.SPACE_Y_XS), 0, 0]
         )
         
         self.calendar_container.add_widget(headers_container)
@@ -218,14 +218,13 @@ class CalendarScreen(Screen):
                     empty_label = Label(
                         text="",
                         size_hint_y=None,
-                        height=dp(SIZE.HEADER_HEIGHT * 0.8)
+                        height=dp(SIZE.HEADER_HEIGHT)
                     )
                     self.calendar_grid.add_widget(empty_label)
                 else:
                     day_button = DateTimeLabel(
                         text=str(day),
                         size_hint_y=None,
-                        height=dp(SIZE.HEADER_HEIGHT * 0.8)
                     )
                     
                     # Highlight the selected date
