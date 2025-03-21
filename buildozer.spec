@@ -5,8 +5,8 @@ package.domain = org.bgtask
 
 source.dir = .
 
-source.include_exts = py,json
-source.exclude_exts = gitignore,md,pyc,png,jpg
+source.include_exts = py,png,json
+source.exclude_exts = gitignore,md
 
 version = 0.1
 
