@@ -28,30 +28,35 @@ class TopBarButton(Button):
             self.bind(pos=self._update, size=self._update)
         
         self.img_path = img_path
-        self.image = Image(source=img_path)
+        self.image = Image(source=img_path, allow_stretch=True)
         if not self.image.texture:
             print(f"Texture not found for {img_path}")
-        else:
-            self.image.size = self.image.texture_size
+        
+        # Set a target icon size that's proportional to button height
+        self.icon_size = dp(SIZE.TOP_BAR_HEIGHT * 0.4)  # 60% of button height
+        self.image.size = (self.icon_size, self.icon_size)
         
         self.add_widget(self.image)
         self.bind(pos=self._update_image, size=self._update_image)
         
-        # Use multiple scheduling attempts to ensure it works
+        # Initial update
         self._update_image(self, self.size)
+
     def _update(self, instance, value):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
     def _update_image(self, instance, value):
-        """Center the image within the button using padding"""
-        if self.image.texture:
-            self.image.size = self.image.texture_size
-            # Force centering calculation with explicit coordinates
-            self.image.pos = (
-                self.x + (self.width - self.image.width) / 2,  # Center horizontally
-                self.y + (self.height - self.image.height) / 2  # Center vertically
-            )
+        """Center the image within the button"""
+        # Update icon size to be proportional to button height
+        self.icon_size = dp(self.height * 0.4)
+        self.image.size = (self.icon_size, self.icon_size)
+        
+        # Center the icon
+        self.image.pos = (
+            self.x + (self.width - self.image.width) / 2,  # Center horizontally
+            self.y + (self.height - self.image.height) / 2  # Center vertically
+        )
 
 class CustomButton(Button):
     """Button with state management"""

@@ -4,8 +4,8 @@ import os
 class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
     IMG = os.path.join(SRC, "images")
-    EXIT_IMG = os.path.join(IMG, "exit_28.png")
-    SETTINGS_IMG = os.path.join(IMG, "settings_28.png")
+    EXIT_IMG = os.path.join(IMG, "exit_64.png")
+    SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
