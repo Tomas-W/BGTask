@@ -3,7 +3,9 @@ import os
 
 class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
-
+    IMG = os.path.join(SRC, "images")
+    EXIT_IMG = os.path.join(IMG, "exit_28.png")
+    SETTINGS_IMG = os.path.join(IMG, "settings_28.png")
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
@@ -13,6 +15,7 @@ class Colors:
     BG = (0.93, 0.93, 0.93, 1.0)
     
     BAR = (0.2, 0.4, 0.7, 1.0)
+    BAR_BUTTON = (0.7, 0.7, 0.7, 0.2)
 
     BUTTON_ACTIVE = (0.2, 0.4, 0.7, 0.8)
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
@@ -28,13 +31,13 @@ class Colors:
     
 
 class Spacing:
-    SPACE_Y_XS = 5
-    SPACE_Y_S = 10
-    SPACE_Y_M = 15
-    SPACE_Y_L = 25
-    SPACE_Y_XL = 40
-    SPACE_Y_XXL = 50
-    SPACE_Y_MAX = 70
+    SPACE_XS = 5
+    SPACE_S = 10
+    SPACE_M = 15
+    SPACE_L = 25
+    SPACE_XL = 40
+    SPACE_XXL = 50
+    SPACE_MAX = 75
     FIELD_PADDING_X = 20   # Padding between bg color and text
     FIELD_PADDING_Y = 10   # Padding between bg color and text
     SCREEN_PADDING_X = 20  # Padding between fields and screen edge
@@ -70,8 +73,9 @@ class Sizes:
 
 
 class Styles:
-    RADIUS_L = 10
     RADIUS_S = 5
+    RADIUS_M = 10
+    RADIUS_L = 20
 
 
 class Text:

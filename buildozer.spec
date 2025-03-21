@@ -17,15 +17,15 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 
-requirements = python3.9,kivy,android.storage,pillow
+requirements = kivy,android.storage
 
 android.optimize_python = True
 android.precompile_python = True
 
 android.archs = arm64-v8a
 
-p4a.java_build_tool = javac
-p4a.java_home = /usr/lib/jvm/java-17-openjdk-amd64
-
-p4a.bootstrap = sdl2
-p4a.local_recipes = ~/.buildozer/prebuild/
+# p4a.java_build_tool = javac
+# p4a.java_home = /usr/lib/jvm/java-17-openjdk-amd64
+# 
+# p4a.bootstrap = sdl2
+# p4a.local_recipes = ~/.buildozer/prebuild/

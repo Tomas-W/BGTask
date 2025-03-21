@@ -32,7 +32,7 @@ class TaskGroup(BoxLayout):
     
     def update_group_height(self, instance, value):
         """Update the overall height when tasks_container height changes"""
-        self.height = dp(SPACE.SPACE_Y_XS) + dp(SIZE.HEADER_HEIGHT) + value
+        self.height = dp(SPACE.SPACE_XS) + dp(SIZE.HEADER_HEIGHT) + value
     
     def add_task_item(self, task):
         """Add a task item widget"""

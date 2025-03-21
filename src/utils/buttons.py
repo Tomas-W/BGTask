@@ -1,9 +1,57 @@
 from kivy.animation import Animation, AnimationTransition
+from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.metrics import dp
 from kivy.uix.button import Button
+from kivy.uix.image import Image
+
 from src.settings import COL, SIZE, SPACE, FONT, STYLE
 
+
+class TopBarButton(Button):
+    def __init__(self, img_path, side, **kwargs):
+        super().__init__(
+            size_hint=(0.25, None),
+            height=dp(SIZE.TOP_BAR_HEIGHT),
+            background_color=COL.OPAQUE,
+            color=COL.WHITE,
+            **kwargs
+        )
+        if side == "left":
+            self.radius = [0, dp(STYLE.RADIUS_L), dp(STYLE.RADIUS_L), 0]
+        elif side == "right":
+            self.radius = [dp(STYLE.RADIUS_L), 0, 0, dp(STYLE.RADIUS_L)]
+
+        with self.canvas.before:
+            Color(*COL.BAR_BUTTON)
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.radius)
+            self.bind(pos=self._update, size=self._update)
+        
+        self.img_path = img_path
+        self.image = Image(source=img_path)
+        if not self.image.texture:
+            print(f"Texture not found for {img_path}")
+        else:
+            self.image.size = self.image.texture_size
+        
+        self.add_widget(self.image)
+        self.bind(pos=self._update_image, size=self._update_image)
+        
+        # Use multiple scheduling attempts to ensure it works
+        self._update_image(self, self.size)
+    def _update(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+    
+    def _update_image(self, instance, value):
+        """Center the image within the button using padding"""
+        if self.image.texture:
+            self.image.size = self.image.texture_size
+            # Force centering calculation with explicit coordinates
+            self.image.pos = (
+                self.x + (self.width - self.image.width) / 2,  # Center horizontally
+                self.y + (self.height - self.image.height) / 2  # Center vertically
+            )
 
 class CustomButton(Button):
     """Button with state management"""
@@ -21,7 +69,7 @@ class CustomButton(Button):
         self.color = COL.WHITE
         self.background_color = COL.OPAQUE
         
-        self.radius = [dp(STYLE.RADIUS_L)]
+        self.radius = [dp(STYLE.RADIUS_M)]
         self.color_active = COL.BUTTON_ACTIVE
         self.color_inactive = COL.BUTTON_INACTIVE
         self.color_error = COL.BUTTON_ERROR
@@ -94,7 +142,7 @@ class BottomBar(Button):
         super().__init__(
             size_hint=(1, None),
             height=dp(SIZE.BOTTOM_BAR_HEIGHT),
-            padding=[0, dp(SPACE.SPACE_Y_M), 0, 0],
+            padding=[0, dp(SPACE.SPACE_M), 0, 0],
             pos_hint={"center_x": 0.5, "y": -0.15},  # Just below screen
             text=text,
             font_size=dp(FONT.BOTTOM_BAR),

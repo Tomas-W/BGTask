@@ -56,7 +56,7 @@ class CalendarScreen(Screen):
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
-        self.scroll_container.container.spacing = dp(SPACE.SPACE_Y_XXL)
+        self.scroll_container.container.spacing = dp(SPACE.SPACE_XXL)
 
 # Select month partition
         self.select_month_partition = Partition()
@@ -179,7 +179,7 @@ class CalendarScreen(Screen):
             spacing=dp(1),
             size_hint=(1, None),
             height=dp(SIZE.CALENDAR_HEIGHT),
-            padding=[0, dp(SPACE.SPACE_Y_XS), 0, 0]
+            padding=[0, dp(SPACE.SPACE_XS), 0, 0]
         )
         
         self.calendar_container.add_widget(headers_container)
@@ -189,7 +189,7 @@ class CalendarScreen(Screen):
         self.update_calendar()
         
         # Add the container to the calendar partition with reduced spacing
-        self.calendar_partition.spacing = dp(SPACE.SPACE_Y_XS)
+        self.calendar_partition.spacing = dp(SPACE.SPACE_XS)
         self.calendar_partition.add_widget(self.calendar_container)
 
     def update_calendar(self):

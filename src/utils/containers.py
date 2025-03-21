@@ -7,6 +7,24 @@ from kivy.uix.scrollview import ScrollView
 from src.settings import COL, SIZE, SPACE, STYLE
 
 
+class TopBarContainer(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(
+            size_hint=(1, None),
+            height=dp(SIZE.TOP_BAR_HEIGHT),
+            **kwargs
+        )
+        
+        with self.canvas.before:
+            Color(*COL.BAR)
+            self.bg_rect = Rectangle(pos=self.pos, size=self.size)
+            self.bind(pos=self._update, size=self._update)
+    
+    def _update(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+
+
 class BaseLayout(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(
@@ -22,9 +40,9 @@ class MainContainer(BoxLayout):
         super().__init__(
             orientation="vertical",
             size_hint_y=None,
-            spacing=dp(SPACE.SPACE_Y_XL),
-            padding=[dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_Y_XXL), 
-                    dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_Y_XXL)],
+            spacing=dp(SPACE.SPACE_XL),
+            padding=[dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_XXL), 
+                    dp(SPACE.SCREEN_PADDING_X), dp(SPACE.SPACE_XXL)],
             **kwargs
         )
         self.bind(minimum_height=self.setter("height"))
@@ -122,7 +140,7 @@ class Partition(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         self.size_hint = (1, None)  # Allow variable height
-        self.spacing = dp(SPACE.SPACE_Y_M)
+        self.spacing = dp(SPACE.SPACE_M)
 
         # Bind the height to the minimum height of the children
         self.bind(minimum_height=self.setter('height'))
@@ -151,8 +169,8 @@ class TaskBox(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         self.size_hint_y = None
-        self.spacing = dp(SPACE.SPACE_Y_M)
-        self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
+        self.spacing = dp(SPACE.SPACE_M)
+        self.padding = [0, dp(SPACE.SPACE_M), 0, dp(SPACE.SPACE_M)]
         self.bind(minimum_height=self.setter("height"))
 
         with self.canvas.before:
@@ -160,7 +178,7 @@ class TaskBox(BoxLayout):
             self.bg_rect = RoundedRectangle(
                 pos=self.pos,
                 size=self.size,
-                radius=[dp(STYLE.RADIUS_L)]
+                radius=[dp(STYLE.RADIUS_M)]
             )
             self.bind(pos=self._update, size=self._update)
 
@@ -176,4 +194,4 @@ class ButtonRow(BoxLayout):
         self.orientation = "horizontal"
         self.size_hint = (1, None)
         self.height = dp(SIZE.BUTTON_HEIGHT)
-        self.spacing = dp(SPACE.SPACE_Y_M)
+        self.spacing = dp(SPACE.SPACE_M)

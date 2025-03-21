@@ -6,7 +6,7 @@ from src.settings import SPACE, COL
 
 
 class Spacer(BoxLayout):
-    def __init__(self, height=SPACE.SPACE_Y_M, **kwargs):
+    def __init__(self, height=SPACE.SPACE_M, **kwargs):
         super().__init__(
             size_hint_y=None,
             height=dp(height),

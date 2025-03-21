@@ -15,7 +15,7 @@ class TextField(BoxLayout):
         self.orientation = "vertical"
         self.size_hint = (1, None)
         self.height = dp(SIZE.BUTTON_HEIGHT * 3)
-        self.padding = [0, dp(SPACE.SPACE_Y_M), 0, dp(SPACE.SPACE_Y_M)]
+        self.padding = [0, dp(SPACE.SPACE_M), 0, dp(SPACE.SPACE_M)]
         self.border_width = dp(2)
         self._hint_text = TEXT.TYPE_HINT
         self._error_message = TEXT.TYPE_ERROR
@@ -27,7 +27,7 @@ class TextField(BoxLayout):
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size,
-                radius=[dp(STYLE.RADIUS_L)]
+                radius=[dp(STYLE.RADIUS_M)]
             )
             
             # Border - always there but with transparent color by default
@@ -36,7 +36,7 @@ class TextField(BoxLayout):
                 rounded_rectangle=(
                     self.pos[0], self.pos[1], 
                     self.size[0], self.size[1], 
-                    dp(STYLE.RADIUS_L)
+                    dp(STYLE.RADIUS_M)
                 ),
                 width=self.border_width
             )
@@ -47,7 +47,7 @@ class TextField(BoxLayout):
         self.text_input = TextInput(
             hint_text=hint_text,
             size_hint=(1, None),
-            height=dp(SIZE.BUTTON_HEIGHT * 3) - dp(SPACE.SPACE_Y_M) * 2,
+            height=dp(SIZE.BUTTON_HEIGHT * 3) - dp(SPACE.SPACE_M) * 2,
             multiline=True,
             font_size=dp(FONT.DEFAULT),
             background_color=COL.OPAQUE,
@@ -78,7 +78,7 @@ class TextField(BoxLayout):
         self.border_rect.rounded_rectangle = (
             instance.pos[0], instance.pos[1],
             instance.size[0], instance.size[1],
-            dp(STYLE.RADIUS_L)
+            dp(STYLE.RADIUS_M)
         )
     
     def set_border_color(self, color):
@@ -164,7 +164,7 @@ class ButtonField(BoxLayout):
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size, 
-                radius=[dp(STYLE.RADIUS_L)]
+                radius=[dp(STYLE.RADIUS_M)]
             )
             
             # Border - initially transparent
@@ -173,7 +173,7 @@ class ButtonField(BoxLayout):
                 rounded_rectangle=(
                     self.pos[0], self.pos[1], 
                     self.size[0], self.size[1], 
-                    dp(STYLE.RADIUS_L)
+                    dp(STYLE.RADIUS_M)
                 ),
                 width=self.border_width
             )
@@ -203,7 +203,7 @@ class ButtonField(BoxLayout):
         self.border_rect.rounded_rectangle = (
             instance.pos[0], instance.pos[1],
             instance.size[0], instance.size[1],
-            dp(STYLE.RADIUS_L)
+            dp(STYLE.RADIUS_M)
         )
     
     def set_text(self, text):

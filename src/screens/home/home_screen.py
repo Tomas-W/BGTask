@@ -1,13 +1,14 @@
 from datetime import datetime
+from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from src.screens.home.task_group import TaskGroup
-from src.utils.buttons import TopBar, BottomBar
-from src.utils.containers import BaseLayout, ScrollContainer
+from src.utils.buttons import TopBarButton, TopBar, BottomBar
+from src.utils.containers import BaseLayout, ScrollContainer, TopBarContainer
 from src.utils.taskmanager import TaskManager
 
-from src.settings import SCREEN, TEXT, SPACE
+from src.settings import SCREEN, TEXT, SPACE, PATH
 
 
 class HomeScreen(Screen):
@@ -19,14 +20,28 @@ class HomeScreen(Screen):
         self.layout = BaseLayout()
         
         # Top bar with + button
+        # self.top_bar = TopBar(text="+")
+        # self.top_bar.bind(on_press=self.go_to_new_task_screen)
+        # self.layout.add_widget(self.top_bar)
+        self.top_bar_container = TopBarContainer()
+        
+        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, side="left")
+        self.top_bar_container.add_widget(self.settings_button)
+
         self.top_bar = TopBar(text="+")
         self.top_bar.bind(on_press=self.go_to_new_task_screen)
-        self.layout.add_widget(self.top_bar)
+        self.top_bar_container.add_widget(self.top_bar)
+        
+        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
+        self.top_bar_container.add_widget(self.exit_button)
+
+        self.layout.add_widget(self.top_bar_container)
+        
         
         # Scrollable container for task groups
         self.scroll_container = ScrollContainer()
-        self.scroll_container.container.spacing = SPACE.SPACE_Y_XXL
-        
+        self.scroll_container.container.spacing = SPACE.SPACE_MAX
+
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")
         self.bottom_bar.bind(on_press=self.scroll_container.scroll_to_top)
@@ -71,5 +86,5 @@ class HomeScreen(Screen):
 
     def on_enter(self):
         """Called when screen is entered"""
-        self.update_task_display() 
+        self.update_task_display()
     
