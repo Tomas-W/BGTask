@@ -20,9 +20,9 @@ class TaskManager:
         
         if platform == "android":
             from android.storage import app_storage_path
-            return os.path.join(app_storage_path(), "tasks.json")
+            return os.path.join(app_storage_path(), PATH.TASK_FILE)
         else:
-            return os.path.join(PATH.SRC, "tasks.json")
+            return os.path.join(PATH.SRC, PATH.TASK_FILE)
     
     def add_task(self, message, timestamp):
         """Add a new task"""

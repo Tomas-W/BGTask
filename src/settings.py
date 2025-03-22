@@ -6,8 +6,12 @@ from kivy.metrics import dp, sp
 class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
     IMG = os.path.join(SRC, "images")
+
     EXIT_IMG = os.path.join(IMG, "exit_64.png")
     SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
+    BACK_IMG = os.path.join(IMG, "back_64.png")
+
+    TASK_FILE = "task_file.json"
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)

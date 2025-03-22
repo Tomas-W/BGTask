@@ -9,6 +9,8 @@ source.include_exts = py,png,json
 source.exclude_exts = gitignore,md
 source.exclude_dirs = bin
 
+assets = %(source.dir)s/src/task_file.json
+
 version = 0.1
 
 orientation = portrait

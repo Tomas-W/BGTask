@@ -9,18 +9,21 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
-from src.utils.buttons import TopBar, CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
+from src.utils.buttons import TopBar, CustomButton, TopBarButton
+from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, TopBarContainer
 from src.utils.labels import PartitionHeader
 
 from .select_date_utils import DateTimeLabel
 
-from src.settings import COL, FONT, SCREEN, SIZE, SPACE, STATE, STYLE
+from src.settings import COL, FONT, SCREEN, SIZE, SPACE, STATE, STYLE, PATH
 
 
-class SelectDate(Screen):
-    def __init__(self, **kwargs):
+class SelectDateScreen(Screen):
+    def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
+        self.navigation_manager = navigation_manager
+        self.task_manager = task_manager
+        
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
@@ -31,8 +34,20 @@ class SelectDate(Screen):
         self.current_year = self.selected_date.year
 
         # Top bar
-        self.top_bar = TopBar(text="Select Date", button=False)
-        self.layout.add_widget(self.top_bar)
+        self.top_bar_container = TopBarContainer()
+        # Back button
+        self.back_button = TopBarButton(img_path=PATH.BACK_IMG, side="left")
+        self.back_button.bind(on_press=self.go_to_previous_screen)
+        self.top_bar_container.add_widget(self.back_button)
+        # Select date button
+        self.select_date_button = TopBar(text="Select Date", button=False)
+        self.top_bar_container.add_widget(self.select_date_button)
+        # Exit button
+        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
+        self.top_bar_container.add_widget(self.exit_button)
+
+        self.layout.add_widget(self.top_bar_container)
+
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
@@ -99,7 +114,7 @@ class SelectDate(Screen):
             width=2,
             color_state=STATE.INACTIVE
         )
-        self.cancel_button.bind(on_press=self.go_to_new_task_screen)
+        self.cancel_button.bind(on_press=self.go_to_previous_screen)
 
         # Confirm button
         self.confirm_button = CustomButton(
@@ -107,7 +122,7 @@ class SelectDate(Screen):
             width=2,
             color_state=STATE.ACTIVE
         )
-        self.confirm_button.bind(on_press=self.go_to_new_task_screen)
+        self.confirm_button.bind(on_press=self.confirm_date_selection)
 
         # Apply confirmation partition
         self.confirm_button_row.add_widget(self.cancel_button)
@@ -122,6 +137,10 @@ class SelectDate(Screen):
 
         # Add callback property
         self.callback = None
+    
+    def go_to_previous_screen(self, instance):
+        """Go back to the previous screen"""
+        self.navigation_manager.go_back()
 
     def create_calendar_grid(self):
         """Create and populate the calendar grid"""
@@ -273,14 +292,14 @@ class SelectDate(Screen):
         """Set the callback function to be called when date is confirmed"""
         self.callback = callback
 
-    def go_to_new_task_screen(self, instance):
+    def confirm_date_selection(self, instance):
         """Return to new task screen, passing selected date if confirm was pressed"""
         if instance == self.confirm_button:
             # Call the callback with selected date and time if it exists
             if self.callback:
                 self.callback(self.selected_date, self.selected_time)
         
-        self.manager.current = SCREEN.NEW_TASK
+        self.go_to_previous_screen(instance)
 
     def _update_month_rect(self, instance, value):
         self.select_month_rect.pos = instance.pos

@@ -1,11 +1,11 @@
 from datetime import datetime
+from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from .home_utils import TaskGroup
 from src.utils.buttons import TopBarButton, TopBar, BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer, TopBarContainer
-from src.utils.taskmanager import TaskManager
 
 from src.settings import SCREEN, TEXT, SPACE, PATH
 
@@ -17,9 +17,10 @@ class HomeScreen(Screen):
     - Displays a list of tasks grouped by date
     - Has a bottom bar with a scroll to top button
     """
-    def __init__(self, **kwargs):
+    def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
-        self.task_manager = TaskManager()
+        self.navigation_manager = navigation_manager
+        self.task_manager = task_manager
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -35,6 +36,7 @@ class HomeScreen(Screen):
         self.top_bar_container.add_widget(self.top_bar)
         # Exit button
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
+        self.exit_button.bind(on_press=self.exit_app)
         self.top_bar_container.add_widget(self.exit_button)
 
         self.layout.add_widget(self.top_bar_container)
@@ -53,9 +55,13 @@ class HomeScreen(Screen):
         self.root_layout.add_widget(self.layout)
         self.root_layout.add_widget(self.bottom_bar)
         self.add_widget(self.root_layout)
+    
+    def exit_app(self, instance):
+        """Exit the application"""
+        App.get_running_app().stop()
             
     def go_to_new_task_screen(self, instance):
-        self.manager.current = SCREEN.NEW_TASK
+        self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
     def load_tasks(self):
         """Load tasks from the task manager"""
