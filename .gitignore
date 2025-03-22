@@ -1,17 +1,15 @@
 # Python
 __pycache__/
 
+# vscode
+.vscode/
+
 # Virtual Environment
 .venv
 
-# Kivy specific
-*.pyc
-*.pyo
-*.pyd
-.buildozer/
+# Kivy / SDK Tools
 bin/
 
-# IDE specific
-.idea/
-.vscode/
-
+# Buildozer
+.buildozer/
+*.buildozer.venv/

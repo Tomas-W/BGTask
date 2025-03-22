@@ -7,10 +7,12 @@ source.dir = .
 
 source.include_exts = py,png,json
 source.exclude_exts = gitignore,md
+source.exclude_dirs = bin
 
 version = 0.1
 
 orientation = portrait
+fullscreen = 0
 
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 android.api = 33
@@ -23,9 +25,3 @@ android.optimize_python = True
 android.precompile_python = True
 
 android.archs = arm64-v8a
-
-# p4a.java_build_tool = javac
-# p4a.java_home = /usr/lib/jvm/java-17-openjdk-amd64
-# 
-# p4a.bootstrap = sdl2
-# p4a.local_recipes = ~/.buildozer/prebuild/

@@ -1,5 +1,7 @@
 import os
 
+from kivy.metrics import dp, sp
+
 
 class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
@@ -31,51 +33,57 @@ class Colors:
     
 
 class Spacing:
-    SPACE_XS = 5
-    SPACE_S = 10
-    SPACE_M = 15
-    SPACE_L = 25
-    SPACE_XL = 40
-    SPACE_XXL = 50
-    SPACE_MAX = 75
-    FIELD_PADDING_X = 20   # Padding between bg color and text
-    FIELD_PADDING_Y = 10   # Padding between bg color and text
-    SCREEN_PADDING_X = 20  # Padding between fields and screen edge
-    DAY_SPACING_Y = 20     # Spacing between day groups
+    SPACE_XS = dp(5)
+    SPACE_S = dp(10)
+    SPACE_M = dp(15)
+    SPACE_L = dp(25)
+    SPACE_XL = dp(40)
+    SPACE_XXL = dp(50)
+    SPACE_MAX = dp(75)
+    FIELD_PADDING_X = dp(20)   # Padding between bg color and text
+    FIELD_PADDING_Y = dp(10)   # Padding between bg color and text
+    SCREEN_PADDING_X = dp(20)  # Padding between fields and screen edge
+    DAY_SPACING_Y = dp(20)     # Spacing between day groups
 
 
 class Fonts:
-    DEFAULT = 20
-    SMALL = 13
+    DEFAULT = sp(20)
+    DEFAULT_BOLD = sp(24)
+    SMALL = sp(13)
 
-    TOP_BAR = 25
-    TOP_BAR_SYMBOL = 35
-    BOTTOM_BAR = 35
+    TOP_BAR = sp(25)
+    TOP_BAR_SYMBOL = sp(35)
+    BOTTOM_BAR = sp(35)
 
-    HEADER = 25
-    BUTTON = 18
-    BUTTON_SYMBOL = 30
+    HEADER = sp(25)
+    BUTTON = sp(18)
+    BUTTON_SYMBOL = sp(30)
 
 
 class Sizes:
-    TOP_BAR_HEIGHT = 60
-    BOTTOM_BAR_HEIGHT = 40
+    DEFAULT = dp(20)
+    DATE_TIME_LABEL = dp(20 * 1.5)
 
-    HEADER_HEIGHT = Fonts.HEADER
-    TASK_ITEM_HEIGHT = 40 
-    TIME_LABEL_HEIGHT = 20
-    MESSAGE_LABEL_HEIGHT = Fonts.DEFAULT * 1.3
+    TOP_BAR_HEIGHT = dp(60)
+    TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
+    BOTTOM_BAR_HEIGHT = dp(40)
 
-    BUTTON_HEIGHT = 60
-    NO_TASKS_LABEL_HEIGHT = 100
-    CALENDAR_HEADER_HEIGHT = 50
-    CALENDAR_HEIGHT = 200
+    HEADER_HEIGHT = dp(25)
+    TASK_ITEM_HEIGHT = dp(40)
+    TIME_LABEL_HEIGHT = dp(20)
+
+    BUTTON_HEIGHT = dp(60)
+    NO_TASKS_LABEL_HEIGHT = dp(100)
+    CALENDAR_HEADER_HEIGHT = dp(50)
+    CALENDAR_HEIGHT = dp(200)
 
 
 class Styles:
-    RADIUS_S = 5
-    RADIUS_M = 10
-    RADIUS_L = 20
+    RADIUS_S = dp(5)
+    RADIUS_M = dp(10)
+    RADIUS_L = dp(20)
+
+    BORDER_WIDTH = dp(2)
 
 
 class Text:
@@ -87,7 +95,14 @@ class Text:
 class Screens:
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
-    CALENDAR = "CALENDAR"
+    SELECT_DATE = "SELECT_DATE"
+
+
+class States:
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    ERROR = "ERROR"
+
 
 PATH = Paths()
 COL = Colors()
@@ -97,3 +112,4 @@ STYLE = Styles()
 FONT = Fonts()
 TEXT = Text()
 SCREEN = Screens()
+STATE = States()

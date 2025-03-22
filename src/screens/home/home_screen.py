@@ -1,9 +1,8 @@
 from datetime import datetime
-from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
-from src.screens.home.task_group import TaskGroup
+from .home_utils import TaskGroup
 from src.utils.buttons import TopBarButton, TopBar, BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer, TopBarContainer
 from src.utils.taskmanager import TaskManager
@@ -12,26 +11,29 @@ from src.settings import SCREEN, TEXT, SPACE, PATH
 
 
 class HomeScreen(Screen):
+    """
+    HomeScreen is the main screen for the app that:
+    - Has a top bar with a settings button, new task button, and exit button
+    - Displays a list of tasks grouped by date
+    - Has a bottom bar with a scroll to top button
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.task_manager = TaskManager()
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
-        
-        # Top bar with + button
-        # self.top_bar = TopBar(text="+")
-        # self.top_bar.bind(on_press=self.go_to_new_task_screen)
-        # self.layout.add_widget(self.top_bar)
+
+        # Top bar
         self.top_bar_container = TopBarContainer()
-        
+        # Settings button
         self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, side="left")
         self.top_bar_container.add_widget(self.settings_button)
-
+        # New task button
         self.top_bar = TopBar(text="+")
         self.top_bar.bind(on_press=self.go_to_new_task_screen)
         self.top_bar_container.add_widget(self.top_bar)
-        
+        # Exit button
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
         self.top_bar_container.add_widget(self.exit_button)
 
@@ -83,8 +85,10 @@ class HomeScreen(Screen):
         """Called just before the screen is entered"""
         if not self.task_manager.tasks:
             self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
+        
+        self.update_task_display()
 
     def on_enter(self):
         """Called when screen is entered"""
-        self.update_task_display()
+        pass
     

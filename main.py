@@ -4,8 +4,8 @@ from kivy.uix.screenmanager import ScreenManager, SlideTransition
 from kivy.utils import platform
 
 from src.screens.home.home_screen import HomeScreen
-from src.screens.new_task import NewTaskScreen
-from src.screens.calendar_screen import CalendarScreen
+from src.screens.new_task.new_task import NewTaskScreen
+from src.screens.select_date.select_date import SelectDate
 from src.settings import SCREEN
 
 
@@ -22,11 +22,11 @@ class TaskApp(App):
         
         self.home_screen = HomeScreen(name=SCREEN.HOME)
         self.task_screen = NewTaskScreen(name=SCREEN.NEW_TASK)
-        self.calendar_screen = CalendarScreen(name=SCREEN.CALENDAR)
+        self.select_date_screen = SelectDate(name=SCREEN.SELECT_DATE)
 
         self.sm.add_widget(self.home_screen)
         self.sm.add_widget(self.task_screen)
-        self.sm.add_widget(self.calendar_screen)
+        self.sm.add_widget(self.select_date_screen)
         
         return self.sm
     

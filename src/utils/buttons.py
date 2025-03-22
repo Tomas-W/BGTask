@@ -1,26 +1,31 @@
 from kivy.animation import Animation, AnimationTransition
-from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle, RoundedRectangle
-from kivy.metrics import dp
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 
-from src.settings import COL, SIZE, SPACE, FONT, STYLE
+from src.settings import COL, SIZE, SPACE, FONT, STYLE, STATE
 
 
 class TopBarButton(Button):
+    """
+    TopBarButton is a button that:
+    - Has a side (left, right)
+    - Has a background color
+    - Has a rounded border
+    - Has an image
+    """
     def __init__(self, img_path, side, **kwargs):
         super().__init__(
             size_hint=(0.25, None),
-            height=dp(SIZE.TOP_BAR_HEIGHT),
+            height=SIZE.TOP_BAR_HEIGHT,
             background_color=COL.OPAQUE,
             color=COL.WHITE,
             **kwargs
         )
         if side == "left":
-            self.radius = [0, dp(STYLE.RADIUS_L), dp(STYLE.RADIUS_L), 0]
+            self.radius = [0, STYLE.RADIUS_L, STYLE.RADIUS_L, 0]
         elif side == "right":
-            self.radius = [dp(STYLE.RADIUS_L), 0, 0, dp(STYLE.RADIUS_L)]
+            self.radius = [STYLE.RADIUS_L, 0, 0, STYLE.RADIUS_L]
 
         with self.canvas.before:
             Color(*COL.BAR_BUTTON)
@@ -28,104 +33,102 @@ class TopBarButton(Button):
             self.bind(pos=self._update, size=self._update)
         
         self.img_path = img_path
-        self.image = Image(source=img_path, allow_stretch=True)
+        self.image = Image(source=img_path)
         if not self.image.texture:
-            print(f"Texture not found for {img_path}")
+            raise ValueError(f"Texture not found for {img_path}")
         
-        # Set a target icon size that's proportional to button height
-        self.icon_size = dp(SIZE.TOP_BAR_HEIGHT * 0.4)  # 60% of button height
+        self.icon_size = SIZE.TOP_BAR_ICON
         self.image.size = (self.icon_size, self.icon_size)
         
         self.add_widget(self.image)
         self.bind(pos=self._update_image, size=self._update_image)
         
-        # Initial update
         self._update_image(self, self.size)
 
     def _update(self, instance, value):
+        """Update the background rectangle"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
     def _update_image(self, instance, value):
         """Center the image within the button"""
-        # Update icon size to be proportional to button height
-        self.icon_size = dp(self.height * 0.4)
+        self.icon_size = SIZE.TOP_BAR_ICON
         self.image.size = (self.icon_size, self.icon_size)
         
-        # Center the icon
         self.image.pos = (
-            self.x + (self.width - self.image.width) / 2,  # Center horizontally
-            self.y + (self.height - self.image.height) / 2  # Center vertically
+            self.x + (self.width - self.image.width) / 2,
+            self.y + (self.height - self.image.height) / 2
         )
 
 class CustomButton(Button):
-    """Button with state management"""
-    # Define state constants
-    STATE_ACTIVE = "active"
-    STATE_INACTIVE = "inactive" 
-    STATE_ERROR = "error"
-    
+    """
+    CustomButton is a button that:
+    - Has a state (active, inactive, error)
+    - Has a background color based on state
+    """
     def __init__(self, width: int, color_state: str, symbol: bool = False, **kwargs):
-        super().__init__(**kwargs)
-        self.size_hint = (width, None)
-        self.height = dp(SIZE.BUTTON_HEIGHT)
-        self.font_size = dp(FONT.BUTTON) if not symbol else dp(FONT.BUTTON_SYMBOL)
-        self.bold = True if symbol else False
-        self.color = COL.WHITE
-        self.background_color = COL.OPAQUE
+        super().__init__(
+            size_hint=(width, None),
+            height=SIZE.BUTTON_HEIGHT,
+            font_size=FONT.BUTTON if not symbol else FONT.BUTTON_SYMBOL,
+            bold=True if symbol else False,
+            color=COL.WHITE,
+            background_color=COL.OPAQUE,
+            **kwargs
+        )
         
-        self.radius = [dp(STYLE.RADIUS_M)]
         self.color_active = COL.BUTTON_ACTIVE
         self.color_inactive = COL.BUTTON_INACTIVE
         self.color_error = COL.BUTTON_ERROR
-        
-        # Set initial state
         self.color_state = color_state
         
-        # Create the canvas instructons, but don't set color yet
+        # Background color - will be set based on state
         with self.canvas.before:
-            self.color_instr = Color(1, 1, 1)  # Temporary color
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.radius)
+            self.color_instr = Color(1, 1, 1)
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[STYLE.RADIUS_M])
             self.bind(pos=self._update, size=self._update)
         
         # Apply the initial state
-        if self.color_state == self.STATE_ACTIVE:
+        if self.color_state == STATE.ACTIVE:
             self.set_active_state()
-        elif self.color_state == self.STATE_INACTIVE:
+        elif self.color_state == STATE.INACTIVE:
             self.set_inactive_state()
-        elif self.color_state == self.STATE_ERROR:
+        elif self.color_state == STATE.ERROR:
             self.set_error_state()
         else:
             raise ValueError(f"Invalid state: {self.color_state}")
 
     def _update(self, instance, value):
-        """Update background rectangle on resize/reposition"""
+        """Update background"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
 
     def set_error_state(self):
-        """Set button to error state"""
-        self.color_state = self.STATE_ERROR
+        self.color_state = STATE.ERROR
         self.color_instr.rgba = self.color_error
     
     def set_active_state(self):
-        """Set button back to normal state"""
-        self.color_state = self.STATE_ACTIVE
+        self.color_state = STATE.ACTIVE
         self.color_instr.rgba = self.color_active
     
     def set_inactive_state(self):
-        """Set button to inactive state"""
-        self.color_state = self.STATE_INACTIVE
+        self.color_state = STATE.INACTIVE
         self.color_instr.rgba = self.color_inactive
 
 
 class TopBar(Button):
+    """
+    TopBar is the centered navigation button that:
+    - Has text
+    - Has a background color
+    - Can be set unclickable
+    """
     def __init__(self, text="", button=True,**kwargs):
         super().__init__(
             size_hint=(1, None),
-            height=dp(SIZE.TOP_BAR_HEIGHT),
+            height=SIZE.TOP_BAR_HEIGHT,
             text=text,
-            font_size=dp(FONT.TOP_BAR_SYMBOL) if button else dp(FONT.TOP_BAR),
+            font_size=FONT.TOP_BAR_SYMBOL if button else FONT.TOP_BAR,
             bold=True,
             color=COL.WHITE,
             background_color=COL.OPAQUE,
@@ -143,27 +146,34 @@ class TopBar(Button):
 
 
 class BottomBar(Button):
+    """
+    BottomBar is the bottom navigation button that:
+    - Brings the user back to the top of the screen
+    - Has a background color
+    - Has a symbol
+    - Is initially hidden
+    - Has an animation
+    """
     def __init__(self, text="", **kwargs):
         super().__init__(
             size_hint=(1, None),
-            height=dp(SIZE.BOTTOM_BAR_HEIGHT),
-            padding=[0, dp(SPACE.SPACE_M), 0, 0],
+            height=SIZE.BOTTOM_BAR_HEIGHT,
+            padding=[0, SPACE.SPACE_M, 0, 0],
             pos_hint={"center_x": 0.5, "y": -0.15},  # Just below screen
             text=text,
-            font_size=dp(FONT.BOTTOM_BAR),
+            font_size=FONT.BOTTOM_BAR,
             bold=True,
             color=COL.WHITE,
             background_color=COL.OPAQUE,
             opacity=0,  # Start hidden
             **kwargs
         )
-        
+        self.visible = False
+
         with self.canvas.before:
             Color(*COL.BAR)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
             self.bind(pos=self._update, size=self._update)
-        
-        self.visible = False
     
     def _update(self, instance, value):
         self.bg_rect.pos = instance.pos
@@ -175,8 +185,6 @@ class BottomBar(Button):
             return
             
         self.visible = True
-        
-        # Slide up and fade in
         anim = Animation(
             opacity=1, 
             pos_hint={"center_x": 0.5, "y": 0}, 
@@ -190,9 +198,7 @@ class BottomBar(Button):
         if not self.visible:
             return
             
-        self.visible = False
-        
-        # Slide down and fade out
+        self.visible = False        
         anim = Animation(
             opacity=0, 
             pos_hint={"center_x": 0.5, "y": -0.15}, 

@@ -1,44 +1,24 @@
 import calendar
 
 from datetime import datetime, date
-from kivy.uix.label import Label
-from kivy.metrics import dp
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.behaviors import ButtonBehavior
+
 from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import Screen
 
 from src.utils.buttons import TopBar, CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow, Partition
+from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
 from src.utils.labels import PartitionHeader
 
-from src.settings import COL, FONT, SCREEN, SPACE, SIZE, STYLE
+from .select_date_utils import DateTimeLabel
+
+from src.settings import COL, FONT, SCREEN, SIZE, SPACE, STATE, STYLE
 
 
-class DateTimeLabel(ButtonBehavior, Label):
-    """Label that behaves like a button"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_size = dp(FONT.DEFAULT)
-        self.color = COL.TEXT_GREY
-        self.bold = True
-        self.size_hint_y = None
-        self.height = dp(SIZE.HEADER_HEIGHT*1.5)
-        self.halign = "center"
-        self.valign = "middle"
-        self.bind(size=self.setter("text_size"))
-
-    def set_bold(self, is_bold):
-        """Set the font size to make the text bold or normal"""
-        if is_bold:
-            self.font_size = dp(FONT.DEFAULT + 4)  # Increase font size for bold
-        else:
-            self.font_size = dp(FONT.DEFAULT)  # Reset to normal size
-
-
-class CalendarScreen(Screen):
+class SelectDate(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.root_layout = FloatLayout()
@@ -56,21 +36,20 @@ class CalendarScreen(Screen):
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
-        self.scroll_container.container.spacing = dp(SPACE.SPACE_XXL)
+        self.scroll_container.container.spacing = SPACE.SPACE_XXL
 
 # Select month partition
         self.select_month_partition = Partition()
-        # self.select_month_partition.spacing = dp(SPACE.SPACE_Y_S)
 
         # Month button row
-        self.month_button_row = ButtonRow()
+        self.month_button_row = CustomButtonRow()
         
         # Previous month button
         self.prev_month_button = CustomButton(
             text="<",
             width=0.6,
             symbol=True,
-            color_state="active"
+            color_state=STATE.ACTIVE
         )
         self.prev_month_button.bind(on_press=self.go_to_prev_month)
         
@@ -83,7 +62,7 @@ class CalendarScreen(Screen):
             text=">",
             width=0.6,
             symbol=True,
-            color_state="active"
+            color_state=STATE.ACTIVE
         )
         self.next_month_button.bind(on_press=self.go_to_next_month)
 
@@ -112,13 +91,13 @@ class CalendarScreen(Screen):
         self.confirmation_partition = Partition()
 
         # Confirm button row
-        self.confirm_button_row = ButtonRow()
+        self.confirm_button_row = CustomButtonRow()
 
         # Cancel button
         self.cancel_button = CustomButton(
             text="Cancel",
             width=2,
-            color_state="inactive"
+            color_state=STATE.INACTIVE
         )
         self.cancel_button.bind(on_press=self.go_to_new_task_screen)
 
@@ -126,7 +105,7 @@ class CalendarScreen(Screen):
         self.confirm_button = CustomButton(
             text="Confirm",
             width=2,
-            color_state="active"
+            color_state=STATE.ACTIVE
         )
         self.confirm_button.bind(on_press=self.go_to_new_task_screen)
 
@@ -150,15 +129,15 @@ class CalendarScreen(Screen):
         self.calendar_container = BoxLayout(
             orientation="vertical",
             size_hint=(1, None),
-            height=dp(SIZE.CALENDAR_HEIGHT),
-            spacing=dp(4)
+            height=SIZE.CALENDAR_HEIGHT,
+            spacing=SPACE.SPACE_S
         )
         
         # Week days container
         headers_container = GridLayout(
             cols=7,
             size_hint=(1, None),
-            height=dp(SIZE.HEADER_HEIGHT),
+            height=SIZE.HEADER_HEIGHT,
         )
         
         # Week day headers
@@ -167,19 +146,18 @@ class CalendarScreen(Screen):
                 text=day,
                 bold=True,
                 color=COL.TEXT,
-                font_size=dp(FONT.DEFAULT),
+                font_size=FONT.DEFAULT,
                 size_hint_y=None,
-                height=dp(FONT.DEFAULT)
+                height=FONT.DEFAULT
             )
             headers_container.add_widget(header_label)
         
         # Calendar grid
         self.calendar_grid = GridLayout(
             cols=7,
-            spacing=dp(1),
             size_hint=(1, None),
-            height=dp(SIZE.CALENDAR_HEIGHT),
-            padding=[0, dp(SPACE.SPACE_XS), 0, 0]
+            height=SIZE.CALENDAR_HEIGHT,
+            padding=[0, SPACE.SPACE_XS, 0, 0]
         )
         
         self.calendar_container.add_widget(headers_container)
@@ -189,7 +167,7 @@ class CalendarScreen(Screen):
         self.update_calendar()
         
         # Add the container to the calendar partition with reduced spacing
-        self.calendar_partition.spacing = dp(SPACE.SPACE_XS)
+        self.calendar_partition.spacing = SPACE.SPACE_XS
         self.calendar_partition.add_widget(self.calendar_container)
 
     def update_calendar(self):
@@ -218,7 +196,7 @@ class CalendarScreen(Screen):
                     empty_label = Label(
                         text="",
                         size_hint_y=None,
-                        height=dp(SIZE.HEADER_HEIGHT)
+                        height=SIZE.HEADER_HEIGHT,
                     )
                     self.calendar_grid.add_widget(empty_label)
                 else:
@@ -235,7 +213,7 @@ class CalendarScreen(Screen):
                             Color(*COL.FIELD_ACTIVE)
                             RoundedRectangle(pos=day_button.pos,
                                            size=day_button.size,
-                                           radius=[dp(STYLE.RADIUS_S)])
+                                           radius=[STYLE.RADIUS_S])
                         day_button.color = COL.WHITE
                         day_button.bind(pos=self.update_selected_day, 
                                        size=self.update_selected_day)

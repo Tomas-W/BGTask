@@ -1,13 +1,12 @@
 from datetime import datetime
-from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from src.utils.buttons import TopBar, CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, ButtonRow, Partition
+from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
 from src.utils.fields import TextField, ButtonField
 
-from src.settings import SCREEN
+from src.settings import SCREEN, STATE
 
 
 class NewTaskScreen(Screen):
@@ -27,12 +26,12 @@ class NewTaskScreen(Screen):
         self.date_picker_partition = Partition()
 
         # Date picker button
-        self.pick_date_button = CustomButton(text="Select Date", width=1, color_state="active")
+        self.pick_date_button = CustomButton(text="Select Date", width=1, color_state=STATE.ACTIVE)
         self.pick_date_button.bind(on_press=self.show_datetime_picker)
         self.date_picker_partition.add_widget(self.pick_date_button)
         
         # Date display box
-        self.date_display = ButtonField(text="", width=1, color_state="inactive")
+        self.date_display = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
         self.date_picker_partition.add_widget(self.date_display)
 
         self.scroll_container.container.add_widget(self.date_picker_partition)
@@ -45,13 +44,13 @@ class NewTaskScreen(Screen):
         self.task_input_partition.add_widget(self.task_input)
 
         # Button row
-        self.button_row = ButtonRow()
+        self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomButton(text="Cancel", width=2, color_state="inactive")
+        self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
         self.cancel_button.bind(on_press=self.cancel_task)
         self.button_row.add_widget(self.cancel_button)
         # Save button
-        self.save_button = CustomButton(text="Save Task", width=2, color_state="active")
+        self.save_button = CustomButton(text="Save Task", width=2, color_state=STATE.ACTIVE)
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
         self.task_input_partition.add_widget(self.button_row)
@@ -81,17 +80,17 @@ class NewTaskScreen(Screen):
     
     def show_datetime_picker(self, instance):
         """Show the calendar screen"""
-        calendar_screen = self.manager.get_screen(SCREEN.CALENDAR)
+        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
         # Set the initial date and time if they exist
         if hasattr(self, 'selected_date'):
-            calendar_screen.selected_date = self.selected_date
-            calendar_screen.selected_time = self.selected_time
-            calendar_screen.current_month = self.selected_date.month
-            calendar_screen.current_year = self.selected_date.year
+            select_date_screen.selected_date = self.selected_date
+            select_date_screen.selected_time = self.selected_time
+            select_date_screen.current_month = self.selected_date.month
+            select_date_screen.current_year = self.selected_date.year
         # Set the callback
-        calendar_screen.set_callback(self.on_datetime_selected)
-        calendar_screen.update_calendar()  # Update the calendar display
-        self.manager.current = SCREEN.CALENDAR
+        select_date_screen.set_callback(self.on_datetime_selected)
+        select_date_screen.update_calendar()
+        self.manager.current = SCREEN.SELECT_DATE
 
     def on_datetime_selected(self, selected_date, selected_time):
         """Callback when date and time are selected in calendar"""
