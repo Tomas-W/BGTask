@@ -2,11 +2,13 @@ from datetime import datetime
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
-from src.utils.buttons import TopBar, CustomButton, TopBarButton
-from src.utils.containers import BaseLayout, ScrollContainer, TopBarContainer, Partition, CustomButtonRow
+from src.utils.buttons import CustomButton
+from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
 from src.utils.fields import TextField, ButtonField
 
-from src.settings import SCREEN, STATE, PATH
+from src.screens.new_task.new_task_utils import NewTaskBar, NewTaskBarExpanded
+
+from src.settings import SCREEN, STATE
 
 
 class NewTaskScreen(Screen):
@@ -18,20 +20,20 @@ class NewTaskScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
+        self.top_bar_is_expanded = False
         # Top bar
-        self.top_bar_container = TopBarContainer()
-        # Back button
-        self.back_button = TopBarButton(img_path=PATH.BACK_IMG, side="left")
-        self.back_button.bind(on_press=self.go_to_previous_screen)
-        self.top_bar_container.add_widget(self.back_button)
-        # New task button
-        self.new_task_button = TopBar(text="New Task", button=False)
-        self.top_bar_container.add_widget(self.new_task_button)
-        # Exit button
-        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
-        self.top_bar_container.add_widget(self.exit_button)
-
-        self.layout.add_widget(self.top_bar_container)
+        self.top_bar = NewTaskBar(
+            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
+            options_callback=self.switch_top_bar,
+        )
+        # Top bar with expanded options
+        self.top_bar_expanded = NewTaskBarExpanded(
+            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
+            options_callback=self.switch_top_bar,
+            settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(instance=instance),
+        )
+        self.layout.add_widget(self.top_bar.top_bar_container)
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
@@ -58,7 +60,7 @@ class NewTaskScreen(Screen):
         self.button_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
-        self.cancel_button.bind(on_press=self.go_to_previous_screen)
+        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_back(instance=instance))
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = CustomButton(text="Save Task", width=2, color_state=STATE.ACTIVE)
@@ -72,9 +74,18 @@ class NewTaskScreen(Screen):
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
     
-    def go_to_previous_screen(self, instance):
-        """Go back to the previous screen"""
-        self.navigation_manager.go_back()
+    def switch_top_bar(self, instance, on_enter=False):
+        """Handle the clicked options"""
+        if self.top_bar_is_expanded:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        else:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        if not on_enter:
+            self.top_bar_is_expanded = not self.top_bar_is_expanded
     
     def clear_inputs(self):
         """Clear the task input and date display data"""
@@ -92,23 +103,6 @@ class NewTaskScreen(Screen):
             self.date_display.hide_border()
         else:
             self.date_display.set_text("")
-    
-    def go_to_select_date_screen(self, instance):
-        """Show the calendar screen"""
-        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
-        # Set the initial date and time if they exist
-        if hasattr(self, 'selected_date'):
-            select_date_screen.selected_date = self.selected_date
-            select_date_screen.selected_time = self.selected_time
-            select_date_screen.current_month = self.selected_date.month
-            select_date_screen.current_year = self.selected_date.year
-        # Set the callback
-        select_date_screen.set_callback(self.on_datetime_selected)
-        select_date_screen.update_calendar()
-        self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
-    
-    def go_to_home_screen(self):
-        self.navigation_manager.navigate_to(SCREEN.HOME)
 
     def on_datetime_selected(self, selected_date, selected_time):
         """Callback when date and time are selected in calendar"""
@@ -152,13 +146,31 @@ class NewTaskScreen(Screen):
         self.task_manager.add_task(message=message, timestamp=task_datetime)
         self.clear_inputs()
 
-        self.go_to_previous_screen(instance)
+        self.navigation_manager.go_back(instance=instance)
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""
+        self.top_bar_is_expanded = False
+        self.switch_top_bar(instance=None, on_enter=True)
+
         self.task_input.hide_border()
         self.date_display.hide_border()
 
     def on_enter(self):
         """Called when screen is entered"""
         self.date_display._set_inactive_state()
+    
+    def go_to_select_date_screen(self, instance):
+        """Show the calendar screen"""
+        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
+        # Set the initial date and time if they exist
+        if hasattr(self, 'selected_date'):
+            select_date_screen.selected_date = self.selected_date
+            select_date_screen.selected_time = self.selected_time
+            select_date_screen.current_month = self.selected_date.month
+            select_date_screen.current_year = self.selected_date.year
+        # Set the callback
+        select_date_screen.set_callback(self.on_datetime_selected)
+        select_date_screen.update_calendar()
+        self.navigation_manager.go_to_select_date_screen()
+    

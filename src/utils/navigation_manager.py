@@ -1,3 +1,5 @@
+from kivy.app import App
+
 from src.settings import SCREEN
 
 
@@ -20,8 +22,8 @@ class NavigationManager:
 
         self.screen_manager.transition.direction = slide_direction
         self.screen_manager.current = screen_name
-       
-    def go_back(self, slide_direction="left", *args):
+          
+    def go_back(self, slide_direction="left", *args, instance):
         """
         Go back to the previous screen.
         The *args parameter allows this method to be used as an event handler.
@@ -36,8 +38,12 @@ class NavigationManager:
             self.screen_manager.transition.direction = slide_direction
             self.screen_manager.current = previous
 
-
-
+    def exit_app(self):
+        """
+        Exit the app.
+        """
+        App.get_running_app().stop()
+    
     def check_is_home_screen(self, screen = None):
         """
         Check if the current screen is the home screen.
@@ -48,4 +54,28 @@ class NavigationManager:
             return False
         
         return True
-
+    	
+    def go_to_home_screen(self):
+        """
+        Go to the home screen.
+        """
+        self.navigate_to(SCREEN.HOME)
+    
+    def go_to_new_task_screen(self, instance):
+        """
+        Go to the new task screen.
+        """
+        self.navigate_to(SCREEN.NEW_TASK)
+    
+    def go_to_select_date_screen(self):
+        """
+        Go to the select date screen.
+        """
+        self.navigate_to(SCREEN.SELECT_DATE)
+    
+    def go_to_settings_screen(self):
+        """
+        Go to the settings screen.
+        """
+        self.navigate_to(SCREEN.SETTINGS)
+    

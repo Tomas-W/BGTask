@@ -2,12 +2,13 @@ from datetime import datetime
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
+from kivy.uix.boxlayout import BoxLayout
 
-from .home_utils import TaskGroup
-from src.utils.buttons import TopBarButton, TopBar, BottomBar
-from src.utils.containers import BaseLayout, ScrollContainer, TopBarContainer
+from .home_utils import TaskGroup, HomeBar, HomeBarExpanded
+from src.utils.buttons import BottomBar
+from src.utils.containers import BaseLayout, ScrollContainer
 
-from src.settings import SCREEN, TEXT, SPACE, PATH
+from src.settings import SCREEN, TEXT, SPACE
 
 
 class HomeScreen(Screen):
@@ -25,22 +26,21 @@ class HomeScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        # Top bar
-        self.top_bar_container = TopBarContainer()
-        # Settings button
-        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, side="left")
-        self.top_bar_container.add_widget(self.settings_button)
-        # New task button
-        self.top_bar = TopBar(text="+")
-        self.top_bar.bind(on_press=self.go_to_new_task_screen)
-        self.top_bar_container.add_widget(self.top_bar)
-        # Exit button
-        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
-        self.exit_button.bind(on_press=self.exit_app)
-        self.top_bar_container.add_widget(self.exit_button)
-
-        self.layout.add_widget(self.top_bar_container)
-        
+        self.top_bar_is_expanded = False
+        # Basic TopBar
+        self.top_bar = HomeBar(
+            edit_callback=self.show_edit_icons,
+            new_task_callback=self.navigation_manager.go_to_new_task_screen,
+            options_callback=self.switch_top_bar,
+        )
+        # TopBar with expanded options
+        self.top_bar_expanded = HomeBarExpanded(
+            edit_callback=self.show_edit_icons,
+            options_callback=self.switch_top_bar,
+            settings_callback=self.navigation_manager.go_to_settings_screen,
+            exit_callback=self.navigation_manager.exit_app,
+        )
+        self.layout.add_widget(self.top_bar.top_bar_container)
         
         # Scrollable container for task groups
         self.scroll_container = ScrollContainer()
@@ -56,12 +56,21 @@ class HomeScreen(Screen):
         self.root_layout.add_widget(self.bottom_bar)
         self.add_widget(self.root_layout)
     
-    def exit_app(self, instance):
-        """Exit the application"""
-        App.get_running_app().stop()
-            
-    def go_to_new_task_screen(self, instance):
-        self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+    def show_edit_icons(self, instance):
+        pass
+    
+    def switch_top_bar(self, instance, on_enter=False):
+        """Handle the clicked options"""
+        if self.top_bar_is_expanded:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        else:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        if not on_enter:
+            self.top_bar_is_expanded = not self.top_bar_is_expanded
     
     def load_tasks(self):
         """Load tasks from the task manager"""
@@ -89,6 +98,9 @@ class HomeScreen(Screen):
     
     def on_pre_enter(self):
         """Called just before the screen is entered"""
+        self.top_bar_is_expanded = False
+        self.switch_top_bar(instance=None, on_enter=True)
+
         if not self.task_manager.tasks:
             self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
         
@@ -97,4 +109,15 @@ class HomeScreen(Screen):
     def on_enter(self):
         """Called when screen is entered"""
         pass
+    
+    def update_popup_background(self, dt):
+        """Update the background rectangle position to match content"""
+        # Find the content within the popup
+        for child in self.options_popup.content.children:
+            if isinstance(child, BoxLayout) and child.orientation == 'vertical':
+                # Update rect position to match the content position
+                self.rect.pos = child.pos
+                self.rect.size = child.size
+                break
+            
     

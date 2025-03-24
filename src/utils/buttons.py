@@ -9,27 +9,37 @@ from src.settings import COL, SIZE, SPACE, FONT, STYLE, STATE
 class TopBarButton(Button):
     """
     TopBarButton is a button that:
-    - Has a side (left, right)
     - Has a background color
+    - Has a radius_side (left, none, right) [rounded corners]
     - Has a rounded border
     - Has an image
     """
-    def __init__(self, img_path, side, **kwargs):
+    def __init__(self, img_path, radius_side, **kwargs):
         super().__init__(
-            size_hint=(0.25, None),
+            size_hint=(None, None),
+            width=SIZE.TEST,
             height=SIZE.TOP_BAR_HEIGHT,
             background_color=COL.OPAQUE,
             color=COL.WHITE,
             **kwargs
         )
-        if side == "left":
-            self.radius = [0, STYLE.RADIUS_L, STYLE.RADIUS_L, 0]
-        elif side == "right":
-            self.radius = [STYLE.RADIUS_L, 0, 0, STYLE.RADIUS_L]
+        self.bg_color = COL.BAR_BUTTON
+        self.left_radius = [STYLE.RADIUS_L, 0, 0, STYLE.RADIUS_L]
+        self.none_radius = [0, 0, 0, 0]
+        self.right_radius = [0, STYLE.RADIUS_L, STYLE.RADIUS_L, 0]
+        self.radius_side = radius_side
+        self.color_instr = None  # Initialize color instruction
 
         with self.canvas.before:
-            Color(*COL.BAR_BUTTON)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.radius)
+            self.update_bg_color()  # Create the background color instruction
+            if self.radius_side == "left":
+                self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.left_radius)
+            elif self.radius_side == "none":
+                self.bg_rect = Rectangle(pos=self.pos, size=self.size, radius=self.none_radius)
+            elif self.radius_side == "right":
+                self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.right_radius)
+            else:
+                raise ValueError(f"Invalid radius side: {self.radius_side}")
             self.bind(pos=self._update, size=self._update)
         
         self.img_path = img_path
@@ -44,11 +54,24 @@ class TopBarButton(Button):
         self.bind(pos=self._update_image, size=self._update_image)
         
         self._update_image(self, self.size)
+    
+    def set_radius_side(self, radius_side):
+        """Set the radius side"""
+        self.radius_side = radius_side
+        if radius_side == "left":
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.left_radius)
+        elif radius_side == "none":
+            self.bg_rect = Rectangle(pos=self.pos, size=self.size, radius=self.none_radius)
+        elif radius_side == "right":
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.right_radius)
+        else:
+            raise ValueError(f"Invalid radius side: {radius_side}")
 
     def _update(self, instance, value):
         """Update the background rectangle"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
+        self.update_bg_color()
     
     def _update_image(self, instance, value):
         """Center the image within the button"""
@@ -59,6 +82,19 @@ class TopBarButton(Button):
             self.x + (self.width - self.image.width) / 2,
             self.y + (self.height - self.image.height) / 2
         )
+    
+    def update_bg_color(self):
+        """Update the background color"""
+        if self.color_instr is None:
+            with self.canvas.before:
+                self.color_instr = Color(*self.bg_color)
+        else:
+            self.color_instr.rgba = self.bg_color  # Update existing color instruction
+    
+    def set_bg_color(self, color):
+        """Set the background color"""
+        self.bg_color = color
+        self.update_bg_color()
 
 class CustomButton(Button):
     """

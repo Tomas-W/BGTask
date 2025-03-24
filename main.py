@@ -8,6 +8,7 @@ from src.utils.navigation_manager import NavigationManager
 from src.screens.home.home_screen import HomeScreen
 from src.screens.new_task.new_task_screen import NewTaskScreen
 from src.screens.select_date.select_date_screen import SelectDateScreen
+from src.screens.settings.settings_screen import SettingsScreen
 
 from src.utils.task_manager import TaskManager
 
@@ -39,7 +40,10 @@ class TaskApp(App):
                                            task_manager=self.task_manager),
             SCREEN.SELECT_DATE: SelectDateScreen(name=SCREEN.SELECT_DATE,
                                            navigation_manager=self.navigation_manager,
-                                           task_manager=self.task_manager)
+                                           task_manager=self.task_manager),
+            SCREEN.SETTINGS: SettingsScreen(name=SCREEN.SETTINGS,
+                                           navigation_manager=self.navigation_manager,
+                                           task_manager=self.task_manager),
         }
 
         for screen_name, screen in self.screens.items():

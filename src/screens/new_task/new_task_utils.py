@@ -1,18 +1,12 @@
-from kivy.uix.behaviors import ButtonBehavior
-from kivy.uix.label import Label
-
-from src.settings import COL, FONT, SIZE
-
-
 from src.utils.containers import TopBarContainer
 from src.utils.buttons import TopBar, TopBarButton
 
 from src.settings import PATH
 
 
-class SelectDateBar():
+class NewTaskBar():
     """
-    SelectDateBar is the TopBar of the SelectDateScreen that:
+    NewTaskBar is the TopBar of the NewTaskScreen that:
     - Has an Edit button for editing/removing tasks
     - Has an new_task button for creating new tasks
     - Has an options_button for showing/hiding options
@@ -27,7 +21,7 @@ class SelectDateBar():
         self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
         self.back_button.bind(on_press=back_callback)
 
-        self.new_task_button = TopBar(text="Select Date", button=False)
+        self.new_task_button = TopBar(text="New Task", button=False)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG, radius_side="left")
         self.options_button.bind(on_press=options_callback)
@@ -37,9 +31,9 @@ class SelectDateBar():
         self.top_bar_container.add_widget(self.options_button)
 
 
-class SelectDateBarExpanded():
+class NewTaskBarExpanded():
     """
-    SelectDateBarExpanded is the TopBar of the SelectDateScreen that:
+    NewTaskBarExpanded is the TopBar of the NewTaskScreen that:
     - Has an Edit button for editing/removing tasks
     - Has an new_task button for creating new tasks
     - Has a settings_button for opening the SettingsScreen
@@ -75,24 +69,3 @@ class SelectDateBarExpanded():
         self.top_bar_container.add_widget(self.exit_button)
         self.top_bar_container.add_widget(self.options_button)
         
-
-
-class DateTimeLabel(ButtonBehavior, Label):
-    """Label that behaves like a button"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_size = FONT.DEFAULT
-        self.color = COL.TEXT_GREY
-        self.bold = True
-        self.size_hint_y = None
-        self.height = SIZE.DATE_TIME_LABEL
-        self.halign = "center"
-        self.valign = "middle"
-        self.bind(size=self.setter("text_size"))
-
-    def set_bold(self, is_bold):
-        """Set the font size to make the text bold or normal"""
-        if is_bold:
-            self.font_size = FONT.DEFAULT_BOLD
-        else:
-            self.font_size = FONT.DEFAULT

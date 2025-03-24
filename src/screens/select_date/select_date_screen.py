@@ -9,13 +9,13 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
-from src.utils.buttons import TopBar, CustomButton, TopBarButton
-from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, TopBarContainer
+from src.utils.buttons import CustomButton
+from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
 from src.utils.labels import PartitionHeader
 
-from .select_date_utils import DateTimeLabel
+from .select_date_utils import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
 
-from src.settings import COL, FONT, SCREEN, SIZE, SPACE, STATE, STYLE, PATH
+from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE, PATH, SCREEN
 
 
 class SelectDateScreen(Screen):
@@ -33,21 +33,20 @@ class SelectDateScreen(Screen):
         self.current_month = self.selected_date.month
         self.current_year = self.selected_date.year
 
+        self.top_bar_is_expanded = False
         # Top bar
-        self.top_bar_container = TopBarContainer()
-        # Back button
-        self.back_button = TopBarButton(img_path=PATH.BACK_IMG, side="left")
-        self.back_button.bind(on_press=self.go_to_previous_screen)
-        self.top_bar_container.add_widget(self.back_button)
-        # Select date button
-        self.select_date_button = TopBar(text="Select Date", button=False)
-        self.top_bar_container.add_widget(self.select_date_button)
-        # Exit button
-        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, side="right")
-        self.top_bar_container.add_widget(self.exit_button)
-
-        self.layout.add_widget(self.top_bar_container)
-
+        self.top_bar = SelectDateBar(
+            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
+            options_callback=self.switch_top_bar,
+        )
+        # Top bar with expanded options
+        self.top_bar_expanded = SelectDateBarExpanded(
+            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
+            options_callback=self.switch_top_bar,
+            settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(instance=instance),
+        )
+        self.layout.add_widget(self.top_bar.top_bar_container)
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
@@ -114,7 +113,7 @@ class SelectDateScreen(Screen):
             width=2,
             color_state=STATE.INACTIVE
         )
-        self.cancel_button.bind(on_press=self.go_to_previous_screen)
+        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_back(instance=instance))
 
         # Confirm button
         self.confirm_button = CustomButton(
@@ -138,9 +137,18 @@ class SelectDateScreen(Screen):
         # Add callback property
         self.callback = None
     
-    def go_to_previous_screen(self, instance):
-        """Go back to the previous screen"""
-        self.navigation_manager.go_back()
+    def switch_top_bar(self, instance, on_enter=False):
+        """Handle the clicked options"""
+        if self.top_bar_is_expanded:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        else:
+            self.layout.clear_widgets()
+            self.layout.add_widget(self.top_bar.top_bar_container)
+            self.layout.add_widget(self.scroll_container)
+        if not on_enter:
+            self.top_bar_is_expanded = not self.top_bar_is_expanded
 
     def create_calendar_grid(self):
         """Create and populate the calendar grid"""
@@ -299,7 +307,7 @@ class SelectDateScreen(Screen):
             if self.callback:
                 self.callback(self.selected_date, self.selected_time)
         
-        self.go_to_previous_screen(instance)
+        self.navigation_manager.go_back(instance=instance)
 
     def _update_month_rect(self, instance, value):
         self.select_month_rect.pos = instance.pos
@@ -324,3 +332,8 @@ class SelectDateScreen(Screen):
                 else:
                     child.color = COL.TEXT_GREY  # Reset color for unselected days
                     child.set_bold(False)  # Reset to normal size for unselected days
+    
+    def on_enter(self):
+        """Called when the screen is entered"""
+        pass
+

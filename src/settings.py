@@ -7,6 +7,9 @@ class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
     IMG = os.path.join(SRC, "images")
 
+    EDIT_IMG = os.path.join(IMG, "edit_64.png")
+    OPTIONS_IMG = os.path.join(IMG, "options_64.png")
+    OPTIONS_IMG_BLACK = os.path.join(IMG, "options_black_64.png")
     EXIT_IMG = os.path.join(IMG, "exit_64.png")
     SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
     BACK_IMG = os.path.join(IMG, "back_64.png")
@@ -22,6 +25,7 @@ class Colors:
     
     BAR = (0.2, 0.4, 0.7, 1.0)
     BAR_BUTTON = (0.7, 0.7, 0.7, 0.2)
+    SETTINGS_POPUP = (0.44, 0.66, 0.80, 1.0)
 
     BUTTON_ACTIVE = (0.2, 0.4, 0.7, 0.8)
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
@@ -59,18 +63,25 @@ class Fonts:
     TOP_BAR_SYMBOL = sp(35)
     BOTTOM_BAR = sp(35)
 
+    OPTIONS_POPUP = sp(16)
+
     HEADER = sp(25)
     BUTTON = sp(18)
     BUTTON_SYMBOL = sp(30)
 
 
 class Sizes:
+    TEST = dp(70)
+
+
     DEFAULT = dp(20)
     DATE_TIME_LABEL = dp(20 * 1.5)
 
     TOP_BAR_HEIGHT = dp(60)
     TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
     BOTTOM_BAR_HEIGHT = dp(40)
+
+    POPUP_ICON = dp(16)
 
     HEADER_HEIGHT = dp(25)
     TASK_ITEM_HEIGHT = dp(40)
@@ -100,6 +111,8 @@ class Screens:
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
     SELECT_DATE = "SELECT_DATE"
+
+    SETTINGS = "SETTINGS"
 
 
 class States:
