@@ -7,7 +7,9 @@ source.dir = .
 
 source.include_exts = py,png,json
 source.exclude_exts = gitignore,md
-source.exclude_dirs = bin
+source.exclude_dirs = bin,.venv,__pycache__,.buildozer,.buildozer.venv
+
+requirements = kivy,pillow,android.storage
 
 assets = %(source.dir)s/src/task_file.json
 
@@ -21,7 +23,6 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 
-requirements = kivy,android.storage
 
 android.optimize_python = True
 android.precompile_python = True

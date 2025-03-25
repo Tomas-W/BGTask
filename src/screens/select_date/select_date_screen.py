@@ -9,6 +9,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
+from src.screens.base.base_screen import BaseScreen
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
 from src.utils.labels import PartitionHeader
@@ -18,7 +19,7 @@ from .select_date_utils import DateTimeLabel, SelectDateBar, SelectDateBarExpand
 from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE, PATH, SCREEN
 
 
-class SelectDateScreen(Screen):
+class SelectDateScreen(BaseScreen):
     def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
@@ -33,7 +34,6 @@ class SelectDateScreen(Screen):
         self.current_month = self.selected_date.month
         self.current_year = self.selected_date.year
 
-        self.top_bar_is_expanded = False
         # Top bar
         self.top_bar = SelectDateBar(
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
@@ -137,19 +137,6 @@ class SelectDateScreen(Screen):
         # Add callback property
         self.callback = None
     
-    def switch_top_bar(self, instance, on_enter=False):
-        """Handle the clicked options"""
-        if self.top_bar_is_expanded:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        else:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        if not on_enter:
-            self.top_bar_is_expanded = not self.top_bar_is_expanded
-
     def create_calendar_grid(self):
         """Create and populate the calendar grid"""
         # Container
@@ -323,6 +310,7 @@ class SelectDateScreen(Screen):
 
     def on_pre_enter(self):
         """Called when the screen is entered"""
+        super().on_pre_enter()
         # Apply selected styling to the currently selected date
         for child in self.calendar_grid.children:
             if isinstance(child, DateTimeLabel):

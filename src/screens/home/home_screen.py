@@ -4,6 +4,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 
+from src.screens.base.base_screen import BaseScreen
 from .home_utils import TaskGroup, HomeBar, HomeBarExpanded
 from src.utils.buttons import BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
@@ -11,7 +12,7 @@ from src.utils.containers import BaseLayout, ScrollContainer
 from src.settings import SCREEN, TEXT, SPACE
 
 
-class HomeScreen(Screen):
+class HomeScreen(BaseScreen):
     """
     HomeScreen is the main screen for the app that:
     - Has a top bar with a settings button, new task button, and exit button
@@ -26,7 +27,6 @@ class HomeScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        self.top_bar_is_expanded = False
         # Basic TopBar
         self.top_bar = HomeBar(
             edit_callback=self.show_edit_icons,
@@ -44,7 +44,6 @@ class HomeScreen(Screen):
         
         # Scrollable container for task groups
         self.scroll_container = ScrollContainer()
-        self.scroll_container.container.spacing = SPACE.SPACE_MAX
 
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")
@@ -58,19 +57,6 @@ class HomeScreen(Screen):
     
     def show_edit_icons(self, instance):
         pass
-    
-    def switch_top_bar(self, instance, on_enter=False):
-        """Handle the clicked options"""
-        if self.top_bar_is_expanded:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        else:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        if not on_enter:
-            self.top_bar_is_expanded = not self.top_bar_is_expanded
     
     def load_tasks(self):
         """Load tasks from the task manager"""
@@ -98,9 +84,7 @@ class HomeScreen(Screen):
     
     def on_pre_enter(self):
         """Called just before the screen is entered"""
-        self.top_bar_is_expanded = False
-        self.switch_top_bar(instance=None, on_enter=True)
-
+        super().on_pre_enter()
         if not self.task_manager.tasks:
             self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
         

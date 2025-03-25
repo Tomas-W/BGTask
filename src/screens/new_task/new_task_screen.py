@@ -2,6 +2,7 @@ from datetime import datetime
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
+from src.screens.base.base_screen import BaseScreen
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
 from src.utils.fields import TextField, ButtonField
@@ -11,7 +12,7 @@ from src.screens.new_task.new_task_utils import NewTaskBar, NewTaskBarExpanded
 from src.settings import SCREEN, STATE
 
 
-class NewTaskScreen(Screen):
+class NewTaskScreen(BaseScreen):
     def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
@@ -20,7 +21,6 @@ class NewTaskScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        self.top_bar_is_expanded = False
         # Top bar
         self.top_bar = NewTaskBar(
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
@@ -73,19 +73,6 @@ class NewTaskScreen(Screen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
-    
-    def switch_top_bar(self, instance, on_enter=False):
-        """Handle the clicked options"""
-        if self.top_bar_is_expanded:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        else:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        if not on_enter:
-            self.top_bar_is_expanded = not self.top_bar_is_expanded
     
     def clear_inputs(self):
         """Clear the task input and date display data"""
@@ -150,9 +137,7 @@ class NewTaskScreen(Screen):
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""
-        self.top_bar_is_expanded = False
-        self.switch_top_bar(instance=None, on_enter=True)
-
+        super().on_pre_enter()
         self.task_input.hide_border()
         self.date_display.hide_border()
 
