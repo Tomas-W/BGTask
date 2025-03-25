@@ -75,7 +75,6 @@ class Fonts:
 class Sizes:
     TEST = dp(70)
 
-
     DEFAULT = dp(20)
     DATE_TIME_LABEL = dp(20 * 1.5)
 
@@ -90,6 +89,7 @@ class Sizes:
     TIME_LABEL_HEIGHT = dp(20)
 
     BUTTON_HEIGHT = dp(60)
+    CUSTOM_ROW_HEIGHT = dp(40)
     NO_TASKS_LABEL_HEIGHT = dp(100)
     CALENDAR_HEADER_HEIGHT = dp(50)
     CALENDAR_HEIGHT = dp(200)

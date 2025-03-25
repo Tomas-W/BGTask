@@ -7,12 +7,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.screenmanager import Screen
+
 
 from src.screens.base.base_screen import BaseScreen
 from src.utils.buttons import CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition
+from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.utils.labels import PartitionHeader
+from src.utils.fields import InputField
 
 from .select_date_utils import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
 
@@ -52,12 +53,10 @@ class SelectDateScreen(BaseScreen):
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
         self.scroll_container.container.spacing = SPACE.SPACE_XXL
 
-# Select month partition
+        # Select month partition
         self.select_month_partition = Partition()
-
-        # Month button row
-        self.month_button_row = CustomButtonRow()
-        
+        # Select month row
+        self.select_month_row = CustomButtonRow()
         # Previous month button
         self.prev_month_button = CustomButton(
             text="<",
@@ -66,11 +65,9 @@ class SelectDateScreen(BaseScreen):
             color_state=STATE.ACTIVE
         )
         self.prev_month_button.bind(on_press=self.go_to_prev_month)
-        
-        # Select month label - update with current month/year
+        # Select month label
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
-        
         # Next month button
         self.next_month_button = CustomButton(
             text=">",
@@ -79,34 +76,52 @@ class SelectDateScreen(BaseScreen):
             color_state=STATE.ACTIVE
         )
         self.next_month_button.bind(on_press=self.go_to_next_month)
-
-        # Apply month partition
-        self.month_button_row.add_widget(self.prev_month_button)
-        self.month_button_row.add_widget(self.month_label)
-        self.month_button_row.add_widget(self.next_month_button)
-        self.select_month_partition.add_widget(self.month_button_row)
-
-        date_str = self.selected_date.strftime("%A %d")
-        time_str = self.selected_time.strftime("%H:%M")
-        self.selected_date_label = PartitionHeader(text=f"{date_str} at {time_str}")
-        self.select_month_partition.add_widget(self.selected_date_label)
+        # Apply month row
+        self.select_month_row.add_widget(self.prev_month_button)
+        self.select_month_row.add_widget(self.month_label)
+        self.select_month_row.add_widget(self.next_month_button)
+        self.select_month_partition.add_widget(self.select_month_row)
+        # Add to scroll container
         self.scroll_container.container.add_widget(self.select_month_partition)
 
-# Calendar partition
-        self.calendar_partition = Partition()
+        # Date time partition
+        self.select_time_partition = Partition()
+        # Date label
+        date_str = self.selected_date.strftime("%A %d")
+        self.selected_date_label = PartitionHeader(text=f"{date_str}")
+        self.select_time_partition.add_widget(self.selected_date_label)
+        # Time selection row
+        self.select_time_row = CustomRow()
+        # Hours input
+        self.hours_input = InputField()
+        self.hours_input.text = self.selected_time.strftime("%H")
+        self.hours_input.text_input.input_filter = "int"
+        self.hours_input.text_input.bind(text=self.validate_hours)
 
-        # Create and add calendar grid
+        # Colon separator
+        colon_label = PartitionHeader(text=":")
+        colon_label.size_hint_x = 0.2
+        # Minutes input
+        self.minutes_input = InputField()
+        self.minutes_input.text = self.selected_time.strftime("%M")
+        # self.minutes_input.text_input.input_filter = "int"
+        self.minutes_input.text_input.bind(text=self.validate_minutes)
+        # Apply time row
+        self.select_time_row.add_widget(self.hours_input)
+        self.select_time_row.add_widget(colon_label)
+        self.select_time_row.add_widget(self.minutes_input)
+        self.select_time_partition.add_widget(self.select_time_row)
+        # Add to scroll container
+        self.scroll_container.container.add_widget(self.select_time_partition)
+
+        # Calendar partition
+        self.select_day_partition = Partition()
         self.create_calendar_grid()
+        self.scroll_container.container.add_widget(self.select_day_partition)
 
-        # Apply calendar partition
-        self.scroll_container.container.add_widget(self.calendar_partition)
-        
-# Confirmation partition
+        # Confirmation partition
         self.confirmation_partition = Partition()
-
-        # Confirm button row
-        self.confirm_button_row = CustomButtonRow()
-
+        self.confirmation_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomButton(
             text="Cancel",
@@ -114,7 +129,6 @@ class SelectDateScreen(BaseScreen):
             color_state=STATE.INACTIVE
         )
         self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_back(instance=instance))
-
         # Confirm button
         self.confirm_button = CustomButton(
             text="Confirm",
@@ -122,11 +136,10 @@ class SelectDateScreen(BaseScreen):
             color_state=STATE.ACTIVE
         )
         self.confirm_button.bind(on_press=self.confirm_date_selection)
-
         # Apply confirmation partition
-        self.confirm_button_row.add_widget(self.cancel_button)
-        self.confirm_button_row.add_widget(self.confirm_button)
-        self.confirmation_partition.add_widget(self.confirm_button_row)
+        self.confirmation_row.add_widget(self.cancel_button)
+        self.confirmation_row.add_widget(self.confirm_button)
+        self.confirmation_partition.add_widget(self.confirmation_row)
         self.scroll_container.container.add_widget(self.confirmation_partition)
 
         # Apply layout
@@ -181,8 +194,8 @@ class SelectDateScreen(BaseScreen):
         self.update_calendar()
         
         # Add the container to the calendar partition with reduced spacing
-        self.calendar_partition.spacing = SPACE.SPACE_XS
-        self.calendar_partition.add_widget(self.calendar_container)
+        self.select_day_partition.spacing = SPACE.SPACE_XS
+        self.select_day_partition.add_widget(self.calendar_container)
 
     def update_calendar(self):
         """Update the calendar grid for the current month/year"""
@@ -250,20 +263,9 @@ class SelectDateScreen(BaseScreen):
             self.selected_date = date(self.current_year, self.current_month, day)
             self.update_calendar()  # Refresh calendar to highlight the selected day
             
-            # Update selected date label
+            # Update only the date label
             date_str = self.selected_date.strftime("%A %d")
-            time_str = self.selected_time.strftime("%H:%M")
-            self.selected_date_label.text = f"{date_str} at {time_str}"
-
-            # Update the selected day button to be bold and change its color
-            for child in self.calendar_grid.children:
-                if isinstance(child, DateTimeLabel):
-                    if child.text == str(day):
-                        child.color = COL.TEXT  # Set the text color to COL.TEXT
-                        child.set_bold(True)  # Make the text bold
-                    else:
-                        child.color = COL.TEXT_GREY  # Reset color for unselected days
-                        child.set_bold(False)  # Reset to normal size for unselected days
+            self.selected_date_label.text = f"{date_str}"
         except ValueError:
             pass  # Invalid date
     
@@ -290,10 +292,44 @@ class SelectDateScreen(BaseScreen):
     def confirm_date_selection(self, instance):
         """Return to new task screen, passing selected date if confirm was pressed"""
         if instance == self.confirm_button:
+            # Get hour and minute inputs
+            hours_input = self.hours_input.text_input.text.strip()
+            minutes_input = self.minutes_input.text_input.text.strip()
+
+            # Initialize valid flag
+            valid = True
+
+            # Validate hours input
+            if hours_input and (not hours_input.isdigit() or int(hours_input) > 23 or int(hours_input) < 0):
+                self.hours_input.show_error_border()
+                valid = False
+            else:
+                self.hours_input.hide_border()
+
+            # Validate minutes input
+            if minutes_input and (not minutes_input.isdigit() or int(minutes_input) > 59 or int(minutes_input) < 0):
+                self.minutes_input.show_error_border()
+                valid = False
+            else:
+                self.minutes_input.hide_border()
+
+            if not valid:
+                return  # Do not proceed if validation fails
+
+            # Update the selected time with valid inputs
+            try:
+                self.selected_time = self.selected_time.replace(
+                    hour=int(hours_input) if hours_input else self.selected_time.hour,
+                    minute=int(minutes_input) if minutes_input else self.selected_time.minute
+                )
+            except ValueError:
+                # Handle potential ValueError from invalid time components
+                return
+
             # Call the callback with selected date and time if it exists
             if self.callback:
                 self.callback(self.selected_date, self.selected_time)
-        
+
         self.navigation_manager.go_back(instance=instance)
 
     def _update_month_rect(self, instance, value):
@@ -324,4 +360,14 @@ class SelectDateScreen(BaseScreen):
     def on_enter(self):
         """Called when the screen is entered"""
         pass
+
+    def validate_hours(self, instance, value):
+        """Allow any input during typing"""
+        if len(value) > 2:
+            instance.text = instance.text[:2]
+
+    def validate_minutes(self, instance, value):
+        """Allow any input during typing"""
+        if len(value) > 2:
+            instance.text = instance.text[:2]
 

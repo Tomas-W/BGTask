@@ -10,8 +10,8 @@ class PartitionHeader(Label):
     def __init__(self, text: str, halign: str = "center", valign: str = "center", **kwargs):
         super().__init__(
             text=text,
-            size_hint=(1, None),
-            height=SIZE.BUTTON_HEIGHT,
+            size_hint=(1, 1),
+            height=SIZE.HEADER_HEIGHT,
             halign=halign,
             valign=valign,
             font_size=FONT.HEADER,

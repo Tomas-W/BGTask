@@ -15,6 +15,9 @@ from src.utils.task_manager import TaskManager
 from src.settings import SCREEN
 
 
+# TODO: Editing last task adds new default message
+
+
 if platform != "android":
     Window.size = (390, 790)
     Window.left = -450

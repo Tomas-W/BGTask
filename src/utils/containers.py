@@ -148,10 +148,12 @@ class Partition(BoxLayout):
     - Sets spacing between its children
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = "vertical"
-        self.size_hint = (1, None)
-        self.spacing = SPACE.SPACE_M
+        super().__init__(
+            orientation="vertical",
+            size_hint=(1, None),
+            spacing=SPACE.SPACE_M,
+            **kwargs
+        )
 
         self.bind(minimum_height=self.setter('height'))
 
@@ -163,8 +165,35 @@ class CustomButtonRow(BoxLayout):
     - Has spacing between its children
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = "horizontal"
-        self.size_hint = (1, None)
-        self.height = SIZE.BUTTON_HEIGHT
-        self.spacing = SPACE.SPACE_M
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=SIZE.BUTTON_HEIGHT,
+            spacing=SPACE.SPACE_M,
+            **kwargs
+        )
+
+
+class CustomRow(BoxLayout):
+    """
+    CustomRow is the base for a row of widgets that:
+    - Contains widgets
+    - Has spacing between its children
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(0.5, None),
+            pos_hint={"center_x": 0.5},
+            height=SIZE.CUSTOM_ROW_HEIGHT,
+            spacing=SPACE.SPACE_XS,
+            **kwargs
+        )
+    #     with self.canvas.before:
+    #         Color(*COL.RED)
+    #         self.bg_rect = Rectangle(pos=self.pos, size=self.size)
+    #         self.bind(pos=self._update, size=self._update)
+    
+    # def _update(self, instance, value):
+    #     self.bg_rect.pos = instance.pos
+    #     self.bg_rect.size = instance.size
