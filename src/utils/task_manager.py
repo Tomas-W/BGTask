@@ -1,9 +1,10 @@
 import os
 import json
 
-from src.utils.task import Task
+from kivy.app import App
 
-from src.settings import PATH
+from src.utils.task import Task
+from src.settings import PATH, SCREEN
 
 
 class TaskManager:
@@ -11,8 +12,15 @@ class TaskManager:
     Manages tasks and their storage.
     """
     def __init__(self):
+        self.navigation_manager = App.get_running_app().navigation_manager
         self.storage_path = self._get_storage_path()
         self.tasks = self.load_tasks()
+
+        self.current_edit = {
+            "task_id": None,
+            "message": None,
+            "timestamp": None
+        }
         
     def _get_storage_path(self):
         """Get the storage path based on platform"""
@@ -58,6 +66,45 @@ class TaskManager:
         except Exception as e:
             print(f"Error loading tasks: {e}")
             return []
+    
+    def edit_task(self, task_id):
+        """Edit a task"""
+        for task in self.tasks:
+            if task.task_id == task_id:
+                # Store the task data for editing
+                self.current_edit["task_id"] = task_id
+                self.current_edit["message"] = task.message
+                self.current_edit["timestamp"] = task.timestamp
+                
+                # Navigate to the new task screen
+                new_task_screen = App.get_running_app().root.get_screen(SCREEN.NEW_TASK)
+                
+                # Pre-fill the data
+                new_task_screen.edit_mode = True
+                new_task_screen.task_id_to_edit = task_id
+                new_task_screen.task_input.text = task.message
+                new_task_screen.selected_date = task.timestamp.date()
+                new_task_screen.selected_time = task.timestamp.time()
+                new_task_screen.update_datetime_display()
+                
+                # Navigate to the edit screen
+                self.navigation_manager.go_to_new_task_screen(None)
+                return True
+                
+        return False
+
+    def delete_task(self, task_id):
+        """Delete a task"""
+        for i, task in enumerate(self.tasks):
+            if task.task_id == task_id:
+                del self.tasks[i]
+                self.save_tasks()
+                
+                # Refresh home screen
+                home_screen = App.get_running_app().root.get_screen(SCREEN.HOME)
+                home_screen.update_task_display()
+                return True
+        return False
     
     def get_tasks_by_date(self):
         """Group tasks by date"""

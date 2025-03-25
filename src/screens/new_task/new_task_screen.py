@@ -17,6 +17,8 @@ class NewTaskScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
+        self.edit_mode = False
+        self.task_id_to_edit = None
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -77,9 +79,13 @@ class NewTaskScreen(BaseScreen):
     def clear_inputs(self):
         """Clear the task input and date display data"""
         self.task_input.text = ""
-        del self.selected_date
-        del self.selected_time
+        if hasattr(self, 'selected_date'):
+            del self.selected_date
+        if hasattr(self, 'selected_time'):
+            del self.selected_time
         self.date_display.set_text("")
+        self.edit_mode = False
+        self.task_id_to_edit = None
 
     def update_datetime_display(self):
         """Update the date display with the selected date and time"""
@@ -128,11 +134,24 @@ class NewTaskScreen(BaseScreen):
         if has_error:
             return
         
-        # Create and add task
+        # Create task datetime
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
-        self.task_manager.add_task(message=message, timestamp=task_datetime)
+        
+        if self.edit_mode:
+            # Delete the old task
+            self.task_manager.delete_task(self.task_id_to_edit)
+            
+            # Add the updated task
+            self.task_manager.add_task(message=message, timestamp=task_datetime)
+            
+            # Reset edit mode
+            self.edit_mode = False
+            self.task_id_to_edit = None
+        else:
+            # Create and add new task
+            self.task_manager.add_task(message=message, timestamp=task_datetime)
+        
         self.clear_inputs()
-
         self.navigation_manager.go_back(instance=instance)
 
     def on_pre_enter(self):
@@ -140,6 +159,12 @@ class NewTaskScreen(BaseScreen):
         super().on_pre_enter()
         self.task_input.hide_border()
         self.date_display.hide_border()
+        
+        # Update button text based on mode
+        if self.edit_mode:
+            self.save_button.text = "Update Task"
+        else:
+            self.save_button.text = "Save Task"
 
     def on_enter(self):
         """Called when screen is entered"""

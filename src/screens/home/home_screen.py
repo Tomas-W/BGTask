@@ -1,15 +1,13 @@
 from datetime import datetime
-from kivy.app import App
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
 
-from src.screens.base.base_screen import BaseScreen
+from kivy.uix.floatlayout import FloatLayout
+
+from src.screens.base.base_screen import BaseScreen  # type: ignore
 from .home_utils import TaskGroup, HomeBar, HomeBarExpanded
 from src.utils.buttons import BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
 
-from src.settings import SCREEN, TEXT, SPACE
+from src.settings import TEXT
 
 
 class HomeScreen(BaseScreen):
@@ -93,15 +91,3 @@ class HomeScreen(BaseScreen):
     def on_enter(self):
         """Called when screen is entered"""
         pass
-    
-    def update_popup_background(self, dt):
-        """Update the background rectangle position to match content"""
-        # Find the content within the popup
-        for child in self.options_popup.content.children:
-            if isinstance(child, BoxLayout) and child.orientation == 'vertical':
-                # Update rect position to match the content position
-                self.rect.pos = child.pos
-                self.rect.size = child.size
-                break
-            
-    

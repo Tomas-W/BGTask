@@ -38,3 +38,7 @@ class Task:
     def get_time_str(self):
         """Get formatted time string [HH:MM]"""
         return self.timestamp.strftime("%H:%M")
+
+    def get_task_id(self):
+        """Get task id"""
+        return self.task_id
