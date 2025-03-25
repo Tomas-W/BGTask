@@ -8,16 +8,14 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
-
 from src.screens.base.base_screen import BaseScreen
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.utils.labels import PartitionHeader
 from src.utils.fields import InputField
-
 from .select_date_utils import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
 
-from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE, PATH, SCREEN
+from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE
 
 
 class SelectDateScreen(BaseScreen):
@@ -51,10 +49,10 @@ class SelectDateScreen(BaseScreen):
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
-        self.scroll_container.container.spacing = SPACE.SPACE_XXL
 
         # Select month partition
         self.select_month_partition = Partition()
+        # self.select_month_partition.padding = [0, 0, 0, SPACE.SPACE_M]
         # Select month row
         self.select_month_row = CustomButtonRow()
         # Previous month button
@@ -84,8 +82,9 @@ class SelectDateScreen(BaseScreen):
         # Add to scroll container
         self.scroll_container.container.add_widget(self.select_month_partition)
 
-        # Date time partition
+        # Select time partition
         self.select_time_partition = Partition()
+        self.select_time_partition.spacing = SPACE.SPACE_L
         # Date label
         date_str = self.selected_date.strftime("%A %d")
         self.selected_date_label = PartitionHeader(text=f"{date_str}")
@@ -97,14 +96,13 @@ class SelectDateScreen(BaseScreen):
         self.hours_input.text = self.selected_time.strftime("%H")
         self.hours_input.text_input.input_filter = "int"
         self.hours_input.text_input.bind(text=self.validate_hours)
-
         # Colon separator
         colon_label = PartitionHeader(text=":")
         colon_label.size_hint_x = 0.2
         # Minutes input
         self.minutes_input = InputField()
         self.minutes_input.text = self.selected_time.strftime("%M")
-        # self.minutes_input.text_input.input_filter = "int"
+        self.minutes_input.text_input.input_filter = "int"
         self.minutes_input.text_input.bind(text=self.validate_minutes)
         # Apply time row
         self.select_time_row.add_widget(self.hours_input)
@@ -183,18 +181,14 @@ class SelectDateScreen(BaseScreen):
         self.calendar_grid = GridLayout(
             cols=7,
             size_hint=(1, None),
-            height=SIZE.CALENDAR_HEIGHT,
-            padding=[0, SPACE.SPACE_XS, 0, 0]
         )
+        self.calendar_grid.bind(minimum_height=self.calendar_grid.setter('height'))
         
         self.calendar_container.add_widget(headers_container)
         self.calendar_container.add_widget(self.calendar_grid)
         
-        # Initialize calendar with dates
         self.update_calendar()
         
-        # Add the container to the calendar partition with reduced spacing
-        self.select_day_partition.spacing = SPACE.SPACE_XS
         self.select_day_partition.add_widget(self.calendar_container)
 
     def update_calendar(self):
@@ -241,7 +235,8 @@ class SelectDateScreen(BaseScreen):
                             RoundedRectangle(pos=day_button.pos,
                                            size=day_button.size,
                                            radius=[STYLE.RADIUS_S])
-                        day_button.color = COL.WHITE
+                        day_button.color = COL.TEXT
+                        day_button.set_bold(True)
                         day_button.bind(pos=self.update_selected_day, 
                                        size=self.update_selected_day)
                     

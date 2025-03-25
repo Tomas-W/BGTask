@@ -2,7 +2,7 @@ from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 
-from src.settings import COL, SIZE, SPACE
+from src.settings import COL, SIZE, SPACE, FONT
 
 
 class BaseLayout(BoxLayout):
@@ -154,9 +154,16 @@ class Partition(BoxLayout):
             spacing=SPACE.SPACE_M,
             **kwargs
         )
-
         self.bind(minimum_height=self.setter('height'))
+    
+    #     with self.canvas.before:
+    #         Color(*COL.RED)
+    #         self.bg_rect = Rectangle(pos=self.pos, size=self.size)
+    #         self.bind(pos=self._update, size=self._update)
 
+    # def _update(self, instance, value):
+    #     self.bg_rect.pos = instance.pos
+    #     self.bg_rect.size = instance.size
 
 class CustomButtonRow(BoxLayout):
     """
@@ -184,8 +191,8 @@ class CustomRow(BoxLayout):
         super().__init__(
             orientation="horizontal",
             size_hint=(0.5, None),
-            pos_hint={"center_x": 0.5},
-            height=SIZE.CUSTOM_ROW_HEIGHT,
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
+            height=2 * FONT.HEADER,
             spacing=SPACE.SPACE_XS,
             **kwargs
         )

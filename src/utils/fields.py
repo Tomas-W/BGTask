@@ -180,11 +180,10 @@ class InputField(BoxLayout):
         self.text_input = TextInput(
             size_hint=(1, 1),
             multiline=False,
-            font_size=FONT.DEFAULT,
-            height=2 * SIZE.DEFAULT,
+            font_size=FONT.HEADER,
             background_color=COL.OPAQUE,
             foreground_color=COL.TEXT,
-            # padding=[0, SIZE.DEFAULT],
+            padding=[FONT.HEADER/3],
             halign="center",
         )
         
