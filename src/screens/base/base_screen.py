@@ -1,5 +1,6 @@
 from kivy.uix.screenmanager import Screen
 
+
 class BaseScreen(Screen):
     """Base screen class that implements common functionality for all screens"""
     def __init__(self, **kwargs):

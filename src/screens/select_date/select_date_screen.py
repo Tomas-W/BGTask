@@ -8,12 +8,12 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
-from src.screens.base.base_screen import BaseScreen
+from src.screens.base.base_screen import BaseScreen  # type: ignore
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.utils.labels import PartitionHeader
 from src.utils.fields import InputField
-from .select_date_utils import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
+from .select_date_widgets import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
 
 from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE
 
@@ -52,7 +52,6 @@ class SelectDateScreen(BaseScreen):
 
         # Select month partition
         self.select_month_partition = Partition()
-        # self.select_month_partition.padding = [0, 0, 0, SPACE.SPACE_M]
         # Select month row
         self.select_month_row = CustomButtonRow()
         # Previous month button
@@ -150,22 +149,19 @@ class SelectDateScreen(BaseScreen):
     
     def create_calendar_grid(self):
         """Create and populate the calendar grid"""
-        # Container
         self.calendar_container = BoxLayout(
             orientation="vertical",
             size_hint=(1, None),
             height=SIZE.CALENDAR_HEIGHT,
             spacing=SPACE.SPACE_S
         )
-        
-        # Week days container
+
         headers_container = GridLayout(
             cols=7,
             size_hint=(1, None),
             height=SIZE.HEADER_HEIGHT,
         )
-        
-        # Week day headers
+    
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:
             header_label = Label(
                 text=day,
@@ -196,13 +192,12 @@ class SelectDateScreen(BaseScreen):
         month_name = calendar.month_name[self.current_month]
         self.month_label.text = f"{month_name} {self.current_year}"
         
-        # Clear existing day buttons
+        # Clear day buttons
         for child in list(self.calendar_grid.children):
             self.calendar_grid.remove_widget(child)
         
         calendar.setfirstweekday(calendar.MONDAY)
         cal = calendar.monthcalendar(self.current_year, self.current_month)
-        
         # Extract necessary weeks
         if len(cal) > 5:
             last_week = cal[-1]
@@ -223,7 +218,6 @@ class SelectDateScreen(BaseScreen):
                 else:
                     day_button = DateTimeLabel(
                         text=str(day),
-                        size_hint_y=None,
                     )
                     
                     # Highlight the selected date
@@ -244,7 +238,9 @@ class SelectDateScreen(BaseScreen):
                     self.calendar_grid.add_widget(day_button)
     
     def update_selected_day(self, instance, value):
-        """Update the background rectangle for the selected day"""
+        """
+        Add background, text color and bold to the selected day
+        """
         for child in self.calendar_grid.children:
             if isinstance(child, DateTimeLabel) and child.text == str(self.selected_date.day):
                 for instr in child.canvas.before.children:
@@ -256,13 +252,14 @@ class SelectDateScreen(BaseScreen):
         """Handle day selection"""
         try:
             self.selected_date = date(self.current_year, self.current_month, day)
-            self.update_calendar()  # Refresh calendar to highlight the selected day
+            # Highlight selected day
+            self.update_calendar()
             
-            # Update only the date label
+            # Update date label
             date_str = self.selected_date.strftime("%A %d")
             self.selected_date_label.text = f"{date_str}"
         except ValueError:
-            pass  # Invalid date
+            pass
     
     def go_to_prev_month(self, instance):
         """Go to previous month"""
@@ -287,21 +284,16 @@ class SelectDateScreen(BaseScreen):
     def confirm_date_selection(self, instance):
         """Return to new task screen, passing selected date if confirm was pressed"""
         if instance == self.confirm_button:
-            # Get hour and minute inputs
             hours_input = self.hours_input.text_input.text.strip()
             minutes_input = self.minutes_input.text_input.text.strip()
 
-            # Initialize valid flag
             valid = True
-
-            # Validate hours input
             if hours_input and (not hours_input.isdigit() or int(hours_input) > 23 or int(hours_input) < 0):
                 self.hours_input.show_error_border()
                 valid = False
             else:
                 self.hours_input.hide_border()
 
-            # Validate minutes input
             if minutes_input and (not minutes_input.isdigit() or int(minutes_input) > 59 or int(minutes_input) < 0):
                 self.minutes_input.show_error_border()
                 valid = False
@@ -309,53 +301,23 @@ class SelectDateScreen(BaseScreen):
                 self.minutes_input.hide_border()
 
             if not valid:
-                return  # Do not proceed if validation fails
+                return
 
-            # Update the selected time with valid inputs
+            # Update selected time
             try:
                 self.selected_time = self.selected_time.replace(
                     hour=int(hours_input) if hours_input else self.selected_time.hour,
                     minute=int(minutes_input) if minutes_input else self.selected_time.minute
                 )
             except ValueError:
-                # Handle potential ValueError from invalid time components
                 return
 
-            # Call the callback with selected date and time if it exists
+            # Handle callback
             if self.callback:
                 self.callback(self.selected_date, self.selected_time)
 
         self.navigation_manager.go_back(instance=instance)
-
-    def _update_month_rect(self, instance, value):
-        self.select_month_rect.pos = instance.pos
-        self.select_month_rect.size = instance.size
-
-    def _update_calendar_rect(self, instance, value):
-        self.calendar_rect.pos = instance.pos
-        self.calendar_rect.size = instance.size
-
-    def _update_confirm_rect(self, instance, value):
-        self.confirm_rect.pos = instance.pos
-        self.confirm_rect.size = instance.size
-
-    def on_pre_enter(self):
-        """Called when the screen is entered"""
-        super().on_pre_enter()
-        # Apply selected styling to the currently selected date
-        for child in self.calendar_grid.children:
-            if isinstance(child, DateTimeLabel):
-                if child.text == str(self.selected_date.day):
-                    child.color = COL.TEXT  # Set the text color to COL.TEXT
-                    child.set_bold(True)  # Make the text bold
-                else:
-                    child.color = COL.TEXT_GREY  # Reset color for unselected days
-                    child.set_bold(False)  # Reset to normal size for unselected days
     
-    def on_enter(self):
-        """Called when the screen is entered"""
-        pass
-
     def validate_hours(self, instance, value):
         """Allow any input during typing"""
         if len(value) > 2:
@@ -366,3 +328,49 @@ class SelectDateScreen(BaseScreen):
         if len(value) > 2:
             instance.text = instance.text[:2]
 
+    def _update_month_rect(self, instance, value):
+        """Update month rectangle"""
+        self.select_month_rect.pos = instance.pos
+        self.select_month_rect.size = instance.size
+
+    def _update_calendar_rect(self, instance, value):
+        """Update calendar rectangle"""
+        self.calendar_rect.pos = instance.pos
+        self.calendar_rect.size = instance.size
+
+    def _update_confirm_rect(self, instance, value):
+        """Update confirm rectangle"""
+        self.confirm_rect.pos = instance.pos
+        self.confirm_rect.size = instance.size
+
+    def on_pre_enter(self):
+        """Called when the screen is entered"""
+        super().on_pre_enter()
+        
+        # Update hours and minutes input with selected time values
+        if hasattr(self, "selected_time"):
+            self.hours_input.text = self.selected_time.strftime("%H")
+            self.minutes_input.text = self.selected_time.strftime("%M")
+        
+        # Update date label with selected date
+        if hasattr(self, "selected_date"):
+            date_str = self.selected_date.strftime("%A %d")
+            self.selected_date_label.text = f"{date_str}"
+        
+        # Update month label
+        month_name = calendar.month_name[self.current_month]
+        self.month_label.text = f"{month_name} {self.current_year}"
+        
+        # Apply styling to selected date
+        for child in self.calendar_grid.children:
+            if isinstance(child, DateTimeLabel):
+                if child.text == str(self.selected_date.day):
+                    child.color = COL.TEXT
+                    child.set_bold(True)
+                else:
+                    child.color = COL.TEXT_GREY
+                    child.set_bold(False)
+    
+    def on_enter(self):
+        """Called when the screen is entered"""
+        pass

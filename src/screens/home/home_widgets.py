@@ -1,5 +1,5 @@
-from kivy.clock import Clock
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -98,34 +98,32 @@ class TaskGroup(BoxLayout):
             self.add_task_item(task)
         self.add_widget(self.tasks_container)
         
-        self.height = day_header.height + self.tasks_container.height
         self.tasks_container.bind(height=self._update_height)
     
     def _update_height(self, instance, value):
         """Update the overall height when tasks_container height changes"""
-        self.height = SPACE.SPACE_XS + SIZE.HEADER_HEIGHT + value
+        height = 0
+        for child in self.children:
+            height += child.height
+        self.height = height
     
     def add_task_item(self, task):
         """Add a task item widget"""
-        # Time stamp and task message
+        # Time stamp (+ edit and delete) and task message
         task_container = TaskContainer()
         time_container = TimeLabelContainer()
 
-        # Create time label with left alignment
         time_label = TimeLabel(text=task.get_time_str())
-        time_label.size_hint_x = 0.3  # Adjust this value as needed
+        time_label.size_hint_x = 0.3
         
-        # Create edit button
         edit_button = EditTaskButton(text="Edit", type="edit")
-        edit_button.size_hint_x = 0.3  # Adjust this value as needed
+        edit_button.size_hint_x = 0.3
         edit_button.bind(on_press=lambda x, task_id=task.task_id: self.task_manager.edit_task(task_id))
         
-        # Create delete button
         delete_button = EditTaskButton(text="Delete", type="delete")
-        delete_button.size_hint_x = 0.3  # Adjust this value as needed
+        delete_button.size_hint_x = 0.3
         delete_button.bind(on_press=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
 
-        # Add widgets to container
         time_container.add_widget(time_label)
         time_container.add_widget(edit_button)
         time_container.add_widget(delete_button)
@@ -140,7 +138,7 @@ class TaskGroup(BoxLayout):
                 instance.height = instance.texture_size[1]
                 task_container.height = time_container.height + instance.height
             
-            # Schedule the height adjustment for next frame
+            # Height adjustment for next frame
             Clock.schedule_once(adjust_height, 0)
         
         task_label.bind(size=update_text_size)
@@ -186,10 +184,13 @@ class TaskContainer(BoxLayout):
     - Contains a task label
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = "vertical"
-        self.size_hint = (1, None)
-        self.height = SIZE.TASK_ITEM_HEIGHT
+        super().__init__(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=SIZE.TASK_ITEM_HEIGHT,
+            **kwargs
+        )
+        self.bind(minimum_height=self.setter("height"))
 
 
 class TaskHeader(Label):
@@ -227,6 +228,7 @@ class TimeLabelContainer(BoxLayout):
             padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs
         )
+        self.bind(minimum_height=self.setter("height"))
 
 
 class TimeLabel(Label):

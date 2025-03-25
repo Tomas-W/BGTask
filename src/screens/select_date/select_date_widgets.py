@@ -80,14 +80,15 @@ class SelectDateBarExpanded():
 class DateTimeLabel(ButtonBehavior, Label):
     """Label that behaves like a button"""
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.font_size = FONT.DEFAULT
-        self.color = COL.TEXT_GREY
-        self.bold = True
-        self.size_hint_y = None
-        self.height = SIZE.DATE_TIME_LABEL
-        self.halign = "center"
-        self.valign = "middle"
+        super().__init__(
+            font_size=FONT.DEFAULT,
+            color=COL.TEXT_GREY,
+            bold=True,
+            size_hint_y=None,
+            height=SIZE.DATE_TIME_LABEL,
+            halign="center",
+            **kwargs
+        )
         self.bind(size=self.setter("text_size"))
 
     def set_bold(self, is_bold):

@@ -165,6 +165,7 @@ class Partition(BoxLayout):
     #     self.bg_rect.pos = instance.pos
     #     self.bg_rect.size = instance.size
 
+
 class CustomButtonRow(BoxLayout):
     """
     CustomButtonRow is the base for a row of CustomButtons that:

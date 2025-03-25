@@ -3,7 +3,7 @@ from datetime import datetime
 from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
-from .home_utils import TaskGroup, HomeBar, HomeBarExpanded
+from .home_widgets import TaskGroup, HomeBar, HomeBarExpanded
 from src.utils.buttons import BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
 
@@ -48,6 +48,7 @@ class HomeScreen(BaseScreen):
         self.bottom_bar.bind(on_press=self.scroll_container.scroll_to_top)
         self.scroll_container.connect_bottom_bar(self.bottom_bar)
         
+        # Apply layout
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.root_layout.add_widget(self.bottom_bar)

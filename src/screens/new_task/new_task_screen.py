@@ -1,13 +1,13 @@
 from datetime import datetime
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.screenmanager import Screen
 
-from src.screens.base.base_screen import BaseScreen
+from kivy.uix.floatlayout import FloatLayout
+
+from src.screens.base.base_screen import BaseScreen  # type: ignore
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
 from src.utils.fields import TextField, ButtonField
 
-from src.screens.new_task.new_task_utils import NewTaskBar, NewTaskBarExpanded
+from src.screens.new_task.new_task_widgets import NewTaskBar, NewTaskBarExpanded
 
 from src.settings import SCREEN, STATE
 
@@ -17,6 +17,7 @@ class NewTaskScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
+
         self.edit_mode = False
         self.task_id_to_edit = None
 
@@ -63,6 +64,7 @@ class NewTaskScreen(BaseScreen):
         # Cancel button
         self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
         self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_back(instance=instance))
+        self.cancel_button.bind(on_press=self.cancel_edit_task)
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = CustomButton(text="Save Task", width=2, color_state=STATE.ACTIVE)
@@ -75,6 +77,11 @@ class NewTaskScreen(BaseScreen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
+    
+    def cancel_edit_task(self, instance):
+        """Cancel the edit task"""
+        if self.edit_mode:
+            self.clear_inputs()
     
     def clear_inputs(self):
         """Clear the task input and date display data"""
@@ -106,10 +113,6 @@ class NewTaskScreen(BaseScreen):
         # Reset the date picker button styles
         self.date_display.hide_border()
     
-    def cancel_task(self, instance):
-        """Cancel task creation and return to home screen"""
-        self.go_to_home_screen()
-    
     def save_task(self, instance):
         """Save the task and return to home screen"""
         message = self.task_input.text.strip()
@@ -128,31 +131,56 @@ class NewTaskScreen(BaseScreen):
         # Visual error when no date selected
         if not hasattr(self, "selected_date") or not hasattr(self, "selected_time"):
             self.date_display.show_error_border()
-            self.date_display.set_text("No date selected")
             has_error = True
         
         if has_error:
             return
         
-        # Create task datetime
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
-        
         if self.edit_mode:
-            # Delete the old task
             self.task_manager.delete_task(self.task_id_to_edit)
-            
-            # Add the updated task
             self.task_manager.add_task(message=message, timestamp=task_datetime)
-            
-            # Reset edit mode
             self.edit_mode = False
             self.task_id_to_edit = None
         else:
-            # Create and add new task
             self.task_manager.add_task(message=message, timestamp=task_datetime)
         
         self.clear_inputs()
         self.navigation_manager.go_back(instance=instance)
+    
+    def go_to_select_date_screen(self, instance):
+        """Show the calendar screen"""
+        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
+        
+        # When editing a task, use the task's datetime values
+        if self.edit_mode and self.task_id_to_edit:
+            select_date_screen.selected_date = self.selected_date
+            select_date_screen.selected_time = self.selected_time
+            select_date_screen.current_month = self.selected_date.month
+            select_date_screen.current_year = self.selected_date.year
+        else:
+            # For new tasks, use current values if they exist, otherwise use current datetime
+            if hasattr(self, "selected_date"):
+                select_date_screen.selected_date = self.selected_date
+                select_date_screen.selected_time = self.selected_time
+                select_date_screen.current_month = self.selected_date.month
+                select_date_screen.current_year = self.selected_date.year
+        
+        # Set the callback
+        select_date_screen.set_callback(self.on_datetime_selected)
+        select_date_screen.update_calendar()
+        
+        # Also update the time inputs and month label to match the selected date/time
+        if hasattr(self, "selected_time"):
+            select_date_screen.hours_input.text = self.selected_time.strftime("%H")
+            select_date_screen.minutes_input.text = self.selected_time.strftime("%M")
+        
+        # Update the date label
+        if hasattr(self, "selected_date"):
+            date_str = self.selected_date.strftime("%A %d")
+            select_date_screen.selected_date_label.text = f"{date_str}"
+        
+        self.navigation_manager.go_to_select_date_screen()
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""
@@ -168,19 +196,5 @@ class NewTaskScreen(BaseScreen):
 
     def on_enter(self):
         """Called when screen is entered"""
-        self.date_display._set_inactive_state()
-    
-    def go_to_select_date_screen(self, instance):
-        """Show the calendar screen"""
-        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
-        # Set the initial date and time if they exist
-        if hasattr(self, 'selected_date'):
-            select_date_screen.selected_date = self.selected_date
-            select_date_screen.selected_time = self.selected_time
-            select_date_screen.current_month = self.selected_date.month
-            select_date_screen.current_year = self.selected_date.year
-        # Set the callback
-        select_date_screen.set_callback(self.on_datetime_selected)
-        select_date_screen.update_calendar()
-        self.navigation_manager.go_to_select_date_screen()
+        pass
     
