@@ -5,7 +5,9 @@ from kivy.metrics import dp, sp
 
 class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
-    IMG = os.path.join(SRC, "images")
+    ASSETS = os.path.join(SRC, "assets")
+
+    IMG = os.path.join(SRC, ASSETS, "images")
 
     EDIT_IMG = os.path.join(IMG, "edit_64.png")
     OPTIONS_IMG = os.path.join(IMG, "options_64.png")
@@ -14,7 +16,7 @@ class Paths:
     SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
     BACK_IMG = os.path.join(IMG, "back_64.png")
 
-    TASK_FILE = "task_file.json"
+    TASK_FILE = os.path.join(ASSETS, "task_file.json")
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
@@ -37,9 +39,11 @@ class Colors:
     TEXT = (0, 0, 0, 1.0)
     TEXT_GREY = (0.4, 0.4, 0.4, 1.0)
     ERROR_TEXT = (1.0, 0.0, 0.0, 0.8)
+
     FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
     FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
-    FIELD_ERROR = (1, 0.6, 0.6, 1.0)
+    FIELD_ERROR = (1, 0.4, 0.4, 1)
+    FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
     
 
 class Spacing:

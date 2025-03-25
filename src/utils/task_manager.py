@@ -1,7 +1,9 @@
 import os
 import json
+import shutil
 
 from kivy.app import App
+from kivy.utils import platform
 
 from src.utils.task import Task
 from src.settings import PATH, SCREEN
@@ -24,13 +26,53 @@ class TaskManager:
         
     def _get_storage_path(self):
         """Get the storage path based on platform"""
-        from kivy.utils import platform
-        
         if platform == "android":
             from android.storage import app_storage_path
             return os.path.join(app_storage_path(), PATH.TASK_FILE)
         else:
-            return os.path.join(PATH.SRC, PATH.TASK_FILE)
+            return os.path.join(PATH.TASK_FILE)
+    
+    def _copy_default_task_file(self):
+        """Copy the default task file to the app's storage directory"""
+        try:
+            # Define source path for default task file
+            if platform == "android":
+                # On Android, check the app's assets directory
+                from jnius import autoclass
+                
+                # Get the asset manager
+                PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                activity = PythonActivity.mActivity
+                assets = activity.getAssets()
+                
+                # Create directory for storage path if it doesn't exist
+                os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+                
+                # Try to open and read the asset file
+                try:
+                    with assets.open(PATH.TASK_FILE) as asset_file:
+                        content = asset_file.read().decode("utf-8")
+                        
+                    # Write to the storage location
+                    with open(self.storage_path, "w") as f:
+                        f.write(content)
+                    
+                    print(f"Copied default task file to {self.storage_path}")
+                    return True
+                except Exception as e:
+                    print(f"Error reading asset file: {e}")
+            else:
+                # For desktop, check if a sample file exists in the assets directory
+                default_task_path = os.path.join("assets", PATH.TASK_FILE)
+                if os.path.exists(default_task_path):
+                    os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+                    shutil.copy(default_task_path, self.storage_path)
+                    print(f"Copied default task file to {self.storage_path}")
+                    return True
+        except Exception as e:
+            print(f"Error copying default task file: {e}")
+        
+        return False
     
     def add_task(self, message, timestamp):
         """Add a new task"""
@@ -42,6 +84,9 @@ class TaskManager:
     def save_tasks(self):
         """Save tasks to storage"""
         try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+            
             task_data = [task.to_dict() for task in self.tasks]
             with open(self.storage_path, "w") as f:
                 json.dump(task_data, f, indent=2)
@@ -53,6 +98,21 @@ class TaskManager:
     def load_tasks(self):
         """Load tasks from storage"""
         if not os.path.exists(self.storage_path):
+            # Try to copy the default task file
+            if self._copy_default_task_file():
+                # If successful, try loading again
+                if os.path.exists(self.storage_path):
+                    try:
+                        with open(self.storage_path, "r") as f:
+                            task_data = json.load(f)
+                        
+                        tasks = [Task.from_dict(data) for data in task_data]
+                        tasks.sort(key=lambda task: task.timestamp)
+                        return tasks
+                    except Exception as e:
+                        print(f"Error loading copied tasks: {e}")
+            
+            # If copying failed or loading failed, return empty list
             return []
         
         try:

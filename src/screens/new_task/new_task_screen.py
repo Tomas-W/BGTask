@@ -18,7 +18,7 @@ class NewTaskScreen(BaseScreen):
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
 
-        self.edit_mode = False
+        self.in_edit_mode = False
         self.task_id_to_edit = None
 
         self.root_layout = FloatLayout()
@@ -80,7 +80,7 @@ class NewTaskScreen(BaseScreen):
     
     def cancel_edit_task(self, instance):
         """Cancel the edit task"""
-        if self.edit_mode:
+        if self.in_edit_mode:
             self.clear_inputs()
     
     def clear_inputs(self):
@@ -91,7 +91,7 @@ class NewTaskScreen(BaseScreen):
         if hasattr(self, 'selected_time'):
             del self.selected_time
         self.date_display.set_text("")
-        self.edit_mode = False
+        self.in_edit_mode = False
         self.task_id_to_edit = None
 
     def update_datetime_display(self):
@@ -137,10 +137,10 @@ class NewTaskScreen(BaseScreen):
             return
         
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
-        if self.edit_mode:
+        if self.in_edit_mode:
             self.task_manager.delete_task(self.task_id_to_edit)
             self.task_manager.add_task(message=message, timestamp=task_datetime)
-            self.edit_mode = False
+            self.in_edit_mode = False
             self.task_id_to_edit = None
         else:
             self.task_manager.add_task(message=message, timestamp=task_datetime)
@@ -153,7 +153,7 @@ class NewTaskScreen(BaseScreen):
         select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
         
         # When editing a task, use the task's datetime values
-        if self.edit_mode and self.task_id_to_edit:
+        if self.in_edit_mode and self.task_id_to_edit:
             select_date_screen.selected_date = self.selected_date
             select_date_screen.selected_time = self.selected_time
             select_date_screen.current_month = self.selected_date.month
@@ -189,7 +189,7 @@ class NewTaskScreen(BaseScreen):
         self.date_display.hide_border()
         
         # Update button text based on mode
-        if self.edit_mode:
+        if self.in_edit_mode:
             self.save_button.text = "Update Task"
         else:
             self.save_button.text = "Save Task"

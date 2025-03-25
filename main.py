@@ -16,6 +16,7 @@ from src.settings import SCREEN
 
 
 # TODO: Editing last task adds new default message
+# TODO: Save scroll value when going to new task screen
 
 
 if platform != "android":

@@ -9,9 +9,9 @@ source.include_exts = py,png,json
 source.exclude_exts = gitignore,md
 source.exclude_dirs = bin,.venv,__pycache__,.buildozer,.buildozer.venv
 
-requirements = kivy,pillow,android.storage
+requirements = kivy,pillow,android.storage,jnius
 
-assets = %(source.dir)s/src/task_file.json
+source.assets = assets/
 
 version = 0.1
 

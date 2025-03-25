@@ -8,7 +8,7 @@ from kivy.uix.label import Label
 from src.utils.containers import TopBarContainer
 from src.utils.buttons import TopBar, TopBarButton
 
-from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH
+from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH, SCREEN
 
 
 class HomeBar():
@@ -224,7 +224,7 @@ class TimeLabelContainer(BoxLayout):
             orientation="horizontal",
             size_hint=(1, None),
             height=SIZE.TIME_LABEL_HEIGHT,
-            spacing=SPACE.FIELD_PADDING_X,  # Add consistent spacing between elements
+            spacing=SPACE.FIELD_PADDING_X,
             padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs
         )
@@ -253,19 +253,28 @@ class TimeLabel(Label):
 class EditTaskButton(Button):
     """
     Button for editing or deleting a task
+    - Has an opacity of 0 by default
+    - Has a button=False to prevent it from being clickable
     """
     def __init__(self, text: str, type: str, **kwargs):
         super().__init__(
             text=text,
             size_hint_y=None,
             height=SIZE.TIME_LABEL_HEIGHT,
-            font_size=FONT.SMALL,
-            color=COL.WHITE,  # White text for better contrast
+            font_size=FONT.OPTIONS_POPUP,
+            bold=False,
+            color=COL.TEXT,
+            background_color=COL.OPAQUE,
+            opacity=0,
+            disabled=True,
             **kwargs
         )
+        home_screen = App.get_running_app().screens[SCREEN.HOME]
+        if not self in home_screen.edit_delete_buttons:
+            home_screen.edit_delete_buttons.append(self)
 
         self.type = type
-        self.bg_color = COL.GREEN if type == "edit" else COL.RED
+        self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.FIELD_ERROR
         with self.canvas.before:
             Color(*self.bg_color)
             self.bg_rect = RoundedRectangle(
