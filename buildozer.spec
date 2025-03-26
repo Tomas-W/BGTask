@@ -18,7 +18,7 @@ version = 0.1
 orientation = portrait
 fullscreen = 0
 
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS
 android.api = 33
 android.minapi = 21
 android.ndk = 25b

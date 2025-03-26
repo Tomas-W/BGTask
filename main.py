@@ -14,6 +14,7 @@ from src.utils.navigation_manager import NavigationManager
 from src.utils.task_manager import TaskManager
 from src.utils.alarm_manager import AlarmManager
 from src.settings import SCREEN
+from src.utils.audio_providers import register_android_providers
 
 
 # TODO: Editing last task adds new default message
@@ -30,6 +31,9 @@ if platform != "android":
 
 class TaskApp(App):
     def build(self):
+        # Register Android audio providers if on Android
+        register_android_providers()
+        
         self.title = "Task Manager"
         self.screen_manager = ScreenManager(transition=SlideTransition())
         self.navigation_manager = NavigationManager(

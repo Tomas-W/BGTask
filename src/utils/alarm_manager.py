@@ -1,6 +1,6 @@
 import os
-import json
 
+from plyer import audio
 from kivy.utils import platform
 
 from src.settings import PATH
@@ -14,6 +14,10 @@ class AlarmManager:
         self.storage_path = self._get_storage_path()
         self.alarms = {}
         self.load_alarms()
+
+        self.plyer_audio = audio
+        self.plyer_audio.file_path = self.storage_path
+
 
         self.selected_alarm_name = None
         self.selected_alarm_path = None
@@ -31,12 +35,18 @@ class AlarmManager:
         if os.path.isdir(self.storage_path):
             alarms = {}
             for file in os.listdir(self.storage_path):
-                if file.endswith(".wav"):
+                # Support both .wav and .3gp extensions
+                if file.endswith((".wav", ".3gp")):
                     alarms[file.split(".")[0]] = os.path.join(self.storage_path, file)
             self.alarms = alarms
             print(self.alarms)
         else:
-            raise FileNotFoundError(f"Alarms file not found at {self.storage_path}")
+            # Create the directory instead of raising an error
+            try:
+                os.makedirs(self.storage_path, exist_ok=True)
+                print(f"Created alarm directory at {self.storage_path}")
+            except Exception as e:
+                print(f"Error creating alarm directory: {e}")
     
     def save_alarm(self, alarm_name, alarm_file):
         """Save an alarm to the storage path"""
