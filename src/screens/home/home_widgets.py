@@ -192,7 +192,7 @@ class EditTaskButton(Button):
             text=text,
             size_hint_y=None,
             height=SIZE.TIME_LABEL_HEIGHT,
-            font_size=FONT.OPTIONS_POPUP,
+            font_size=FONT.SETTINGS_BUTTON,
             bold=False,
             color=COL.TEXT,
             background_color=COL.OPAQUE,

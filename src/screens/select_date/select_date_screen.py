@@ -61,7 +61,6 @@ class SelectDateScreen(BaseScreen):
             text="<",
             width=0.6,
             symbol=True,
-            color_state=STATE.ACTIVE
         )
         self.prev_month_button.bind(on_press=self.go_to_prev_month)
         # Select month label
@@ -72,7 +71,6 @@ class SelectDateScreen(BaseScreen):
             text=">",
             width=0.6,
             symbol=True,
-            color_state=STATE.ACTIVE
         )
         self.next_month_button.bind(on_press=self.go_to_next_month)
         # Apply month row
@@ -94,7 +92,7 @@ class SelectDateScreen(BaseScreen):
         self.select_time_row = CustomRow()
         # Hours input
         self.hours_input = InputField()
-        self.hours_input.text = self.selected_time.strftime("%H")
+        self.hours_input.set_text(self.selected_time.strftime("%H"))
         self.hours_input.text_input.input_filter = "int"
         self.hours_input.text_input.bind(text=self.validate_hours)
         # Colon separator
@@ -102,7 +100,7 @@ class SelectDateScreen(BaseScreen):
         colon_label.size_hint_x = 0.2
         # Minutes input
         self.minutes_input = InputField()
-        self.minutes_input.text = self.selected_time.strftime("%M")
+        self.minutes_input.set_text(self.selected_time.strftime("%M"))
         self.minutes_input.text_input.input_filter = "int"
         self.minutes_input.text_input.bind(text=self.validate_minutes)
         # Apply time row
@@ -132,7 +130,6 @@ class SelectDateScreen(BaseScreen):
         self.confirm_button = CustomButton(
             text="Confirm",
             width=2,
-            color_state=STATE.ACTIVE
         )
         self.confirm_button.bind(on_press=self.confirm_date_selection)
         # Apply confirmation partition
@@ -170,7 +167,7 @@ class SelectDateScreen(BaseScreen):
     def update_calendar(self):
         """Update the calendar grid for the current month/year"""
         month_name = calendar.month_name[self.current_month]
-        self.month_label.text = f"{month_name} {self.current_year}"
+        self.month_label.set_text(f"{month_name} {self.current_year}")
         
         # Clear day buttons
         for child in list(self.calendar_grid.children):
@@ -237,7 +234,7 @@ class SelectDateScreen(BaseScreen):
             
             # Update date label
             date_str = self.selected_date.strftime("%A %d")
-            self.selected_date_label.text = f"{date_str}"
+            self.selected_date_label.set_text(f"{date_str}")
         except ValueError:
             pass
     
@@ -297,12 +294,12 @@ class SelectDateScreen(BaseScreen):
     def validate_hours(self, instance, value):
         """Allow any input during typing"""
         if len(value) > 2:
-            instance.text = instance.text[:2]
+            instance.set_text(instance.text[:2])
 
     def validate_minutes(self, instance, value):
         """Allow any input during typing"""
         if len(value) > 2:
-            instance.text = instance.text[:2]
+            instance.set_text(instance.text[:2])
 
     def on_pre_enter(self):
         """Called when the screen is entered"""
@@ -310,17 +307,17 @@ class SelectDateScreen(BaseScreen):
         
         # Update hours and minutes input with selected time values
         if hasattr(self, "selected_time"):
-            self.hours_input.text = self.selected_time.strftime("%H")
-            self.minutes_input.text = self.selected_time.strftime("%M")
+            self.hours_input.set_text(self.selected_time.strftime("%H"))
+            self.minutes_input.set_text(self.selected_time.strftime("%M"))
         
         # Update date label with selected date
         if hasattr(self, "selected_date"):
             date_str = self.selected_date.strftime("%A %d")
-            self.selected_date_label.text = f"{date_str}"
+            self.selected_date_label.set_text(f"{date_str}")
         
         # Update month label
         month_name = calendar.month_name[self.current_month]
-        self.month_label.text = f"{month_name} {self.current_year}"
+        self.month_label.set_text(f"{month_name} {self.current_year}")
         
         # Apply styling to selected date
         for child in self.calendar_grid.children:

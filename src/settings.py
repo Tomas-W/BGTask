@@ -7,6 +7,7 @@ class Paths:
     SRC = os.path.dirname(os.path.abspath(__file__))
     ASSETS = os.path.join(SRC, "assets")
 
+    ALARMS = os.path.join(ASSETS, "alarms")
     IMG = os.path.join(SRC, ASSETS, "images")
 
     EDIT_IMG = os.path.join(IMG, "edit_64.png")
@@ -69,11 +70,15 @@ class Fonts:
     TOP_BAR_SYMBOL = sp(35)
     BOTTOM_BAR = sp(35)
 
-    OPTIONS_POPUP = sp(16)
-
     HEADER = sp(25)
-    BUTTON = sp(18)
+    BUTTON = sp(22)
+    BUTTON_FIELD = sp(18)
     BUTTON_SYMBOL = sp(30)
+
+    SETTINGS_HEADER = sp(22)
+    SETTINGS_BUTTON = sp(18)
+    SETTINGS_BUTTON_SYMBOL = sp(24)
+    SETTINGS_BUTTON_FIELD = sp(18)
 
 
 class Sizes:
@@ -93,6 +98,8 @@ class Sizes:
     TIME_LABEL_HEIGHT = dp(20)
 
     BUTTON_HEIGHT = dp(60)
+    SETTINGS_BUTTON_HEIGHT = dp(40)
+    
     CUSTOM_ROW_HEIGHT = dp(40)
     NO_TASKS_LABEL_HEIGHT = dp(100)
     CALENDAR_HEADER_HEIGHT = dp(50)
@@ -117,7 +124,9 @@ class Screens:
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
     SELECT_DATE = "SELECT_DATE"
-
+    SELECT_ALARM = "SELECT_ALARM"
+    SAVED_ALARMS = "SAVED_ALARMS"
+    
     SETTINGS = "SETTINGS"
 
 

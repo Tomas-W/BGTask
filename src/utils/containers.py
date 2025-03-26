@@ -151,7 +151,7 @@ class Partition(BoxLayout):
         super().__init__(
             orientation="vertical",
             size_hint=(1, None),
-            spacing=SPACE.SPACE_M,
+            spacing=SPACE.SPACE_S,
             **kwargs
         )
         self.bind(minimum_height=self.setter('height'))

@@ -6,7 +6,7 @@ from kivy.uix.floatlayout import FloatLayout
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 from .home_widgets import TaskGroup
 
-from src.utils.bars import HomeBarClosed, HomeBarExpanded, TopBarClosed, TopBarExpanded
+from src.utils.bars import HomeBarClosed, HomeBarExpanded
 from src.utils.buttons import BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
 

@@ -3,15 +3,16 @@ from kivy.core.window import Window
 from kivy.utils import platform
 from kivy.uix.screenmanager import ScreenManager, SlideTransition
 
-from src.utils.navigation_manager import NavigationManager
-
 from src.screens.home.home_screen import HomeScreen
 from src.screens.new_task.new_task_screen import NewTaskScreen
 from src.screens.select_date.select_date_screen import SelectDateScreen
+from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
+from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
 from src.screens.settings.settings_screen import SettingsScreen
 
+from src.utils.navigation_manager import NavigationManager
 from src.utils.task_manager import TaskManager
-
+from src.utils.alarm_manager import AlarmManager
 from src.settings import SCREEN
 
 
@@ -30,12 +31,14 @@ if platform != "android":
 class TaskApp(App):
     def build(self):
         self.title = "Task Manager"
-        self.sm = ScreenManager(transition=SlideTransition())
+        self.screen_manager = ScreenManager(transition=SlideTransition())
         self.navigation_manager = NavigationManager(
-            screen_manager=self.sm,
+            screen_manager=self.screen_manager,
             start_screen=SCREEN.HOME
         )
         self.task_manager = TaskManager()
+        self.alarm_manager = AlarmManager()
+
 
         self.screens = {
             SCREEN.HOME: HomeScreen(name=SCREEN.HOME,
@@ -43,19 +46,28 @@ class TaskApp(App):
                                     task_manager=self.task_manager),
             SCREEN.NEW_TASK: NewTaskScreen(name=SCREEN.NEW_TASK,
                                            navigation_manager=self.navigation_manager,
-                                           task_manager=self.task_manager),
+                                           task_manager=self.task_manager,
+                                           alarm_manager=self.alarm_manager),
             SCREEN.SELECT_DATE: SelectDateScreen(name=SCREEN.SELECT_DATE,
                                            navigation_manager=self.navigation_manager,
                                            task_manager=self.task_manager),
+            SCREEN.SELECT_ALARM: SelectAlarmScreen(name=SCREEN.SELECT_ALARM,
+                                           navigation_manager=self.navigation_manager,
+                                           task_manager=self.task_manager,
+                                           alarm_manager=self.alarm_manager),
+            SCREEN.SAVED_ALARMS: SavedAlarmScreen(name=SCREEN.SAVED_ALARMS,
+                                           navigation_manager=self.navigation_manager,
+                                           task_manager=self.task_manager,
+                                           alarm_manager=self.alarm_manager),
             SCREEN.SETTINGS: SettingsScreen(name=SCREEN.SETTINGS,
                                            navigation_manager=self.navigation_manager,
                                            task_manager=self.task_manager),
         }
 
         for screen_name, screen in self.screens.items():
-            self.sm.add_widget(screen)
+            self.screen_manager.add_widget(screen)
         
-        return self.sm
+        return self.screen_manager
     
     def on_start(self):
         self.screens[SCREEN.HOME].load_tasks()

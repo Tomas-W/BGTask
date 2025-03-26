@@ -2,7 +2,7 @@ from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 
-from src.utils.labels import ButtonFieldLabel
+from src.utils.labels import ButtonFieldLabel, SettingsFieldLabel
 
 from src.settings import COL, SIZE, SPACE, FONT, STYLE, TEXT, STATE
 
@@ -105,6 +105,9 @@ class TextField(BoxLayout):
         self.set_hint_text(self._error_message)
         self.set_text_color(COL.ERROR_TEXT)
         self.set_border_color(COL.FIELD_ERROR)
+    
+    def set_text(self, text):
+        self.text_input.text = text
     
     def set_hint_text(self, text):
         self.hint_text = text
@@ -225,6 +228,9 @@ class InputField(BoxLayout):
         """Show error styling on the field"""
         self.set_text_color(COL.ERROR_TEXT)
         self.set_border_color(COL.FIELD_ERROR)
+    
+    def set_text(self, text):
+        self.text_input.text = text
     
     def set_hint_text(self, text):
         self.hint_text = text
@@ -359,3 +365,26 @@ class ButtonField(BoxLayout):
     def show_error_border(self):
         self.border_color_instr.rgba = COL.FIELD_ERROR
         self.set_text_color(COL.ERROR_TEXT)
+
+
+class SettingsField(ButtonField):
+    """
+    SettingsField is a text only field that looks like a CustomButton that:
+    - Has a state (active, inactive, error)
+    - Has a Label for text
+    - Has a background color based on state
+    - Has a border (default is transparent)
+    - Is half the height of the CustomButton
+    """
+    def __init__(self, text: str, width: int, color_state=STATE.ACTIVE, **kwargs):
+        super().__init__(
+            text=text,
+            width=width,
+            color_state=color_state,
+            **kwargs
+        )
+        self.height = SIZE.SETTINGS_BUTTON_HEIGHT
+        self.font_size = FONT.SETTINGS_BUTTON
+        self.remove_widget(self.label)
+        self.label = SettingsFieldLabel(text=self.text)
+        self.add_widget(self.label)

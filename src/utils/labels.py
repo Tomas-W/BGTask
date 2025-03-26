@@ -20,6 +20,9 @@ class PartitionHeader(Label):
             **kwargs
         )
         self.bind(size=self.setter("text_size"))
+    
+    def set_text(self, text):
+        self.text = text
 
 
 class ButtonFieldLabel(Label):
@@ -33,7 +36,25 @@ class ButtonFieldLabel(Label):
             halign="center",
             valign="middle",
             color=COL.TEXT,
-            font_size=FONT.DEFAULT,
+            font_size=FONT.BUTTON_FIELD,
+            **kwargs
+        )
+
+        self.bind(size=self.setter("text_size"))
+
+
+class SettingsFieldLabel(Label):
+    """
+    SettingsFieldLabel is a label for a SettingsField
+    """
+    def __init__(self, text="", **kwargs):
+        super().__init__(
+            text=text,
+            size_hint=(1, 1),
+            halign="center",
+            valign="middle",
+            color=COL.TEXT,
+            font_size=FONT.BUTTON_FIELD,
             **kwargs
         )
 

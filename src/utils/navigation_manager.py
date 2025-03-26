@@ -55,31 +55,37 @@ class NavigationManager:
         
         return True
     	
-    def go_to_home_screen(self):
+    def go_to_home_screen(self, *args):
         """
         Go to the home screen.
         """
         self.navigate_to(SCREEN.HOME)
     
-    def go_to_new_task_screen(self, instance):
+    def go_to_new_task_screen(self, *args):
         """
         Go to the new task screen.
         """
         self.navigate_to(SCREEN.NEW_TASK)
     
-    def go_to_select_date_screen(self):
+    def go_to_select_date_screen(self, *args):
         """
         Go to the select date screen.
         """
         self.navigate_to(SCREEN.SELECT_DATE)
     
-    def go_to_select_alarm_screen(self):
+    def go_to_select_alarm_screen(self, *args):
         """
         Go to the select alarm screen.
         """
         self.navigate_to(SCREEN.SELECT_ALARM)
     
-    def go_to_settings_screen(self):
+    def go_to_saved_alarms_screen(self, *args):
+        """
+        Go to the saved alarms screen.
+        """
+        self.navigate_to(SCREEN.SAVED_ALARMS)
+    
+    def go_to_settings_screen(self, *args):
         """
         Go to the settings screen.
         """
