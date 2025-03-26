@@ -3,11 +3,11 @@ from datetime import datetime
 from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
+
+from src.utils.bars import TopBarClosed, TopBarExpanded
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
 from src.utils.fields import TextField, ButtonField
-
-from src.screens.new_task.new_task_widgets import NewTaskBar, NewTaskBarExpanded
 
 from src.settings import SCREEN, STATE
 
@@ -26,12 +26,13 @@ class NewTaskScreen(BaseScreen):
         self.layout = BaseLayout()
 
         # Top bar
-        self.top_bar = NewTaskBar(
+        self.top_bar = TopBarClosed(
+            bar_title="New Task",
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
             options_callback=self.switch_top_bar,
         )
         # Top bar with expanded options
-        self.top_bar_expanded = NewTaskBarExpanded(
+        self.top_bar_expanded = TopBarExpanded(
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
             options_callback=self.switch_top_bar,
             settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
@@ -59,6 +60,16 @@ class NewTaskScreen(BaseScreen):
         # Task input
         self.task_input = TextField(hint_text="Enter your task here")
         self.task_input_partition.add_widget(self.task_input)
+
+        # Alarm picker partition
+        self.alarm_picker_partition = Partition()
+        # Alarm picker button
+        self.pick_alarm_button = CustomButton(text="Select Alarm", width=1, color_state=STATE.ACTIVE)
+        self.pick_alarm_button.bind(on_press=self.go_to_select_alarm_screen)
+        self.alarm_picker_partition.add_widget(self.pick_alarm_button)
+        # Alarm display box
+        self.alarm_display = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
+        self.alarm_picker_partition.add_widget(self.alarm_display)
 
         # Button row
         self.button_row = CustomButtonRow()
@@ -107,7 +118,7 @@ class NewTaskScreen(BaseScreen):
             self.date_display.set_text(f"{date_str} at {time_str}")
             self.date_display.hide_border()
         else:
-            self.date_display.set_text("")
+            self.date_display.set_text("No date selected")
 
     def on_datetime_selected(self, selected_date, selected_time):
         """Callback when date and time are selected in calendar"""
@@ -117,6 +128,13 @@ class NewTaskScreen(BaseScreen):
         
         # Reset the date picker button styles
         self.date_display.hide_border()
+    
+    def update_alarm_display(self, selected_alarm):
+        """Update the alarm display with the selected alarm"""
+        if hasattr(self, 'selected_alarm'):
+            self.alarm_display.set_text(selected_alarm)
+        else:
+            self.alarm_display.set_text("No alarm set")
     
     def save_task(self, instance):
         """Save the task and return to home screen"""
@@ -186,6 +204,10 @@ class NewTaskScreen(BaseScreen):
             select_date_screen.selected_date_label.text = f"{date_str}"
         
         self.navigation_manager.go_to_select_date_screen()
+    
+    def go_to_select_alarm_screen(self, instance):
+        """Show the alarm screen"""
+        self.navigation_manager.go_to_select_alarm_screen()
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""

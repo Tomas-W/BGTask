@@ -4,7 +4,9 @@ from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
-from .home_widgets import TaskGroup, HomeBar, HomeBarExpanded, TaskContainer, TimeLabelContainer, EditTaskButton
+from .home_widgets import TaskGroup
+
+from src.utils.bars import HomeBarClosed, HomeBarExpanded, TopBarClosed, TopBarExpanded
 from src.utils.buttons import BottomBar
 from src.utils.containers import BaseLayout, ScrollContainer
 
@@ -31,7 +33,7 @@ class HomeScreen(BaseScreen):
         self.layout = BaseLayout()
 
         # Basic TopBar
-        self.top_bar = HomeBar(
+        self.top_bar = HomeBarClosed(
             edit_callback=self.show_edit_delete,
             new_task_callback=self.navigation_manager.go_to_new_task_screen,
             options_callback=self.switch_top_bar,

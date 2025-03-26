@@ -152,7 +152,7 @@ class CustomButton(Button):
         self.color_instr.rgba = self.color_inactive
 
 
-class TopBar(Button):
+class TopBarTitle(Button):
     """
     TopBar is the centered navigation button that:
     - Has text

@@ -8,11 +8,13 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
+
+from src.utils.bars import TopBarClosed, TopBarExpanded
 from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.utils.labels import PartitionHeader
 from src.utils.fields import InputField
-from .select_date_widgets import DateTimeLabel, SelectDateBar, SelectDateBarExpanded, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
+from .select_date_widgets import DateTimeLabel, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
 
 from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE
 
@@ -33,12 +35,13 @@ class SelectDateScreen(BaseScreen):
         self.current_year = self.selected_date.year
 
         # Top bar
-        self.top_bar = SelectDateBar(
+        self.top_bar = TopBarClosed(
+            bar_title="Select Date",
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
             options_callback=self.switch_top_bar,
         )
         # Top bar with expanded options
-        self.top_bar_expanded = SelectDateBarExpanded(
+        self.top_bar_expanded = TopBarExpanded(
             back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
             options_callback=self.switch_top_bar,
             settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),

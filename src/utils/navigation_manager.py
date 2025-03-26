@@ -73,6 +73,12 @@ class NavigationManager:
         """
         self.navigate_to(SCREEN.SELECT_DATE)
     
+    def go_to_select_alarm_screen(self):
+        """
+        Go to the select alarm screen.
+        """
+        self.navigate_to(SCREEN.SELECT_ALARM)
+    
     def go_to_settings_screen(self):
         """
         Go to the settings screen.

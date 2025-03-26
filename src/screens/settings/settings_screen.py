@@ -3,7 +3,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from src.utils.containers import BaseLayout, TopBarContainer, ScrollContainer
-from src.utils.buttons import TopBar, TopBarButton
+from src.utils.buttons import TopBarTitle, TopBarButton
 
 from src.settings import PATH
 
@@ -23,7 +23,7 @@ class SettingsScreen(Screen):
         self.back_button.bind(on_press=self.go_to_previous_screen)
         self.top_bar_container.add_widget(self.back_button)
         # Top bar
-        self.top_bar = TopBar(text="Settings", button=False)
+        self.top_bar = TopBarTitle(text="Settings", button=False)
         self.top_bar_container.add_widget(self.top_bar)
         # Exit button
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="right")
