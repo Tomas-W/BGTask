@@ -3,7 +3,6 @@ import calendar
 from datetime import datetime, date
 
 from kivy.graphics import Color, Rectangle, RoundedRectangle
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
@@ -13,7 +12,7 @@ from src.utils.buttons import CustomButton
 from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.utils.labels import PartitionHeader
 from src.utils.fields import InputField
-from .select_date_widgets import DateTimeLabel, SelectDateBar, SelectDateBarExpanded
+from .select_date_widgets import DateTimeLabel, SelectDateBar, SelectDateBarExpanded, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
 
 from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE
 
@@ -149,42 +148,20 @@ class SelectDateScreen(BaseScreen):
     
     def create_calendar_grid(self):
         """Create and populate the calendar grid"""
-        self.calendar_container = BoxLayout(
-            orientation="vertical",
-            size_hint=(1, None),
-            height=SIZE.CALENDAR_HEIGHT,
-            spacing=SPACE.SPACE_S
-        )
+        self.calendar_container = CalendarContainer()
 
-        headers_container = GridLayout(
-            cols=7,
-            size_hint=(1, None),
-            height=SIZE.HEADER_HEIGHT,
-        )
-    
+        # Day headers
+        headers_container = CalendarHeadersContainer()
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:
-            header_label = Label(
-                text=day,
-                bold=True,
-                color=COL.TEXT,
-                font_size=FONT.DEFAULT,
-                size_hint_y=None,
-                height=FONT.DEFAULT
-            )
+            header_label = CalendarHeaderLabel(text=day)
             headers_container.add_widget(header_label)
         
         # Calendar grid
-        self.calendar_grid = GridLayout(
-            cols=7,
-            size_hint=(1, None),
-        )
-        self.calendar_grid.bind(minimum_height=self.calendar_grid.setter('height'))
-        
+        self.calendar_grid = CalendarGrid()
         self.calendar_container.add_widget(headers_container)
         self.calendar_container.add_widget(self.calendar_grid)
         
         self.update_calendar()
-        
         self.select_day_partition.add_widget(self.calendar_container)
 
     def update_calendar(self):
@@ -276,10 +253,6 @@ class SelectDateScreen(BaseScreen):
             self.current_month = 1
             self.current_year += 1
         self.update_calendar()
-    
-    def set_callback(self, callback):
-        """Set the callback function to be called when date is confirmed"""
-        self.callback = callback
 
     def confirm_date_selection(self, instance):
         """Return to new task screen, passing selected date if confirm was pressed"""
@@ -327,21 +300,6 @@ class SelectDateScreen(BaseScreen):
         """Allow any input during typing"""
         if len(value) > 2:
             instance.text = instance.text[:2]
-
-    def _update_month_rect(self, instance, value):
-        """Update month rectangle"""
-        self.select_month_rect.pos = instance.pos
-        self.select_month_rect.size = instance.size
-
-    def _update_calendar_rect(self, instance, value):
-        """Update calendar rectangle"""
-        self.calendar_rect.pos = instance.pos
-        self.calendar_rect.size = instance.size
-
-    def _update_confirm_rect(self, instance, value):
-        """Update confirm rectangle"""
-        self.confirm_rect.pos = instance.pos
-        self.confirm_rect.size = instance.size
 
     def on_pre_enter(self):
         """Called when the screen is entered"""

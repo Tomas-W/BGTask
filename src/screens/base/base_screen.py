@@ -6,12 +6,7 @@ class BaseScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.top_bar_is_expanded = False
-
-    def on_pre_enter(self):
-        """Called before the screen is entered"""
-        self.top_bar_is_expanded = False
-        self.switch_top_bar(instance=None, on_enter=True)
-
+    
     def switch_top_bar(self, instance, on_enter=False):
         """Controls the state of the TopBar to be expanded or not"""
         # Toggle the state
@@ -27,3 +22,16 @@ class BaseScreen(Screen):
             self.layout.clear_widgets()
             self.layout.add_widget(self.top_bar.top_bar_container)
             self.layout.add_widget(self.scroll_container)
+    
+    def set_callback(self, callback):
+        """Set the callback function to be called when date is confirmed"""
+        self.callback = callback
+
+    def on_pre_enter(self):
+        """Called before the screen is entered"""
+        self.top_bar_is_expanded = False
+        self.switch_top_bar(instance=None, on_enter=True)
+    
+    def on_enter(self):
+        """Called when the screen is entered"""
+        pass    

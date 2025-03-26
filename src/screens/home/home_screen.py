@@ -62,8 +62,8 @@ class HomeScreen(BaseScreen):
     def show_edit_delete(self, instance):
         """Show the edit and delete icons"""
         for button in self.edit_delete_buttons:
-            button.opacity = int(not button.opacity)
-            button.disabled = not button.disabled
+            button.switch_opacity()
+            button.switch_disabled()
         
         if instance is not None:
             self.edit_delete_visible = not self.edit_delete_visible

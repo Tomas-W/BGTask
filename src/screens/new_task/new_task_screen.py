@@ -15,6 +15,7 @@ from src.settings import SCREEN, STATE
 class NewTaskScreen(BaseScreen):
     def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
+        
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
 
@@ -77,6 +78,10 @@ class NewTaskScreen(BaseScreen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
+    
+    def update_in_edit_mode(self, instance, value):
+        """Update the in edit mode state"""
+        self.in_edit_mode = value
     
     def cancel_edit_task(self, instance):
         """Cancel the edit task"""

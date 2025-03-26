@@ -1,7 +1,8 @@
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.label import Label
-
-from src.settings import COL, FONT, SIZE
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from src.settings import COL, FONT, SIZE, SPACE
 
 
 from src.utils.containers import TopBarContainer
@@ -75,6 +76,57 @@ class SelectDateBarExpanded():
         self.top_bar_container.add_widget(self.exit_button)
         self.top_bar_container.add_widget(self.options_button)
         
+
+class CalendarContainer(BoxLayout):
+    """Container for the calendar"""
+    def __init__(self, **kwargs):
+        super().__init__(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=SIZE.CALENDAR_HEIGHT,
+            spacing=SPACE.SPACE_S,
+            **kwargs
+        )
+        self.bind(minimum_height=self.setter("height"))
+
+
+class CalendarHeadersContainer(GridLayout):
+    """GridLayout for the calendar headers"""
+    def __init__(self, **kwargs):
+        super().__init__(
+            cols=7,
+            size_hint=(1, None),
+            height=SIZE.HEADER_HEIGHT,
+            **kwargs
+        )
+        self.bind(minimum_height=self.setter("height"))
+
+
+class CalendarHeaderLabel(Label):
+    """Label for the calendar header"""
+    def __init__(self, text, **kwargs):
+        super().__init__(
+            text=text,
+            bold=True,
+            color=COL.TEXT,
+            font_size=FONT.DEFAULT,
+            size_hint_y=None,
+            height=FONT.DEFAULT,
+            **kwargs
+        )
+        self.bind(height=self.setter("height"))
+
+
+class CalendarGrid(GridLayout):
+    """GridLayout for the calendar"""
+    def __init__(self, **kwargs):
+        super().__init__(
+            cols=7,
+            size_hint=(1, None),
+            height=7 * SIZE.HEADER_HEIGHT,  # Max 6 weeks, add 1 for spacing below
+            **kwargs
+        )
+        self.bind(height=self.setter("height"))
 
 
 class DateTimeLabel(ButtonBehavior, Label):

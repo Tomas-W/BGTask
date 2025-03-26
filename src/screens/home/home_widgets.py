@@ -288,6 +288,14 @@ class EditTaskButton(Button):
         """Update background rectangle on resize/reposition"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
+    
+    def switch_opacity(self):
+        """Switch the opacity of the button"""
+        self.opacity = int(not self.opacity)
+    
+    def switch_disabled(self):
+        """Switch the disabled state of the button"""
+        self.disabled = not self.disabled
 
 
 class TaskLabel(Label):
