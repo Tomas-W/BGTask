@@ -65,3 +65,31 @@ class AlarmManager:
             f.write(alarm_file)
         
         self.load_alarms()
+    
+    def name_to_path(self, name):
+        """Convert an alarm name to a path"""
+        return os.path.join(self.storage_path, f"{name}.wav")
+    
+    def path_to_name(self, path):
+        """Convert a path to an alarm name"""
+        return os.path.basename(path).split(".")[0]
+    
+    def set_name(self, name=None, path=None):
+        """Set the alarm name"""
+        if path:
+            self.selected_alarm_name = self.name_to_path(path)
+        elif name:
+            self.selected_alarm_name = name
+        else:
+            raise ValueError("Either name or path must be provided")
+    
+    def set_path(self, path=None, name=None):
+        """Set the alarm path"""
+        if path:
+            self.selected_alarm_path = path
+            self.selected_alarm_name = self.path_to_name(path)
+        elif name:
+            self.selected_alarm_path = self.name_to_path(name)
+            self.selected_alarm_name = name
+        else:
+            raise ValueError("Either path or name must be provided")

@@ -78,6 +78,7 @@ class SavedAlarmScreen(BaseScreen):
         """
         Confirm the alarm selection.
         """
+
         self.navigation_manager.go_to_select_alarm_screen()
 
     def create_alarm_buttons(self):
@@ -97,7 +98,8 @@ class SavedAlarmScreen(BaseScreen):
         """
         Select the alarm.
         """
-        self.alarm_manager.selected_alarm_name = instance.text
+        self.alarm_manager.set_name(name=instance.text)
+        self.alarm_manager.set_path(name=instance.text)
         for button in self.alarm_picker_partition.children:
             if button.text == self.alarm_manager.selected_alarm_name:
                 button.set_active_state()
