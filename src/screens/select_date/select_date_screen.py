@@ -4,7 +4,6 @@ from datetime import datetime, date
 
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
@@ -16,7 +15,7 @@ from src.utils.labels import PartitionHeader
 from src.utils.fields import InputField
 from .select_date_widgets import DateTimeLabel, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
 
-from src.settings import COL, FONT, SIZE, SPACE, STATE, STYLE
+from src.settings import COL, SIZE, SPACE, STATE, STYLE, SCREEN
 
 
 class SelectDateScreen(BaseScreen):
@@ -37,15 +36,15 @@ class SelectDateScreen(BaseScreen):
         # Top bar
         self.top_bar = TopBarClosed(
             bar_title="Select Date",
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK),
+            options_callback=lambda instance: self.switch_top_bar(),
         )
         # Top bar with expanded options
         self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
-            settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(instance=instance),
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK),
+            options_callback=lambda instance: self.switch_top_bar(),
+            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(),
         )
         self.layout.add_widget(self.top_bar.top_bar_container)
 
@@ -125,7 +124,7 @@ class SelectDateScreen(BaseScreen):
             width=2,
             color_state=STATE.INACTIVE
         )
-        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_back(instance=instance))
+        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         # Confirm button
         self.confirm_button = CustomButton(
             text="Confirm",
@@ -289,7 +288,7 @@ class SelectDateScreen(BaseScreen):
             if self.callback:
                 self.callback(self.selected_date, self.selected_time)
 
-        self.navigation_manager.go_back(instance=instance)
+        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
     
     def validate_hours(self, instance, value):
         """Allow any input during typing"""

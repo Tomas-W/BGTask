@@ -1,12 +1,13 @@
-import os
 import json
+import os
 import shutil
 
 from kivy.app import App
 from kivy.utils import platform
 
 from src.utils.task import Task
-from src.settings import PATH, SCREEN
+
+from src.settings import PATH, SCREEN, PLATFORM
 
 
 class TaskManager:
@@ -16,6 +17,7 @@ class TaskManager:
     def __init__(self):
         self.navigation_manager = App.get_running_app().navigation_manager
         self.storage_path = self._get_storage_path()
+        self._make_storage_path()
         self.tasks = self.load_tasks()
 
         self.current_edit = {
@@ -26,51 +28,44 @@ class TaskManager:
         
     def _get_storage_path(self):
         """Get the storage path based on platform"""
-        if platform == "android":
-            from android.storage import app_storage_path
+        if platform == PLATFORM.ANDROID:
+            from android.storage import app_storage_path  # type: ignore
             return os.path.join(app_storage_path(), PATH.TASK_FILE)
         else:
             return os.path.join(PATH.TASK_FILE)
     
-    def _copy_default_task_file(self):
-        """Copy the default task file to the app's storage directory"""
+    def _make_storage_path(self):
+        """Make the storage path"""
+        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+    
+    def _load_saved_task_file(self):
+        """Load the saved task file on initial app load"""
         try:
-            # Define source path for default task file
-            if platform == "android":
-                # On Android, check the app's assets directory
-                from jnius import autoclass
+            if platform == PLATFORM.ANDROID:
+                from jnius import autoclass  # type: ignore
                 
-                # Get the asset manager
+                # Get asset manager
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 activity = PythonActivity.mActivity
                 assets = activity.getAssets()
                 
-                # Create directory for storage path if it doesn't exist
-                os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
-                
-                # Try to open and read the asset file
                 try:
                     with assets.open(PATH.TASK_FILE) as asset_file:
                         content = asset_file.read().decode("utf-8")
                         
-                    # Write to the storage location
                     with open(self.storage_path, "w") as f:
-                        f.write(content)
-                    
-                    print(f"Copied default task file to {self.storage_path}")
+                        f.write(content)                    
                     return True
                 except Exception as e:
-                    print(f"Error reading asset file: {e}")
+                    raise e
             else:
-                # For desktop, check if a sample file exists in the assets directory
+                # Desktop
                 default_task_path = os.path.join("assets", PATH.TASK_FILE)
                 if os.path.exists(default_task_path):
-                    os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
                     shutil.copy(default_task_path, self.storage_path)
-                    print(f"Copied default task file to {self.storage_path}")
                     return True
         except Exception as e:
-            print(f"Error copying default task file: {e}")
+            raise e
         
         return False
     
@@ -78,28 +73,25 @@ class TaskManager:
         """Add a new task"""
         task = Task(message=message, timestamp=timestamp)
         self.tasks.append(task)
-        self.save_tasks()
+        self._save_tasks()
         return task
     
-    def save_tasks(self):
+    def _save_tasks(self):
         """Save tasks to storage"""
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
-            
             task_data = [task.to_dict() for task in self.tasks]
             with open(self.storage_path, "w") as f:
                 json.dump(task_data, f, indent=2)
             return True
+        
         except Exception as e:
-            print(f"Error saving tasks: {e}")
-            return False
+            raise e
     
     def load_tasks(self):
         """Load tasks from storage"""
         if not os.path.exists(self.storage_path):
             # Try to copy the default task file
-            if self._copy_default_task_file():
+            if self._load_saved_task_file():
                 # If successful, try loading again
                 if os.path.exists(self.storage_path):
                     try:
@@ -137,7 +129,7 @@ class TaskManager:
                 self.current_edit["timestamp"] = task.timestamp
                 
                 # Navigate to the new task screen
-                new_task_screen = App.get_running_app().root.get_screen(SCREEN.NEW_TASK)
+                new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
                 
                 # Pre-fill the data
                 new_task_screen.edit_mode = True
@@ -148,7 +140,7 @@ class TaskManager:
                 new_task_screen.update_datetime_display()
                 
                 # Navigate to the edit screen
-                self.navigation_manager.go_to_new_task_screen(None)
+                self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
                 return True
                 
         return False
@@ -158,10 +150,10 @@ class TaskManager:
         for i, task in enumerate(self.tasks):
             if task.task_id == task_id:
                 del self.tasks[i]
-                self.save_tasks()
+                self._save_tasks()
                 
                 # Refresh home screen
-                home_screen = App.get_running_app().root.get_screen(SCREEN.HOME)
+                home_screen = App.get_running_app().get_screen(SCREEN.HOME)
                 home_screen.update_task_display()
                 return True
         return False

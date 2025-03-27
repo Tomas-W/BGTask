@@ -3,79 +3,75 @@ import os
 from plyer import audio
 from kivy.utils import platform
 
-from src.settings import PATH
+from src.settings import PATH, PLATFORM, EXT
 
 
-class AlarmManager:
+class AudioManager:
     """
-    Manages alarms and their storage.
+    Manages audio accross the application.
     """
     def __init__(self):
-        self.storage_path = self._get_storage_path()
-        self.alarms = {}
-        self.load_alarms()
-
+        self.alarm_storage_path = self._get_alarm_storage()
         self.plyer_audio = audio
-        self.plyer_audio.file_path = self.storage_path
+        self.plyer_audio.file_path = self.alarm_storage_path
 
-
+        # Alarms
+        self.alarms = {}
+        self._load_alarms()
         self.selected_alarm_name = None
         self.selected_alarm_path = None
 
-    def _get_storage_path(self):
-        """Get the storage path based on platform"""
-        if platform == "android":
-            from android.storage import app_storage_path
+    def _get_alarm_storage(self):
+        """Get alarm storage path"""
+        if platform == PLATFORM.ANDROID:
+            from android.storage import app_storage_path  # type: ignore
             return os.path.join(app_storage_path(), PATH.ALARMS)
         else:
             return os.path.join(PATH.ALARMS)
     
-    def load_alarms(self):
-        """Load the alarms from the storage path"""
-        if os.path.isdir(self.storage_path):
+    def _load_alarms(self):
+        """Load the alarm files from the storage path"""
+        if os.path.isdir(self.alarm_storage_path):
             alarms = {}
-            for file in os.listdir(self.storage_path):
-                # Support both .wav and .3gp extensions
-                if file.endswith((".wav", ".3gp")):
-                    alarms[file.split(".")[0]] = os.path.join(self.storage_path, file)
+            for file in os.listdir(self.alarm_storage_path):
+                # Support .wav and .3gp
+                if file.endswith((EXT.WAV, EXT.THREE_GP)):
+                    alarms[file.split(".")[0]] = os.path.join(self.alarm_storage_path, file)
             self.alarms = alarms
-            print(self.alarms)
         else:
-            # Create the directory instead of raising an error
             try:
-                os.makedirs(self.storage_path, exist_ok=True)
-                print(f"Created alarm directory at {self.storage_path}")
+                os.makedirs(self.alarm_storage_path, exist_ok=True)
             except Exception as e:
-                print(f"Error creating alarm directory: {e}")
+                raise e
     
     def save_alarm(self, alarm_name, alarm_file):
-        """Save an alarm to the storage path"""
+        """Save alarm to alarm storage path"""
         if not alarm_name or not alarm_file:
             raise ValueError("Alarm name and file are required")
         
         # Create a unique filename
         filename = f"{alarm_name}"
-        extension = ".wav"
-        file_path = os.path.join(self.storage_path, filename)
+        extension = EXT.WAV
+        file_path = os.path.join(self.alarm_storage_path, filename + extension)
         if os.path.exists(file_path):
             filename += "_a"
-            file_path = os.path.join(self.storage_path, filename)
-        # Save the alarm file
+            file_path = os.path.join(self.alarm_storage_path, filename + extension)
+        # Save the alarm
         with open(file_path, "wb") as f:
             f.write(alarm_file)
         
-        self.load_alarms()
+        self._load_alarms()
     
     def name_to_path(self, name):
         """Convert an alarm name to a path"""
-        return os.path.join(self.storage_path, f"{name}.wav")
+        return os.path.join(self.alarm_storage_path, f"{name}.wav")
     
     def path_to_name(self, path):
         """Convert a path to an alarm name"""
         return os.path.basename(path).split(".")[0]
     
-    def set_name(self, name=None, path=None):
-        """Set the alarm name"""
+    def set_alarm_name(self, name=None, path=None):
+        """Set the name of the alarm"""
         if path:
             self.selected_alarm_name = self.name_to_path(path)
         elif name:
@@ -83,8 +79,8 @@ class AlarmManager:
         else:
             raise ValueError("Either name or path must be provided")
     
-    def set_path(self, path=None, name=None):
-        """Set the alarm path"""
+    def set_alarm_path(self, path=None, name=None):
+        """Set the path of the alarm"""
         if path:
             self.selected_alarm_path = path
             self.selected_alarm_name = self.path_to_name(path)

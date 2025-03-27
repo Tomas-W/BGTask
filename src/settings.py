@@ -129,11 +129,21 @@ class Screens:
     
     SETTINGS = "SETTINGS"
 
+class Platforms:
+    ANDROID = "android"
+    IOS = "ios"
+    WINDOWS = "windows"
+
 
 class States:
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     ERROR = "ERROR"
+
+
+class Extensions:
+    WAV = ".wav"
+    THREE_GP = ".3gp"
 
 
 PATH = Paths()
@@ -144,4 +154,6 @@ STYLE = Styles()
 FONT = Fonts()
 TEXT = Text()
 SCREEN = Screens()
+PLATFORM = Platforms()
 STATE = States()
+EXT = Extensions()

@@ -35,14 +35,14 @@ class HomeScreen(BaseScreen):
         # Basic TopBar
         self.top_bar = HomeBarClosed(
             edit_callback=self.show_edit_delete,
-            new_task_callback=self.navigation_manager.go_to_new_task_screen,
-            options_callback=self.switch_top_bar,
+            new_task_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.NEW_TASK),
+            options_callback=lambda instance: self.switch_top_bar(),
         )
         # TopBar with expanded options
         self.top_bar_expanded = HomeBarExpanded(
             edit_callback=self.show_edit_delete,
-            options_callback=self.switch_top_bar,
-            settings_callback=self.navigation_manager.go_to_settings_screen,
+            options_callback=lambda instance: self.switch_top_bar(),
+            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
             exit_callback=self.navigation_manager.exit_app,
         )
         self.layout.add_widget(self.top_bar.top_bar_container)
@@ -69,7 +69,7 @@ class HomeScreen(BaseScreen):
         
         if instance is not None:
             self.edit_delete_visible = not self.edit_delete_visible
-        new_task_screen = App.get_running_app().screens[SCREEN.NEW_TASK]
+        new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
         new_task_screen.in_edit_mode = not new_task_screen.in_edit_mode
 
     def load_tasks(self):

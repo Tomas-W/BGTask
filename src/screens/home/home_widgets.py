@@ -200,7 +200,7 @@ class EditTaskButton(Button):
             disabled=True,
             **kwargs
         )
-        home_screen = App.get_running_app().screens[SCREEN.HOME]
+        home_screen = App.get_running_app().get_screen(SCREEN.HOME)
         if not self in home_screen.edit_delete_buttons:
             home_screen.edit_delete_buttons.append(self)
 

@@ -13,12 +13,12 @@ from src.settings import SCREEN, STATE
 
 
 class NewTaskScreen(BaseScreen):
-    def __init__(self, navigation_manager, task_manager, alarm_manager, **kwargs):
+    def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
         super().__init__(**kwargs)
         
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        self.alarm_manager = alarm_manager
+        self.audio_manager = audio_manager
 
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
@@ -32,15 +32,15 @@ class NewTaskScreen(BaseScreen):
         # Top bar
         self.top_bar = TopBarClosed(
             bar_title="New Task",
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.HOME),
+            options_callback=lambda instance: self.switch_top_bar(),
         )
         # Top bar with expanded options
         self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
-            settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(instance=instance),
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.HOME),
+            options_callback=lambda instance: self.switch_top_bar(),
+            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(),
         )
         self.layout.add_widget(self.top_bar.top_bar_container)
 
@@ -109,7 +109,7 @@ class NewTaskScreen(BaseScreen):
         if self.in_edit_mode:
             self.clear_inputs()
         
-        self.navigation_manager.go_to_home_screen()
+        self.navigation_manager.navigate_back_to(SCREEN.HOME)
     
     def clear_inputs(self):
         """Clear the task input and date display data"""
@@ -145,8 +145,8 @@ class NewTaskScreen(BaseScreen):
     
     def update_alarm_display(self):
         """Update the alarm display with the selected alarm"""
-        if self.alarm_manager.selected_alarm_name is not None:
-            self.alarm_display.set_text(self.alarm_manager.selected_alarm_name)
+        if self.audio_manager.selected_alarm_name is not None:
+            self.alarm_display.set_text(self.audio_manager.selected_alarm_name)
         else:
             self.alarm_display.set_text("No alarm set")
     
@@ -183,7 +183,7 @@ class NewTaskScreen(BaseScreen):
             self.task_manager.add_task(message=message, timestamp=task_datetime)
         
         self.clear_inputs()
-        self.navigation_manager.go_to_home_screen()
+        self.navigation_manager.navigate_to(SCREEN.HOME)
     
     def go_to_select_date_screen(self, instance):
         """Show the calendar screen"""
@@ -217,11 +217,11 @@ class NewTaskScreen(BaseScreen):
             date_str = self.selected_date.strftime("%A %d")
             select_date_screen.selected_date_label.set_text(f"{date_str}")
         
-        self.navigation_manager.go_to_select_date_screen()
+        self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
     
     def go_to_select_alarm_screen(self, instance):
         """Show the alarm screen"""
-        self.navigation_manager.go_to_select_alarm_screen()
+        self.navigation_manager.navigate_to(SCREEN.SELECT_ALARM)
 
     def on_pre_enter(self):
         """Called just before the screen is entered"""

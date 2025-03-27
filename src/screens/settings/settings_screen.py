@@ -2,10 +2,11 @@ from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
-from src.utils.containers import BaseLayout, TopBarContainer, ScrollContainer
-from src.utils.buttons import TopBarTitle, TopBarButton
+from src.utils.containers import BaseLayout, ScrollContainer
+from src.utils.bars import TopBarClosed, TopBarExpanded
 
-from src.settings import PATH
+from src.settings import SCREEN
+
 
 class SettingsScreen(Screen):
     def __init__(self, navigation_manager, task_manager, **kwargs):
@@ -16,26 +17,27 @@ class SettingsScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        # Top bar container
-        self.top_bar_container = TopBarContainer()
-        # Back button
-        self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="left")
-        self.back_button.bind(on_press=self.go_to_previous_screen)
-        self.top_bar_container.add_widget(self.back_button)
         # Top bar
-        self.top_bar = TopBarTitle(text="Settings", button=False)
-        self.top_bar_container.add_widget(self.top_bar)
-        # Exit button
-        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="right")
-        self.exit_button.bind(on_press=self.exit_app)
-        self.top_bar_container.add_widget(self.exit_button)
+        self.top_bar = TopBarClosed(
+            bar_title="Settings",
+            back_callback=lambda instance: self.navigation_manager.go_back(),
+            options_callback=lambda instance: self.switch_top_bar(),
+        )
+        # Top bar with expanded options
+        self.top_bar_expanded = TopBarExpanded(
+            back_callback=lambda instance: self.navigation_manager.go_back(),
+            options_callback=lambda instance: self.switch_top_bar(),
+            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(),
+        )
+        self.layout.add_widget(self.top_bar.top_bar_container)
 
-        self.layout.add_widget(self.top_bar_container)
-
-        # Settings container
+        # Scroll container
         self.scroll_container = ScrollContainer()
-        self.layout.add_widget(self.scroll_container)
 
+        # Add layouts
+        self.layout.add_widget(self.scroll_container)
+        self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
 
     def go_to_previous_screen(self, instance):

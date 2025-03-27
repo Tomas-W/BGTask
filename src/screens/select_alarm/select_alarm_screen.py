@@ -15,7 +15,7 @@ from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomB
 from src.utils.buttons import CustomButton, CustomSettingsButton
 from src.utils.fields import SettingsField
 
-from src.settings import STATE, PATH
+from src.settings import STATE, SCREEN
 
 # Add this function to check if we're on Android
 def is_android():
@@ -26,11 +26,11 @@ class SelectAlarmScreen(BaseScreen):
     """
     Screen for selecting an alarm.
     """
-    def __init__(self, navigation_manager, task_manager, alarm_manager, **kwargs):
+    def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        self.alarm_manager = alarm_manager
+        self.audio_manager = audio_manager
 
         self.recording_on = False
         self.vibration_on = False
@@ -41,15 +41,15 @@ class SelectAlarmScreen(BaseScreen):
         # Top bar
         self.top_bar = TopBarClosed(
             bar_title="Select Alarm",
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK),
+            options_callback=lambda instance: self.switch_top_bar(),
         )
         # Top bar with expanded options
         self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(instance=instance),
-            options_callback=self.switch_top_bar,
-            settings_callback=lambda instance: self.navigation_manager.go_to_settings_screen(instance=instance),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(instance=instance),
+            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK),
+            options_callback=lambda instance: self.switch_top_bar(),
+            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
+            exit_callback=lambda instance: self.navigation_manager.exit_app(),
         )
         self.layout.add_widget(self.top_bar.top_bar_container)
 
@@ -60,7 +60,7 @@ class SelectAlarmScreen(BaseScreen):
         self.saved_alarms_partition = Partition()
         # Alarm picker button as a dropdown
         self.saved_alarms_button = CustomSettingsButton(text="Saved Alarms", width=1, color_state=STATE.ACTIVE)
-        self.saved_alarms_button.bind(on_press=self.navigation_manager.go_to_saved_alarms_screen)
+        self.saved_alarms_button.bind(on_press=lambda instance: self.navigation_manager.navigate_to(SCREEN.SAVED_ALARMS))
         self.saved_alarms_partition.add_widget(self.saved_alarms_button)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.saved_alarms_partition)
@@ -105,7 +105,7 @@ class SelectAlarmScreen(BaseScreen):
         self.button_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
-        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.go_to_new_task_screen())
+        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = CustomButton(text="Select", width=2, color_state=STATE.ACTIVE)
@@ -126,19 +126,19 @@ class SelectAlarmScreen(BaseScreen):
             self.selected_alarm.set_text("Recording...")
             self.play_selected_alarm_button.set_inactive_state()
 
-        elif self.alarm_manager.selected_alarm_name is None:
+        elif self.audio_manager.selected_alarm_name is None:
             self.selected_alarm.set_text("No alarm selected")
             self.play_selected_alarm_button.set_inactive_state()
 
         else:
-            self.selected_alarm.set_text(self.alarm_manager.selected_alarm_name)
+            self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
             self.play_selected_alarm_button.set_active_state()
 
     def request_android_permissions(self):
         """Request necessary Android permissions"""
         if is_android():
             try:
-                from android.permissions import request_permissions, Permission
+                from android.permissions import request_permissions, Permission  # type: ignore
                 from kivy.clock import Clock
                 
                 def callback(permissions, results):
@@ -182,16 +182,16 @@ class SelectAlarmScreen(BaseScreen):
         
         if is_android():
             # Use the AlarmManager's storage path for consistency
-            alarms_dir = self.alarm_manager.storage_path
+            alarms_dir = self.audio_manager.alarm_storage_path
             if self.ensure_directory_exists(alarms_dir):
                 extension = ".mp3"  # Change from .3gp to .mp3 for better compatibility
                 path = os.path.join(alarms_dir, filename + extension)
                 return filename, path, extension
         else:
             # Use the AlarmManager's storage path for consistency
-            if self.ensure_directory_exists(self.alarm_manager.storage_path):
+            if self.ensure_directory_exists(self.audio_manager.alarm_storage_path):
                 extension = ".wav"
-                path = os.path.join(self.alarm_manager.storage_path, filename + extension)
+                path = os.path.join(self.audio_manager.alarm_storage_path, filename + extension)
                 return filename, path, extension
             
         # Last resort if no directory can be created
@@ -205,7 +205,7 @@ class SelectAlarmScreen(BaseScreen):
         """Start recording an alarm"""
         # Request permissions if on Android
         if is_android():
-            from android.permissions import check_permission, Permission
+            from android.permissions import check_permission, Permission  # type: ignore
             
             # Check if we already have permissions before requesting
             if not check_permission(Permission.RECORD_AUDIO):
@@ -226,7 +226,7 @@ class SelectAlarmScreen(BaseScreen):
             if is_android():
                 # Configure a new MediaRecorder instance with reliable settings
                 try:
-                    from jnius import autoclass
+                    from jnius import autoclass  # type: ignore
                     MediaRecorder = autoclass('android.media.MediaRecorder')
                     AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
                     OutputFormat = autoclass('android.media.MediaRecorder$OutputFormat')
@@ -250,12 +250,12 @@ class SelectAlarmScreen(BaseScreen):
                     recorder.start()
                     
                     # Store the recorder for later stopping
-                    self.alarm_manager.android_recorder = recorder
+                    self.audio_manager.android_recorder = recorder
                     
                     # Successfully started recording
                     self.recording_on = True
-                    self.alarm_manager.selected_alarm_name = filename
-                    self.alarm_manager.selected_alarm_path = path
+                    self.audio_manager.selected_alarm_name = filename
+                    self.audio_manager.selected_alarm_path = path
                     
                     # Update UI
                     self.start_recording_button.set_text("Recording...")
@@ -267,13 +267,13 @@ class SelectAlarmScreen(BaseScreen):
                     print(f"Error with direct Android recording: {e}")
                 
                 # Fallback to Plyer if direct approach failed
-                self.alarm_manager.plyer_audio.file_path = path
+                self.audio_manager.plyer_audio.file_path = path
             
             # Try Plyer approach (for non-Android or as fallback)
-            self.alarm_manager.plyer_audio.start()
+            self.audio_manager.plyer_audio.start()
             self.recording_on = True
-            self.alarm_manager.selected_alarm_name = filename
-            self.alarm_manager.selected_alarm_path = path
+            self.audio_manager.selected_alarm_name = filename
+            self.audio_manager.selected_alarm_path = path
             
             # Update UI
             self.start_recording_button.set_text("Recording...")
@@ -298,16 +298,16 @@ class SelectAlarmScreen(BaseScreen):
         """Stop recording an alarm"""
         try:
             # Try to stop the direct Android recorder if it exists
-            if is_android() and hasattr(self.alarm_manager, 'android_recorder'):
+            if is_android() and hasattr(self.audio_manager, 'android_recorder'):
                 try:
-                    self.alarm_manager.android_recorder.stop()
-                    self.alarm_manager.android_recorder.release()
-                    delattr(self.alarm_manager, 'android_recorder')
+                    self.audio_manager.android_recorder.stop()
+                    self.audio_manager.android_recorder.release()
+                    delattr(self.audio_manager, 'android_recorder')
                 except Exception as e:
                     print(f"Error stopping Android recorder: {e}")
             else:
                 # Use Plyer approach
-                self.alarm_manager.plyer_audio.stop()
+                self.audio_manager.plyer_audio.stop()
         except Exception as e:
             print(f"Error stopping recording: {e}")
             # Show error using Clock to run on main thread
@@ -326,16 +326,16 @@ class SelectAlarmScreen(BaseScreen):
 
     def play_selected_alarm(self, instance):
         """Play the selected alarm"""
-        if not self.alarm_manager.selected_alarm_path:
+        if not self.audio_manager.selected_alarm_path:
             popup = Popup(title="Playback Error",
                         content=Label(text="No alarm selected"),
                         size_hint=(0.8, 0.4))
             popup.open()
             return
         
-        if not os.path.exists(self.alarm_manager.selected_alarm_path):
+        if not os.path.exists(self.audio_manager.selected_alarm_path):
             popup = Popup(title="Playback Error",
-                        content=Label(text=f"Alarm file not found: {self.alarm_manager.selected_alarm_path}"),
+                        content=Label(text=f"Alarm file not found: {self.audio_manager.selected_alarm_path}"),
                         size_hint=(0.8, 0.4))
             popup.open()
             return
@@ -348,7 +348,7 @@ class SelectAlarmScreen(BaseScreen):
                 
                 # Create and store a reference to the player to prevent garbage collection
                 self._current_player = MediaPlayer()
-                self._current_player.setDataSource(self.alarm_manager.selected_alarm_path)
+                self._current_player.setDataSource(self.audio_manager.selected_alarm_path)
                 self._current_player.prepare()
                 self._current_player.start()
                 return
@@ -358,14 +358,14 @@ class SelectAlarmScreen(BaseScreen):
         
         # For non-Android platforms or as a fallback, use SoundLoader
         try:
-            sound = SoundLoader.load(self.alarm_manager.selected_alarm_path)
+            sound = SoundLoader.load(self.audio_manager.selected_alarm_path)
             if sound:
                 sound.play()
             else:
                 popup = Popup(
                         title="Playback Error",
                         content=Label(
-                            text=f"Could not load sound: {self.alarm_manager.selected_alarm_path}",
+                            text=f"Could not load sound: {self.audio_manager.selected_alarm_path}",
                             size_hint_y=None,
                             text_size=(None, None),
                             halign="left",
@@ -402,7 +402,7 @@ class SelectAlarmScreen(BaseScreen):
 
     def save_alarm(self, instance):
         """Save the selected alarm"""
-        self.navigation_manager.go_to_new_task_screen()
+        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
 
     def on_pre_enter(self):
         """Called when the screen is entered"""
