@@ -15,12 +15,8 @@ from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomB
 from src.utils.buttons import CustomButton, CustomSettingsButton
 from src.utils.fields import SettingsField
 
-from src.settings import STATE, SCREEN
+from src.settings import STATE, SCREEN, EXT
 
-# Add this function to check if we're on Android
-def is_android():
-    """Check if the app is running on Android"""
-    return hasattr(sys, "getandroidapilevel")
 
 class SelectAlarmScreen(BaseScreen):
     """
@@ -134,97 +130,40 @@ class SelectAlarmScreen(BaseScreen):
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
             self.play_selected_alarm_button.set_active_state()
 
-    def request_android_permissions(self):
-        """Request necessary Android permissions"""
-        if is_android():
-            try:
-                from android.permissions import request_permissions, Permission  # type: ignore
-                from kivy.clock import Clock
-                
-                def callback(permissions, results):
-                    if all(results):
-                        print("All permissions granted.")
-                        # Successfully got permissions, can proceed
-                    else:
-                        print("Some permissions not granted.")
-                        # Use Clock to schedule the popup on the main thread
-                        Clock.schedule_once(lambda dt: self.show_permission_error(), 0)
-                
-                request_permissions([
-                    Permission.RECORD_AUDIO,
-                    Permission.WRITE_EXTERNAL_STORAGE, 
-                    Permission.READ_EXTERNAL_STORAGE
-                ], callback)
-            except Exception as e:
-                print(f"Error requesting permissions: {e}")
-
-    def show_permission_error(self):
-        """Show permission error popup (called on main thread)"""
-        popup = Popup(title="Permission Error",
-                    content=Label(text="Audio recording requires microphone permission"),
-                    size_hint=(0.8, 0.4))
-        popup.open()
-
-    def ensure_directory_exists(self, directory):
-        """Make sure a directory exists, creating it if necessary"""
-        if not os.path.exists(directory):
-            try:
-                os.makedirs(directory, exist_ok=True)
-                return True
-            except Exception as e:
-                print(f"Error creating directory {directory}: {e}")
-                return False
-        return True
 
     def get_recording_path(self):
-        """Get a valid path for recording based on platform"""
-        filename = f"recording{datetime.now().strftime('_%H-%M-%S')}"
+        """
+        Returns: filename, path, extension of a recordinng.
+        If on Android, returns a path with .mp3 extension.
+        If on iOS or Windows, returns a path with .wav extension.
+        Base name is "recording_" with the current time.
+        """
+        filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
         
-        if is_android():
-            # Use the AlarmManager's storage path for consistency
-            alarms_dir = self.audio_manager.alarm_storage_path
-            if self.ensure_directory_exists(alarms_dir):
-                extension = ".mp3"  # Change from .3gp to .mp3 for better compatibility
-                path = os.path.join(alarms_dir, filename + extension)
-                return filename, path, extension
+        if self.audio_manager.is_android():
+            path = self.audio_manager.name_to_path(filename)
+            extension = self.audio_manager.get_extension()
+            return filename, path, extension
         else:
-            # Use the AlarmManager's storage path for consistency
-            if self.ensure_directory_exists(self.audio_manager.alarm_storage_path):
-                extension = ".wav"
-                path = os.path.join(self.audio_manager.alarm_storage_path, filename + extension)
-                return filename, path, extension
+            path = self.audio_manager.name_to_path(filename)
+            extension = self.audio_manager.get_extension()
+            return filename, path, extension
             
-        # Last resort if no directory can be created
-        import tempfile
-        temp_dir = tempfile.gettempdir()
-        extension = ".wav"
-        path = os.path.join(temp_dir, filename + extension)
-        return filename, path, extension
-
     def start_recording(self, instance):
         """Start recording an alarm"""
         # Request permissions if on Android
-        if is_android():
+        if self.audio_manager.is_android():
             from android.permissions import check_permission, Permission  # type: ignore
             
-            # Check if we already have permissions before requesting
             if not check_permission(Permission.RECORD_AUDIO):
-                # Request permissions first, then try recording when granted
-                self.request_android_permissions()
-                # Show a message to the user
-                from kivy.clock import Clock
-                Clock.schedule_once(lambda dt: Popup(
-                    title="Permission Required", 
-                    content=Label(text="Please grant microphone permission to record"),
-                    size_hint=(0.8, 0.4)).open(), 0)
+                self.audio_manager.request_android_permissions()
                 return
         
-        # Get appropriate recording path
         filename, path, extension = self.get_recording_path()
         
         try:
-            if is_android():
-                # Configure a new MediaRecorder instance with reliable settings
+            if self.audio_manager.is_android():
+                # Configure a new MediaRecorder
                 try:
                     from jnius import autoclass  # type: ignore
                     MediaRecorder = autoclass('android.media.MediaRecorder')
@@ -237,7 +176,7 @@ class SelectAlarmScreen(BaseScreen):
                     recorder.setAudioSource(AudioSource.MIC)
                     
                     # For mp3 format:
-                    if extension.lower() == '.mp3':
+                    if extension.lower() == EXT.MP3:
                         recorder.setOutputFormat(OutputFormat.MPEG_4)
                         recorder.setAudioEncoder(AudioEncoder.AAC)
                     else:
@@ -282,40 +221,23 @@ class SelectAlarmScreen(BaseScreen):
             self.update_selected_alarm_text()
             
         except Exception as e:
-            error_msg = f"Could not start recording: {str(e)}"
-            print(error_msg)
-            
-            # Show error to user with Clock to ensure it's on the main thread
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: Popup(
-                title="Recording Error",
-                content=Label(text=error_msg),
-                size_hint=(0.8, 0.4)).open(), 0)
-            
-            self.recording_on = False
+            raise e
 
     def stop_recording(self, instance):
         """Stop recording an alarm"""
         try:
-            # Try to stop the direct Android recorder if it exists
-            if is_android() and hasattr(self.audio_manager, 'android_recorder'):
+            if self.audio_manager.is_android() and hasattr(self.audio_manager, 'android_recorder'):
                 try:
                     self.audio_manager.android_recorder.stop()
                     self.audio_manager.android_recorder.release()
                     delattr(self.audio_manager, 'android_recorder')
                 except Exception as e:
-                    print(f"Error stopping Android recorder: {e}")
+                    raise e
             else:
                 # Use Plyer approach
                 self.audio_manager.plyer_audio.stop()
         except Exception as e:
-            print(f"Error stopping recording: {e}")
-            # Show error using Clock to run on main thread
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: Popup(
-                title="Recording Error",
-                content=Label(text=f"Error stopping recording: {str(e)}"),
-                size_hint=(0.8, 0.4)).open(), 0)
+            raise e
         
         self.recording_on = False
         self.start_recording_button.set_text("Start Recording")
@@ -335,15 +257,14 @@ class SelectAlarmScreen(BaseScreen):
         
         if not os.path.exists(self.audio_manager.selected_alarm_path):
             popup = Popup(title="Playback Error",
-                        content=Label(text=f"Alarm file not found: {self.audio_manager.selected_alarm_path}"),
+                        content=Label(text=f"Alarm file not found: {self.audio_manager.selected_alarm_path.split('/')[-3:]}"),
                         size_hint=(0.8, 0.4))
             popup.open()
             return
         
-        # For Android, use the MediaPlayer directly
-        if is_android():
+        if self.audio_manager.is_android():
             try:
-                from jnius import autoclass
+                from jnius import autoclass  # type: ignore
                 MediaPlayer = autoclass('android.media.MediaPlayer')
                 
                 # Create and store a reference to the player to prevent garbage collection
@@ -353,10 +274,9 @@ class SelectAlarmScreen(BaseScreen):
                 self._current_player.start()
                 return
             except Exception as e:
-                # Log the error but continue to try with SoundLoader as fallback
-                print(f"Error using Android MediaPlayer: {e}")
-        
-        # For non-Android platforms or as a fallback, use SoundLoader
+                raise e
+
+        # Non-Android platforms        
         try:
             sound = SoundLoader.load(self.audio_manager.selected_alarm_path)
             if sound:
@@ -376,19 +296,7 @@ class SelectAlarmScreen(BaseScreen):
                 popup.content.bind(size=popup.content.setter('text_size'))
                 popup.open()
         except Exception as e:
-            popup = Popup(
-                    title="Playback Error",
-                    content=Label(
-                        text=f"Error playing sound: {str(e)}",
-                        size_hint_y=None,
-                        text_size=(None, None),
-                        halign="left",
-                        valign="top"
-                    ),
-                    size_hint=(0.8, 0.4)
-                )
-            popup.content.bind(size=popup.content.setter('text_size'))
-            popup.open()
+            raise e
 
     def toggle_vibration(self, instance):
         """Toggle vibration on the selected alarm"""

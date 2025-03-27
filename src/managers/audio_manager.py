@@ -1,4 +1,5 @@
 import os
+import sys
 
 from plyer import audio
 from kivy.utils import platform
@@ -20,6 +21,24 @@ class AudioManager:
         self._load_alarms()
         self.selected_alarm_name = None
         self.selected_alarm_path = None
+    
+    def is_android(self):
+        """Check if the app is running on Android"""
+        return hasattr(sys, "getandroidapilevel")
+
+    def request_android_permissions(self):
+        """Request necessary Android permissions"""
+        if self.is_android():
+            try:
+                from android.permissions import request_permissions, Permission  # type: ignore
+                
+                request_permissions([
+                    Permission.RECORD_AUDIO,
+                    Permission.WRITE_EXTERNAL_STORAGE, 
+                    Permission.READ_EXTERNAL_STORAGE
+                ])
+            except Exception as e:
+                raise e
 
     def _get_alarm_storage(self):
         """Get alarm storage path"""
@@ -34,9 +53,15 @@ class AudioManager:
         if os.path.isdir(self.alarm_storage_path):
             alarms = {}
             for file in os.listdir(self.alarm_storage_path):
-                # Support .wav and .3gp
-                if file.endswith((EXT.WAV, EXT.THREE_GP)):
-                    alarms[file.split(".")[0]] = os.path.join(self.alarm_storage_path, file)
+                if self.is_android():
+                    if file.endswith((EXT.MP3, EXT.THREE_GP, EXT.WAV)):
+                        print("*******************")
+                        print(file)
+                        print("*******************")
+                        alarms[file.split(".")[0]] = os.path.join(self.alarm_storage_path, file)
+                else:
+                    if file.endswith((EXT.WAV, EXT.MP3)):
+                        alarms[file.split(".")[0]] = os.path.join(self.alarm_storage_path, file)
             self.alarms = alarms
         else:
             try:
@@ -64,11 +89,15 @@ class AudioManager:
     
     def name_to_path(self, name):
         """Convert an alarm name to a path"""
-        return os.path.join(self.alarm_storage_path, f"{name}.wav")
+        return os.path.join(self.alarm_storage_path, f"{name}{EXT.WAV}")
     
     def path_to_name(self, path):
         """Convert a path to an alarm name"""
         return os.path.basename(path).split(".")[0]
+    
+    def get_extension(self, path):
+        """Get the extension of the alarm"""
+        return EXT.WAV
     
     def set_alarm_name(self, name=None, path=None):
         """Set the name of the alarm"""

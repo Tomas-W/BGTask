@@ -18,9 +18,12 @@ from src.screens.settings.settings_screen import SettingsScreen
 from src.settings import SCREEN, PLATFORM
 
 
+# TODO: Ask permissions on open alarms
 # TODO: Add alarm path to task
 # TODO: Add vibrtating to task
 # TODO: Add alarm check to task
+# TODO: Rework audio preview and limit to play once
+
 
 # TODO: Editing last task adds new default message
 # TODO: Save scroll value when going to new task screen
