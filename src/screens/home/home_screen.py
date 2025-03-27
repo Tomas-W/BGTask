@@ -114,4 +114,4 @@ class HomeScreen(BaseScreen):
 
     def on_enter(self):
         """Called when screen is entered"""
-        pass
+        self.logger.debug("Entering Home Screen")

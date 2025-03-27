@@ -1,3 +1,5 @@
+import sys
+
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.utils import platform
@@ -7,13 +9,14 @@ from src.managers.audio_manager import AudioManager
 from src.managers.navigation_manager import NavigationManager
 from src.managers.task_manager import TaskManager
 
-
 from src.screens.home.home_screen import HomeScreen
 from src.screens.new_task.new_task_screen import NewTaskScreen
 from src.screens.select_date.select_date_screen import SelectDateScreen
 from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
 from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
 from src.screens.settings.settings_screen import SettingsScreen
+
+from loguru import logger
 
 from src.settings import SCREEN, PLATFORM
 
@@ -52,6 +55,13 @@ class TaskApp(App):
         )
         self.task_manager = TaskManager()
         self.audio_manager = AudioManager()
+        
+        self.logger = logger
+        custom_format = "{function}:{line} - <level>{message}</level>"
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG", 
+                   format=custom_format, 
+                   colorize=True)
 
         # Screens
         self.screens = {

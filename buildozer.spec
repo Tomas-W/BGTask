@@ -9,7 +9,7 @@ source.include_exts = py,png,json,wav
 source.exclude_exts = gitignore,md
 source.exclude_dirs = bin,.venv,__pycache__,.buildozer,.buildozer.venv
 
-requirements = kivy,pillow,android.storage,jnius,plyer
+requirements = kivy,pillow,android.storage,jnius,plyer,loguru
 
 source.assets = assets/
 
@@ -22,7 +22,6 @@ android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-
 
 android.optimize_python = True
 android.precompile_python = True

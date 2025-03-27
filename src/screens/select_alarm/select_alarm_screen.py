@@ -1,12 +1,9 @@
 import os
-import sys
-from datetime import datetime
 
 from kivy.core.audio import SoundLoader
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
-from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
@@ -15,7 +12,7 @@ from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomB
 from src.utils.buttons import CustomButton, CustomSettingsButton
 from src.utils.fields import SettingsField
 
-from src.settings import STATE, SCREEN, EXT
+from src.settings import STATE, SCREEN
 
 
 class SelectAlarmScreen(BaseScreen):
@@ -105,7 +102,7 @@ class SelectAlarmScreen(BaseScreen):
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = CustomButton(text="Select", width=2, color_state=STATE.ACTIVE)
-        self.save_button.bind(on_press=self.save_alarm)
+        self.save_button.bind(on_press=self.select_alarm)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
         # Add to scroll container
@@ -129,122 +126,38 @@ class SelectAlarmScreen(BaseScreen):
         else:
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
             self.play_selected_alarm_button.set_active_state()
-
-
-    def get_recording_path(self):
-        """
-        Returns: filename, path, extension of a recordinng.
-        If on Android, returns a path with .mp3 extension.
-        If on iOS or Windows, returns a path with .wav extension.
-        Base name is "recording_" with the current time.
-        """
-        filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
-        
-        if self.audio_manager.is_android():
-            path = self.audio_manager.name_to_path(filename)
-            extension = self.audio_manager.get_extension()
-            return filename, path, extension
-        else:
-            path = self.audio_manager.name_to_path(filename)
-            extension = self.audio_manager.get_extension()
-            return filename, path, extension
             
     def start_recording(self, instance):
         """Start recording an alarm"""
-        # Request permissions if on Android
-        if self.audio_manager.is_android():
-            from android.permissions import check_permission, Permission  # type: ignore
-            
-            if not check_permission(Permission.RECORD_AUDIO):
-                self.audio_manager.request_android_permissions()
-                return
-        
-        filename, path, extension = self.get_recording_path()
-        
-        try:
-            if self.audio_manager.is_android():
-                # Configure a new MediaRecorder
-                try:
-                    from jnius import autoclass  # type: ignore
-                    MediaRecorder = autoclass('android.media.MediaRecorder')
-                    AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
-                    OutputFormat = autoclass('android.media.MediaRecorder$OutputFormat')
-                    AudioEncoder = autoclass('android.media.MediaRecorder$AudioEncoder')
-                    
-                    # Create a fresh recorder each time
-                    recorder = MediaRecorder()
-                    recorder.setAudioSource(AudioSource.MIC)
-                    
-                    # For mp3 format:
-                    if extension.lower() == EXT.MP3:
-                        recorder.setOutputFormat(OutputFormat.MPEG_4)
-                        recorder.setAudioEncoder(AudioEncoder.AAC)
-                    else:
-                        # Default to 3GP
-                        recorder.setOutputFormat(OutputFormat.THREE_GPP)
-                        recorder.setAudioEncoder(AudioEncoder.AMR_NB)
-                        
-                    recorder.setOutputFile(path)
-                    recorder.prepare()
-                    recorder.start()
-                    
-                    # Store the recorder for later stopping
-                    self.audio_manager.android_recorder = recorder
-                    
-                    # Successfully started recording
-                    self.recording_on = True
-                    self.audio_manager.selected_alarm_name = filename
-                    self.audio_manager.selected_alarm_path = path
-                    
-                    # Update UI
-                    self.start_recording_button.set_text("Recording...")
-                    self.start_recording_button.set_inactive_state()
-                    self.stop_recording_button.set_active_state()
-                    self.update_selected_alarm_text()
-                    return
-                except Exception as e:
-                    print(f"Error with direct Android recording: {e}")
-                
-                # Fallback to Plyer if direct approach failed
-                self.audio_manager.plyer_audio.file_path = path
-            
-            # Try Plyer approach (for non-Android or as fallback)
-            self.audio_manager.plyer_audio.start()
-            self.recording_on = True
-            self.audio_manager.selected_alarm_name = filename
-            self.audio_manager.selected_alarm_path = path
-            
+        if self.audio_manager.start_recording():
             # Update UI
+            self.recording_on = True
             self.start_recording_button.set_text("Recording...")
             self.start_recording_button.set_inactive_state()
             self.stop_recording_button.set_active_state()
             self.update_selected_alarm_text()
-            
-        except Exception as e:
-            raise e
+        else:
+            # Show error popup
+            popup = Popup(title="Recording Error",
+                        content=Label(text="Could not start recording"),
+                        size_hint=(0.8, 0.4))
+            popup.open()
 
     def stop_recording(self, instance):
         """Stop recording an alarm"""
-        try:
-            if self.audio_manager.is_android() and hasattr(self.audio_manager, 'android_recorder'):
-                try:
-                    self.audio_manager.android_recorder.stop()
-                    self.audio_manager.android_recorder.release()
-                    delattr(self.audio_manager, 'android_recorder')
-                except Exception as e:
-                    raise e
-            else:
-                # Use Plyer approach
-                self.audio_manager.plyer_audio.stop()
-        except Exception as e:
-            raise e
-        
-        self.recording_on = False
-        self.start_recording_button.set_text("Start Recording")
-        self.start_recording_button.set_active_state()
-        self.stop_recording_button.set_inactive_state()
-
-        self.update_selected_alarm_text()
+        if self.audio_manager.stop_recording():
+            # Update UI
+            self.recording_on = False
+            self.start_recording_button.set_text("Start Recording")
+            self.start_recording_button.set_active_state()
+            self.stop_recording_button.set_inactive_state()
+            self.update_selected_alarm_text()
+        else:
+            # Show error popup
+            popup = Popup(title="Recording Error",
+                        content=Label(text="Could not stop recording"),
+                        size_hint=(0.8, 0.4))
+            popup.open()
 
     def play_selected_alarm(self, instance):
         """Play the selected alarm"""
@@ -308,7 +221,7 @@ class SelectAlarmScreen(BaseScreen):
             self.vibration_button.set_text("Vibration off")
             self.vibration_button.set_inactive_state()
 
-    def save_alarm(self, instance):
+    def select_alarm(self, instance):
         """Save the selected alarm"""
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
 
@@ -316,6 +229,4 @@ class SelectAlarmScreen(BaseScreen):
         """Called when the screen is entered"""
         super().on_pre_enter()
         self.update_selected_alarm_text()
-
-
-
+    

@@ -1,3 +1,4 @@
+from kivy.app import App
 from kivy.uix.screenmanager import Screen
 
 
@@ -5,9 +6,10 @@ class BaseScreen(Screen):
     """Base screen class that implements common functionality for all screens"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.logger = App.get_running_app().logger
         self.top_bar_is_expanded = False
     
-    def switch_top_bar(self, instance, on_enter=False):
+    def switch_top_bar(self, on_enter=False, *args):
         """Controls the state of the TopBar to be expanded or not"""
         # Toggle the state
         if not on_enter:
@@ -30,7 +32,7 @@ class BaseScreen(Screen):
     def on_pre_enter(self):
         """Called before the screen is entered"""
         self.top_bar_is_expanded = False
-        self.switch_top_bar(instance=None, on_enter=True)
+        self.switch_top_bar(on_enter=True)
     
     def on_enter(self):
         """Called when the screen is entered"""

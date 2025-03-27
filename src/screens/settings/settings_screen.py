@@ -1,14 +1,14 @@
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.screenmanager import Screen
 
+from src.screens.base.base_screen import BaseScreen
 from src.utils.containers import BaseLayout, ScrollContainer
 from src.utils.bars import TopBarClosed, TopBarExpanded
 
 from src.settings import SCREEN
 
 
-class SettingsScreen(Screen):
+class SettingsScreen(BaseScreen):
     def __init__(self, navigation_manager, task_manager, **kwargs):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
@@ -39,10 +39,7 @@ class SettingsScreen(Screen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
-
-    def go_to_previous_screen(self, instance):
-        self.navigation_manager.go_back()
-
+    
     def exit_app(self, instance):
         """Exit the application"""
         App.get_running_app().stop()

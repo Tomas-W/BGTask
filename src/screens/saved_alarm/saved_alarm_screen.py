@@ -106,3 +106,11 @@ class SavedAlarmScreen(BaseScreen):
             else:
                 button.set_inactive_state()
         self.confirm_button.set_active_state()
+    
+    def on_pre_enter(self):
+        """
+        Called when the screen is entered.
+        """
+        super().on_pre_enter()
+        self.alarm_picker_partition.clear_widgets()
+        self.create_alarm_buttons()

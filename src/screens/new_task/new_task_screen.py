@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from kivy.uix.floatlayout import FloatLayout
-
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 
 from src.utils.bars import TopBarClosed, TopBarExpanded
@@ -14,8 +13,7 @@ from src.settings import SCREEN, STATE
 
 class NewTaskScreen(BaseScreen):
     def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
-        super().__init__(**kwargs)
-        
+        super().__init__(**kwargs)       
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
         self.audio_manager = audio_manager

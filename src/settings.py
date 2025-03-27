@@ -143,8 +143,7 @@ class States:
 
 class Extensions:
     WAV = ".wav"
-    THREE_GP = ".3gp"
-    MP3 = ".mp3"
+
 
 PATH = Paths()
 COL = Colors()
