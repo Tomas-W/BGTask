@@ -34,13 +34,13 @@ class HomeScreen(BaseScreen):
 
         # Basic TopBar
         self.top_bar = HomeBarClosed(
-            edit_callback=self.show_edit_delete,
-            new_task_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.NEW_TASK),
+            edit_callback=self.toggle_edit_delete,
+            new_task_callback=self.navigate_to_new_task,
             options_callback=lambda instance: self.switch_top_bar(),
         )
         # TopBar with expanded options
         self.top_bar_expanded = HomeBarExpanded(
-            edit_callback=self.show_edit_delete,
+            edit_callback=self.toggle_edit_delete,
             options_callback=lambda instance: self.switch_top_bar(),
             settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
             exit_callback=self.navigation_manager.exit_app,
@@ -61,16 +61,33 @@ class HomeScreen(BaseScreen):
         self.root_layout.add_widget(self.bottom_bar)
         self.add_widget(self.root_layout)
     
-    def show_edit_delete(self, instance):
+    def navigate_to_new_task(self, *args):
+        """Navigate to the new task screen"""
+        self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+    
+    def check_for_edit_delete(self):
+        """Check if there are any edit and delete buttons"""
+        if self.edit_delete_visible:
+            self.show_edit_delete()
+        else:
+            self.hide_edit_delete()
+    
+    def toggle_edit_delete(self, *args):
+        """Toggle the edit and delete icons"""
+        self.edit_delete_visible = not self.edit_delete_visible
+        self.check_for_edit_delete()
+    
+    def show_edit_delete(self):
         """Show the edit and delete icons"""
         for button in self.edit_delete_buttons:
-            button.switch_opacity()
-            button.switch_disabled()
-        
-        if instance is not None:
-            self.edit_delete_visible = not self.edit_delete_visible
-        new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
-        new_task_screen.in_edit_mode = not new_task_screen.in_edit_mode
+            button.set_opacity(1)
+            button.set_disabled(False)
+    
+    def hide_edit_delete(self):
+        """Hide the edit and delete icons"""
+        for button in self.edit_delete_buttons:
+            button.set_opacity(0)
+            button.set_disabled(True)
 
     def load_tasks(self):
         """Load tasks from the task manager"""
@@ -93,8 +110,7 @@ class HomeScreen(BaseScreen):
             self.scroll_container.add_widget_to_container(task_group)
             self.task_groups.append(task_group)
         
-        if self.edit_delete_visible:
-            self.show_edit_delete(None)
+        self.check_for_edit_delete()
     
     def on_pre_enter(self):
         """Called just before the screen is entered"""
@@ -108,9 +124,6 @@ class HomeScreen(BaseScreen):
             self.show_hints = False
         
         self.update_task_display()
-
-        if self.edit_delete_visible:
-            self.show_edit_delete(None)
 
     def on_enter(self):
         """Called when screen is entered"""

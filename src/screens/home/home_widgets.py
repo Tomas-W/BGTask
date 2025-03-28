@@ -220,6 +220,14 @@ class EditTaskButton(Button):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
+    def set_opacity(self, opacity: int):
+        """Set the opacity of the button"""
+        self.opacity = int(opacity)
+    
+    def set_disabled(self, disabled: bool):
+        """Set the disabled state of the button"""
+        self.disabled = disabled
+
     def switch_opacity(self):
         """Switch the opacity of the button"""
         self.opacity = int(not self.opacity)

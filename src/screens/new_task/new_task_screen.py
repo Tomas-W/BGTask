@@ -21,7 +21,7 @@ class NewTaskScreen(BaseScreen):
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
 
-        self.in_edit_mode = False
+        self.in_edit_task_mode = False
         self.task_id_to_edit = None
 
         self.root_layout = FloatLayout()
@@ -98,13 +98,13 @@ class NewTaskScreen(BaseScreen):
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
     
-    def update_in_edit_mode(self, instance, value):
+    def update_in_edit_task_mode(self, instance, value):
         """Update the in edit mode state"""
-        self.in_edit_mode = value
+        self.in_edit_task_mode = value
     
     def cancel_edit_task(self, instance):
         """Cancel the edit task"""
-        if self.in_edit_mode:
+        if self.in_edit_task_mode:
             self.clear_inputs()
         
         self.navigation_manager.navigate_back_to(SCREEN.HOME)
@@ -117,7 +117,7 @@ class NewTaskScreen(BaseScreen):
         if hasattr(self, 'selected_time'):
             del self.selected_time
         self.date_display.set_text("")
-        self.in_edit_mode = False
+        self.in_edit_task_mode = False
         self.task_id_to_edit = None
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
@@ -172,15 +172,16 @@ class NewTaskScreen(BaseScreen):
             return
         
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
-        if self.in_edit_mode:
+        if self.in_edit_task_mode:
             self.task_manager.delete_task(self.task_id_to_edit)
             self.task_manager.add_task(message=message, timestamp=task_datetime)
-            self.in_edit_mode = False
+            self.in_edit_task_mode = False
             self.task_id_to_edit = None
         else:
             self.task_manager.add_task(message=message, timestamp=task_datetime)
         
         self.clear_inputs()
+        self.in_edit_task_mode = False
         self.navigation_manager.navigate_to(SCREEN.HOME)
     
     def go_to_select_date_screen(self, instance):
@@ -188,7 +189,7 @@ class NewTaskScreen(BaseScreen):
         select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
         
         # When editing a task, use the task's datetime values
-        if self.in_edit_mode and self.task_id_to_edit:
+        if self.in_edit_task_mode and self.task_id_to_edit:
             select_date_screen.selected_date = self.selected_date
             select_date_screen.selected_time = self.selected_time
             select_date_screen.current_month = self.selected_date.month
@@ -231,7 +232,7 @@ class NewTaskScreen(BaseScreen):
         self.update_alarm_display()
         
         # Update button text based on mode
-        if self.in_edit_mode:
+        if self.in_edit_task_mode:
             self.save_button.set_text("Update Task")
         else:
             self.save_button.set_text("Save Task")

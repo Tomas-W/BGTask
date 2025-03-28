@@ -47,6 +47,14 @@ if platform != PLATFORM.ANDROID:
 class TaskApp(App):
     def build(self):
         self.title = "Task Manager"
+
+        self.logger = logger
+        custom_format = "{function}:{line} - <level>{message}</level>"
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG", 
+                   format=custom_format, 
+                   colorize=True)
+        
         # Managers [order is important]
         self.screen_manager = ScreenManager(transition=SlideTransition())
         self.navigation_manager = NavigationManager(
@@ -56,12 +64,7 @@ class TaskApp(App):
         self.task_manager = TaskManager()
         self.audio_manager = AudioManager()
         
-        self.logger = logger
-        custom_format = "{function}:{line} - <level>{message}</level>"
-        logger.remove()
-        logger.add(sys.stderr, level="DEBUG", 
-                   format=custom_format, 
-                   colorize=True)
+        
 
         # Screens
         self.screens = {

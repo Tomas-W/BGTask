@@ -15,6 +15,7 @@ class TaskManager:
     Manages tasks and their storage.
     """
     def __init__(self):
+        self.logger = App.get_running_app().logger
         self.navigation_manager = App.get_running_app().navigation_manager
         self.storage_path = self._get_storage_path()
         self._make_storage_path()
@@ -78,10 +79,13 @@ class TaskManager:
     
     def _save_tasks(self):
         """Save tasks to storage"""
+        
         try:
             task_data = [task.to_dict() for task in self.tasks]
+            self.logger.debug(f"saving task message: {task_data[-1]['message']}")
             with open(self.storage_path, "w") as f:
                 json.dump(task_data, f, indent=2)
+            
             return True
         
         except Exception as e:
@@ -124,13 +128,14 @@ class TaskManager:
         for task in self.tasks:
             if task.task_id == task_id:
                 # Store the task data for editing
-                self.current_edit["task_id"] = task_id
-                self.current_edit["message"] = task.message
-                self.current_edit["timestamp"] = task.timestamp
+                # self.current_edit["task_id"] = task_id
+                # self.current_edit["message"] = task.message
+                # self.current_edit["timestamp"] = task.timestamp
                 
                 # Navigate to the new task screen
                 new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
-                
+
+                new_task_screen.in_edit_task_mode = True
                 # Pre-fill the data
                 new_task_screen.edit_mode = True
                 new_task_screen.task_id_to_edit = task_id
@@ -147,6 +152,7 @@ class TaskManager:
 
     def delete_task(self, task_id):
         """Delete a task"""
+        self.logger.debug(f"deleting task id: {task_id}")
         for i, task in enumerate(self.tasks):
             if task.task_id == task_id:
                 del self.tasks[i]
