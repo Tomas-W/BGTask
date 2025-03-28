@@ -1,6 +1,5 @@
 from datetime import datetime
-
-from kivy.app import App
+import time
 from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
@@ -127,4 +126,5 @@ class HomeScreen(BaseScreen):
 
     def on_enter(self):
         """Called when screen is entered"""
-        self.logger.debug("Entering Home Screen")
+        on_enter_time = time.time()
+        self.on_enter_time = on_enter_time

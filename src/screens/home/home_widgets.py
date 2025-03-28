@@ -141,6 +141,9 @@ class TaskHeader(Label):
             **kwargs
         )
         self.bind(size=self.setter("text_size"))
+    
+    def set_text(self, text: str):
+        self.text = text
 
 
 class TimeLabelContainer(BoxLayout):

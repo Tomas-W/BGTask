@@ -15,7 +15,6 @@ class TaskManager:
     Manages tasks and their storage.
     """
     def __init__(self):
-        self.logger = App.get_running_app().logger
         self.navigation_manager = App.get_running_app().navigation_manager
         self.storage_path = self._get_storage_path()
         self._make_storage_path()
@@ -82,7 +81,6 @@ class TaskManager:
         
         try:
             task_data = [task.to_dict() for task in self.tasks]
-            self.logger.debug(f"saving task message: {task_data[-1]['message']}")
             with open(self.storage_path, "w") as f:
                 json.dump(task_data, f, indent=2)
             
@@ -152,7 +150,6 @@ class TaskManager:
 
     def delete_task(self, task_id):
         """Delete a task"""
-        self.logger.debug(f"deleting task id: {task_id}")
         for i, task in enumerate(self.tasks):
             if task.task_id == task_id:
                 del self.tasks[i]

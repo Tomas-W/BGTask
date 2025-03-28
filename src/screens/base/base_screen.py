@@ -6,7 +6,6 @@ class BaseScreen(Screen):
     """Base screen class that implements common functionality for all screens"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.logger = App.get_running_app().logger
         self.top_bar_is_expanded = False
     
     def switch_top_bar(self, on_enter=False, *args):

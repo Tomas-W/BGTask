@@ -121,6 +121,7 @@ class Text:
 
 
 class Screens:
+    START = "START"
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
     SELECT_DATE = "SELECT_DATE"
