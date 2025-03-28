@@ -13,6 +13,7 @@ class Paths:
     EDIT_IMG = os.path.join(IMG, "edit_64.png")
     OPTIONS_IMG = os.path.join(IMG, "options_64.png")
     OPTIONS_IMG_BLACK = os.path.join(IMG, "options_black_64.png")
+    SCREENSHOT_IMG = os.path.join(IMG, "screenshot_64.png")
     EXIT_IMG = os.path.join(IMG, "exit_64.png")
     SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
     BACK_IMG = os.path.join(IMG, "back_64.png")

@@ -40,6 +40,7 @@ class SelectAlarmScreen(BaseScreen):
         # Top bar with expanded options
         self.top_bar_expanded = TopBarExpanded(
             back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK),
+            screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
             options_callback=lambda instance: self.switch_top_bar(),
             settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
             exit_callback=lambda instance: self.navigation_manager.exit_app(),

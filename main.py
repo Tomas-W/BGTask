@@ -3,7 +3,33 @@ import time
 start_time = time.time()
 
 from kivy.app import App
-from src.settings import SCREEN
+from src.settings import SCREEN, PLATFORM
+
+
+from kivy.core.window import Window
+from kivy.utils import platform
+
+if platform != PLATFORM.ANDROID:
+    Window.size = (390, 790)
+    Window.left = -450
+    Window.top = 350
+
+
+# TODO: When no tasks, edit message for screenshot
+# TODO: Ask permissions on open alarms
+# TODO: Add alarm path to task
+# TODO: Add vibrtating to task
+# TODO: Add alarm check to task
+# TODO: Rework audio preview and limit to play once
+ 
+# TODO: Editing last task adds new default message
+# TODO: Save scroll value when going to new task screen
+# TODO: Look at caching
+# TODO: Seperate logic in build method in main.py
+# TODO: Add on_pause saving data
+# TODO: Add on_resume loading data
+# TODO: Add on_stop saving data
+# TODO: Fix alarm name taken filename
 
 
 class TaskApp(App):

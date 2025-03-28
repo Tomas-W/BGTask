@@ -45,6 +45,7 @@ class HomeBarExpanded():
     """
     def __init__(self,
                  edit_callback,
+                 screenshot_callback,
                  options_callback,
                  settings_callback,
                  exit_callback,
@@ -56,7 +57,10 @@ class HomeBarExpanded():
 
         self.new_task_button = TopBarTitle(button=False)
 
-        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="left")
+        self.screenshot_button = TopBarButton(img_path=PATH.SCREENSHOT_IMG, radius_side="left")
+        self.screenshot_button.bind(on_press=screenshot_callback)
+
+        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="none")
         self.settings_button.bind(on_press=settings_callback)
 
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
@@ -67,6 +71,7 @@ class HomeBarExpanded():
 
         self.top_bar_container.add_widget(self.edit_button)
         self.top_bar_container.add_widget(self.new_task_button)
+        self.top_bar_container.add_widget(self.screenshot_button)
         self.top_bar_container.add_widget(self.settings_button)
         self.top_bar_container.add_widget(self.exit_button)
         self.top_bar_container.add_widget(self.options_button)
@@ -111,6 +116,7 @@ class TopBarExpanded():
     """
     def __init__(self,
                  back_callback,
+                 screenshot_callback,
                  options_callback,
                  settings_callback,
                  exit_callback,
@@ -123,7 +129,10 @@ class TopBarExpanded():
 
         self.bar_title = TopBarTitle(button=False)
 
-        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="left")
+        self.screenshot_button = TopBarButton(img_path=PATH.SCREENSHOT_IMG, radius_side="left")
+        self.screenshot_button.bind(on_press=screenshot_callback)
+
+        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="none")
         self.settings_button.bind(on_press=settings_callback)
 
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
@@ -134,6 +143,7 @@ class TopBarExpanded():
 
         self.top_bar_container.add_widget(self.back_button)
         self.top_bar_container.add_widget(self.bar_title)
+        self.top_bar_container.add_widget(self.screenshot_button)
         self.top_bar_container.add_widget(self.settings_button)
         self.top_bar_container.add_widget(self.exit_button)
         self.top_bar_container.add_widget(self.options_button)

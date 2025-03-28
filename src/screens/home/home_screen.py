@@ -40,6 +40,7 @@ class HomeScreen(BaseScreen):
         # TopBar with expanded options
         self.top_bar_expanded = HomeBarExpanded(
             edit_callback=self.toggle_edit_delete,
+            screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
             options_callback=lambda instance: self.switch_top_bar(),
             settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
             exit_callback=self.navigation_manager.exit_app,

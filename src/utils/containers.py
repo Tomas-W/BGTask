@@ -55,12 +55,12 @@ class ScrollContainer(BoxLayout):
     """
     def __init__(self,
                 allow_scroll_y=True,
-                allow_scroll_x=False,
+                allow_scroll_x=True,
                 **kwargs
         ):
         self.container = MainContainer()
         super().__init__(
-            orientation="vertical",
+            orientation="horizontal",
             **kwargs
         )
         self.scroll_threshold_pixels = 200
