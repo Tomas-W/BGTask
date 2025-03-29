@@ -4,8 +4,9 @@ from kivy.uix.floatlayout import FloatLayout
 from src.widgets.containers import BaseLayout
 from src.widgets.buttons import CustomButton
 
-from src.settings import DIR, PATH, SCREEN
+from src.utils.platform import device_is_android
 
+from src.settings import DIR, PATH, SCREEN
 
 class StartScreen(Screen):
     """
@@ -238,7 +239,7 @@ class StartScreen(Screen):
             print("Starting screenshot capture process...")
             
             # Check and request permissions
-            if platform == "android":
+            if device_is_android():
                 try:
                     from android.permissions import request_permissions, Permission, check_permission  # type: ignore
                     if not check_permission(Permission.SET_WALLPAPER):
@@ -271,7 +272,7 @@ class StartScreen(Screen):
             self.screenshot_button.opacity = 1
             
             # Use app's external files directory (doesn't require special permissions)
-            if platform == "android":
+            if device_is_android():
                 from android.storage import app_storage_path  # type: ignore
                 screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")
             else:
@@ -284,7 +285,7 @@ class StartScreen(Screen):
             print(f"Screenshot saved to {screenshot_path}")
             
             # Now set the wallpaper on Android using the bitmap approach
-            if platform == "android":
+            if device_is_android():
                 from jnius import autoclass  # type: ignore
                 print("Setting wallpaper on Android using bitmap approach...")
                 # Get the current activity and context

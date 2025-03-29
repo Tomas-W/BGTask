@@ -5,6 +5,8 @@ import shutil
 from kivy.app import App
 from kivy.utils import platform
 
+from src.utils.platform import device_is_android
+
 from src.settings import PATH, SCREEN, PLATFORM
 
 
@@ -26,7 +28,7 @@ class TaskManager:
         
     def _get_storage_path(self):
         """Get the storage path based on platform"""
-        if platform == PLATFORM.ANDROID:
+        if device_is_android():
             from android.storage import app_storage_path  # type: ignore
             return os.path.join(app_storage_path(), PATH.TASK_FILE)
         else:
@@ -39,7 +41,7 @@ class TaskManager:
     def _load_saved_task_file(self):
         """Load the saved task file on initial app load"""
         try:
-            if platform == PLATFORM.ANDROID:
+            if device_is_android():
                 from jnius import autoclass  # type: ignore
                 
                 # Get asset manager
