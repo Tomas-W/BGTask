@@ -3,22 +3,25 @@ import os
 from kivy.metrics import dp, sp
 
 
-class Paths:
+class Directories:
     SRC = os.path.dirname(os.path.abspath(__file__))
     ASSETS = os.path.join(SRC, "assets")
 
     ALARMS = os.path.join(ASSETS, "alarms")
     IMG = os.path.join(SRC, ASSETS, "images")
 
-    EDIT_IMG = os.path.join(IMG, "edit_64.png")
-    OPTIONS_IMG = os.path.join(IMG, "options_64.png")
-    OPTIONS_IMG_BLACK = os.path.join(IMG, "options_black_64.png")
-    SCREENSHOT_IMG = os.path.join(IMG, "screenshot_64.png")
-    EXIT_IMG = os.path.join(IMG, "exit_64.png")
-    SETTINGS_IMG = os.path.join(IMG, "settings_64.png")
-    BACK_IMG = os.path.join(IMG, "back_64.png")
 
-    TASK_FILE = os.path.join(ASSETS, "task_file.json")
+class Paths(Directories):
+    BACK_IMG = os.path.join(Directories.IMG, "back_64.png")
+    EDIT_IMG = os.path.join(Directories.IMG, "edit_64.png")
+
+    OPTIONS_IMG = os.path.join(Directories.IMG, "options_64.png")
+    OPTIONS_IMG_BLACK = os.path.join(Directories.IMG, "options_black_64.png")
+    SCREENSHOT_IMG = os.path.join(Directories.IMG, "screenshot_64.png")
+    SETTINGS_IMG = os.path.join(Directories.IMG, "settings_64.png")
+    EXIT_IMG = os.path.join(Directories.IMG, "exit_64.png")
+    
+    TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
@@ -146,7 +149,7 @@ class States:
 class Extensions:
     WAV = ".wav"
 
-
+DIR = Directories()
 PATH = Paths()
 COL = Colors()
 SPACE = Spacing()

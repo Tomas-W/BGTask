@@ -2,7 +2,9 @@ import os
 
 from datetime import datetime
 
-from src.settings import PATH, PLATFORM, EXT
+from src.utils.logger import logger
+
+from src.settings import DIR, PATH, PLATFORM, EXT
 
 
 class AudioManager:
@@ -11,8 +13,7 @@ class AudioManager:
     Loads the appropriate recorder based on the platform.
     """
     def __init__(self):
-        from kivy.app import App
-        self.logger = App.get_running_app().logger
+        self.logger = logger
         self.is_android = self.check_is_android()
         self.is_windows = self.check_is_windows()
         
@@ -104,12 +105,13 @@ class AudioManager:
         if self.is_android:
             try:
                 from android.storage import app_storage_path  # type: ignore
-                return os.path.join(app_storage_path(), PATH.ALARMS)
+                return os.path.join(app_storage_path(), DIR.ALARMS)
+            
             except ImportError:
                 self.logger.error("Android storage module not available.")
-                return os.path.join(os.path.expanduser("~"), PATH.ALARMS)
+                return os.path.join(os.path.expanduser("~"), DIR.ALARMS)
         else:
-            return os.path.join(PATH.ALARMS)
+            return os.path.join(DIR.ALARMS)
     
     def validate_alarm_dir(self):
         """Validate the alarm directory."""
@@ -117,6 +119,7 @@ class AudioManager:
             try:
                 os.makedirs(self.alarm_dir, exist_ok=True)
                 self.logger.debug(f"Created alarm directory: {self.alarm_dir}")
+
             except PermissionError:
                 self.logger.error(f"Permission denied: Cannot create directory {self.alarm_dir}. Check app permissions.")
             except FileNotFoundError:
@@ -140,6 +143,7 @@ class AudioManager:
         for file in os.listdir(self.alarm_dir):
             if file.endswith(EXT.WAV):
                 alarms[file.split(".")[0]] = os.path.join(self.alarm_dir, file)
+        
         self.alarms = alarms
         self.logger.debug(f"Loaded {len(alarms)} alarms")
     
@@ -238,6 +242,7 @@ class AudioManager:
                     else:
                         self.logger.error(f"File not found after recording: {self.selected_alarm_path}")
                         success = False
+
                 except FileNotFoundError:
                     self.logger.error(f"File not found: {self.selected_alarm_path}")
                     success = False
@@ -257,8 +262,7 @@ class AudioManager:
 class AndroidAudioRecorder:
     """Android-specific audio recording implementation."""
     def __init__(self):
-        from kivy.app import App
-        self.logger = App.get_running_app().logger
+        self.logger = logger
         self.recorder = None
         
     def setup(self, path):
@@ -328,8 +332,7 @@ class AndroidAudioRecorder:
 class WindowsAudioRecorder:
     """Windows-specific audio recording implementation using PyAudio."""
     def __init__(self):
-        from kivy.app import App
-        self.logger = App.get_running_app().logger
+        self.logger = logger
         self.current_path = None
         self.recording = False
         self.stream = None
@@ -380,10 +383,7 @@ class WindowsAudioRecorder:
             
             self.recording = True
             self.frames = []
-            
-            # Start recording in a thread to avoid blocking UI
-            import threading
-            
+
             def callback(in_data, frame_count, time_info, status):
                 if self.recording:
                     self.frames.append(in_data)

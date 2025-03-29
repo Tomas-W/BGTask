@@ -15,6 +15,9 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Button feedback
+# TODO: Button feedback Recording / Playing
+# TODO: Saved alarms edit and delete
 # TODO: When no tasks, edit message for screenshot
 # TODO: Ask permissions on open alarms
 # TODO: Add alarm path to task
@@ -118,14 +121,8 @@ class TaskApp(App):
                 self.screen_manager.add_widget(screen)
     
     def _init_logger(self):
-        from loguru import logger
+        from src.utils.logger import logger
         self.logger = logger
-        custom_format = "{function}:{line} - <level>{message}</level>"
-        logger.remove()
-        logger.add(sys.stderr,
-                   level="DEBUG",
-                   format=custom_format,
-                   colorize=True)
     
     def _log_times(self):
         self.on_enter_time = self.screens[SCREEN.START].on_enter_time

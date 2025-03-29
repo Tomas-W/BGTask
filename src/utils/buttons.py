@@ -2,7 +2,6 @@ from kivy.animation import Animation, AnimationTransition
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.button import Button
 from kivy.uix.image import Image
-from kivy.uix.floatlayout import FloatLayout
 
 from src.settings import COL, SIZE, SPACE, FONT, STYLE, STATE
 

@@ -1,20 +1,10 @@
-import json
-import sys
-import time
-import platform
-
-from datetime import datetime
-from pathlib import Path
-
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 
-project_root = str(Path(__file__).parent.parent.parent.parent)
-sys.path.append(project_root)
-
 from src.utils.containers import BaseLayout
 from src.utils.buttons import CustomButton
-from src.settings import PATH, SPACE, SCREEN
+
+from src.settings import DIR, PATH, SCREEN
 
 
 class StartScreen(Screen):
@@ -91,15 +81,10 @@ class StartScreen(Screen):
 
             task_message = TaskLabel(text=task["message"])
             
-            # Add crucial binding for multi-line text with immediate application
             def update_text_size(instance, value):
                 width = value[0]
-                instance.text_size = (width, None)
-                
-                # Force texture update
+                instance.text_size = (width, None)                
                 instance.texture_update()
-                
-                # Apply height adjustments immediately
                 instance.height = instance.texture_size[1]
                 task_container.height = time_container.height + instance.height
             
@@ -114,6 +99,8 @@ class StartScreen(Screen):
         It returns the first task that is expiring in the future.
         """
         try:
+            import json
+            from datetime import datetime
             with open(PATH.TASK_FILE, "r") as f:
                 task_data = json.load(f)
             
@@ -190,6 +177,7 @@ class StartScreen(Screen):
         When the screen is shown, the page is built and the data is loaded in.
         """
         if not self.start_screen_loaded:
+            import time
             self.on_enter_time = time.time()        
             from kivy.clock import Clock
             Clock.schedule_once(self.load_data_background, 0.1)
@@ -306,7 +294,7 @@ class StartScreen(Screen):
                 screenshot_path = os.path.join(file_dir, "bgtask_screenshot.png")
             else:
                 # For non-Android platforms
-                screenshot_path = os.path.join(PATH.ALARMS, "bgtask_screenshot.png")
+                screenshot_path = os.path.join(DIR.ALARMS, "bgtask_screenshot.png")
             
             print(f"Saving screenshot to: {screenshot_path}")
             
