@@ -14,4 +14,10 @@ bin/
 .buildozer/
 *.buildozervenv/
 
+# Media
+*.wav
+*.mp3
+*.m4a
+
+
 playground.py

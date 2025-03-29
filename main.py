@@ -64,9 +64,9 @@ class TaskApp(App):
         return self.screens.get(screen_name)
     
     def _load_app_components(self):
+        self._init_logger()
         self._init_managers()
         self._init_screens()
-        self._init_logger()
         self.finish_time = time.time()
         self._log_times()
     

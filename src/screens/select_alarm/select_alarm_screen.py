@@ -176,7 +176,7 @@ class SelectAlarmScreen(BaseScreen):
             popup.open()
             return
         
-        if self.audio_manager.is_android():
+        if self.audio_manager.is_android:
             try:
                 from jnius import autoclass  # type: ignore
                 MediaPlayer = autoclass('android.media.MediaPlayer')
@@ -230,4 +230,3 @@ class SelectAlarmScreen(BaseScreen):
         """Called when the screen is entered"""
         super().on_pre_enter()
         self.update_selected_alarm_text()
-    
