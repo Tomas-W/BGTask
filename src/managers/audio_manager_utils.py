@@ -14,7 +14,7 @@ class AudioManagerUtils:
     def __init__(self):
         pass
     
-    def check_recording_permission(self):
+    def check_recording_permission(self) -> bool:
         """Returns whether Android RECORD_AUDIO permission is granted."""
         if not self.is_android:
             return True
@@ -22,7 +22,7 @@ class AudioManagerUtils:
         try:
             from android.permissions import check_permission, Permission  # type: ignore
             return check_permission(Permission.RECORD_AUDIO)
-            
+        
         except ImportError:
             logger.error("Android permissions module not available. Ensure this is running on Android.")
             return False
@@ -35,8 +35,8 @@ class AudioManagerUtils:
         except Exception as e:
             logger.error(f"Unexpected error while requesting permissions: {e}")
             return False
-
-    def request_android_recording_permissions(self):
+    
+    def request_android_recording_permissions(self) -> None:
         """Displays a dialog to request Android RECORD_AUDIO permissions."""
         if not self.is_android:
             return
@@ -48,6 +48,7 @@ class AudioManagerUtils:
                 [Permission.RECORD_AUDIO],
                 self.recording_permission_callback
             )
+        
         except ImportError:
             logger.error("Android permissions module not available. Ensure this is running on Android.")
         except AttributeError:
@@ -57,7 +58,7 @@ class AudioManagerUtils:
         except Exception as e:
             logger.error(f"Unexpected error while requesting permissions: {e}")
     
-    def recording_permission_callback(self, permissions, results):
+    def recording_permission_callback(self, permissions: list[str], results: list[bool]) -> None:
         """Handles recording permission response."""
         if all(results):  # All permissions granted
             logger.debug(f"Permissions {permissions} granted")
@@ -66,21 +67,21 @@ class AudioManagerUtils:
             logger.debug(f"Permissions {permissions} denied")
             self.has_recording_permission = False
     
-    def get_recording_path(self):
+    def get_recording_path(self) -> tuple[str, str]:
         """Get the path and filename of the just started recording."""
         filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
         path = os.path.join(self.recordings_dir, filename + EXT.WAV)
         return path, filename
-
-    def alarm_name_to_path(self, name):
+    
+    def alarm_name_to_path(self, name: str) -> str:
         """Convert an alarm name to a path."""
         return os.path.join(self.alarms_dir, f"{name}{EXT.WAV}")
     
-    def alarm_path_to_name(self, path):
+    def alarm_path_to_name(self, path: str) -> str:
         """Convert a path to an alarm name."""
         return os.path.basename(path).split(".")[0]
-
-    def set_alarm_name(self, name=None, path=None):
+    
+    def set_alarm_name(self, name: str | None = None, path: str | None = None) -> None:
         """Set the name of the alarm"""
         if path:
             self.selected_alarm_name = self.alarm_path_to_name(path)
@@ -90,7 +91,7 @@ class AudioManagerUtils:
             logger.error("Either name or path must be provided")
             raise ValueError("Either name or path must be provided")
     
-    def set_alarm_path(self, path=None, name=None):
+    def set_alarm_path(self, path: str | None = None, name: str | None = None) -> None:
         """Set the path of the alarm."""
         if path:
             self.selected_alarm_path = path
@@ -100,15 +101,15 @@ class AudioManagerUtils:
             logger.error("Either path or name must be provided")
             raise ValueError("Either path or name must be provided")
     
-    def recording_name_to_path(self, name):
+    def recording_name_to_path(self, name: str) -> str:
         """Convert a recording name to a path."""
         return os.path.join(self.recordings_dir, f"{name}{EXT.WAV}")
     
-    def recording_path_to_name(self, path):
+    def recording_path_to_name(self, path: str) -> str:
         """Convert a path to a recording name."""
         return os.path.basename(path).split(".")[0]
     
-    def set_recording_name(self, name=None, path=None):
+    def set_recording_name(self, name: str | None = None, path: str | None = None) -> None:
         """Set the name of the recording."""
         if path:
             self.selected_recording_name = self.recording_path_to_name(path)
@@ -118,7 +119,7 @@ class AudioManagerUtils:
             logger.error("Either name or path must be provided")
             raise ValueError("Either name or path must be provided")
     
-    def set_recording_path(self, path=None, name=None):
+    def set_recording_path(self, path: str | None = None, name: str | None = None) -> None:
         """Set the path of the recording."""
         if path:
             self.selected_recording_path = path

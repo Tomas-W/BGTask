@@ -1,4 +1,5 @@
 import os
+import enum
 
 from kivy.metrics import dp, sp
 
@@ -23,6 +24,8 @@ class Paths(Directories):
     EXIT_IMG = os.path.join(Directories.IMG, "exit_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
+
+
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
@@ -50,7 +53,32 @@ class Colors:
     FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
     FIELD_ERROR = (1, 0.4, 0.4, 1)
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
+
+
+class Sizes:
+    TEST = dp(70)
+
+    DEFAULT = dp(20)
+    DATE_TIME_LABEL = dp(20 * 1.5)
+
+    TOP_BAR_HEIGHT = dp(60)
+    TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
+    BOTTOM_BAR_HEIGHT = dp(40)
+
+    POPUP_ICON = dp(16)
+
+    HEADER_HEIGHT = dp(25)
+    TASK_ITEM_HEIGHT = dp(40)
+    TIME_LABEL_HEIGHT = dp(20)
+
+    BUTTON_HEIGHT = dp(60)
+    SETTINGS_BUTTON_HEIGHT = dp(40)
     
+    CUSTOM_ROW_HEIGHT = dp(40)
+    NO_TASKS_LABEL_HEIGHT = dp(100)
+    CALENDAR_HEADER_HEIGHT = dp(50)
+    CALENDAR_HEIGHT = dp(200)
+
 
 class Spacing:
     SPACE_XS = dp(5)
@@ -86,31 +114,6 @@ class Fonts:
     SETTINGS_BUTTON_FIELD = sp(18)
 
 
-class Sizes:
-    TEST = dp(70)
-
-    DEFAULT = dp(20)
-    DATE_TIME_LABEL = dp(20 * 1.5)
-
-    TOP_BAR_HEIGHT = dp(60)
-    TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
-    BOTTOM_BAR_HEIGHT = dp(40)
-
-    POPUP_ICON = dp(16)
-
-    HEADER_HEIGHT = dp(25)
-    TASK_ITEM_HEIGHT = dp(40)
-    TIME_LABEL_HEIGHT = dp(20)
-
-    BUTTON_HEIGHT = dp(60)
-    SETTINGS_BUTTON_HEIGHT = dp(40)
-    
-    CUSTOM_ROW_HEIGHT = dp(40)
-    NO_TASKS_LABEL_HEIGHT = dp(100)
-    CALENDAR_HEADER_HEIGHT = dp(50)
-    CALENDAR_HEIGHT = dp(200)
-
-
 class Styles:
     RADIUS_S = dp(5)
     RADIUS_M = dp(10)
@@ -125,39 +128,51 @@ class Text:
     NO_TASKS = "Create a new task by clicking the + button!"
 
 
-class Screens:
+class Extensions:
+    WAV = ".wav"
+
+
+class StrEnum(str, enum.Enum):
+    """String Enum that can be compared directly with strings."""
+    pass
+
+
+class Screens(StrEnum):
+    """Screen names used for navigation in the app."""
     START = "START"
     HOME = "HOME"
     NEW_TASK = "NEW_TASK"
     SELECT_DATE = "SELECT_DATE"
     SELECT_ALARM = "SELECT_ALARM"
     SAVED_ALARMS = "SAVED_ALARMS"
-    
     SETTINGS = "SETTINGS"
 
-class Platforms:
+
+class Platforms(StrEnum):
+    """Supported platforms for the application."""
     ANDROID = "android"
     WINDOWS = "Windows"
 
 
-class States:
+class States(StrEnum):
+    """UI element states used throughout the application."""
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     ERROR = "ERROR"
 
 
-class Extensions:
-    WAV = ".wav"
-
 DIR = Directories()
 PATH = Paths()
+
 COL = Colors()
-SPACE = Spacing()
 SIZE = Sizes()
-STYLE = Styles()
+SPACE = Spacing()
 FONT = Fonts()
+STYLE = Styles()
 TEXT = Text()
-SCREEN = Screens()
-PLATFORM = Platforms()
-STATE = States()
+
 EXT = Extensions()
+
+SCREEN = Screens
+PLATFORM = Platforms
+STATE = States

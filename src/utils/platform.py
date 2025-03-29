@@ -17,9 +17,9 @@ def device_is_windows():
     return py_platform.system() == PLATFORM.WINDOWS
 
 
-def get_storage_path(is_android, directory):
+def get_storage_path(directory):
     """Returns the app-specific storage path for the given directory."""
-    if is_android:
+    if device_is_android():
         try:
             from android.storage import app_storage_path  # type: ignore
             return os.path.join(app_storage_path(), directory)
@@ -31,14 +31,14 @@ def get_storage_path(is_android, directory):
         return os.path.join(directory)
 
 
-def get_alarms_dir(is_android):
+def get_alarms_dir():
     """Get the directory path where the alarms are stored."""
-    return get_storage_path(is_android, DIR.ALARMS)
+    return get_storage_path(DIR.ALARMS)
     
 
-def get_recordings_dir(is_android):
+def get_recordings_dir():
     """Get the directory path where the recordings are stored."""
-    return get_storage_path(is_android, DIR.RECORDINGS)
+    return get_storage_path(DIR.RECORDINGS)
 
 
 def validate_dir(dir_path):
@@ -54,3 +54,19 @@ def validate_dir(dir_path):
             logger.error(f"Invalid path: {dir_path} does not exist.")
         except OSError as e:
             logger.error(f"OS error while creating {dir_path}: {e}")
+
+
+def validate_file(file_path):
+    """Validate and create a file if it doesn't exist."""
+    if not os.path.isfile(file_path):
+        try:
+            with open(file_path, "w") as f:
+                pass
+
+        except PermissionError:
+            logger.error(f"Permission denied: Cannot create file {file_path}. Check app permissions.")
+        except FileNotFoundError:
+            logger.error(f"Invalid path: {file_path} does not exist.")
+        except OSError as e:
+            logger.error(f"OS error while creating {file_path}: {e}")
+

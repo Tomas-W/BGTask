@@ -3,13 +3,8 @@ import os
 from src.managers.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
-from src.utils.platform import (
-    device_is_android,
-    device_is_windows,
-    get_alarms_dir,
-    get_recordings_dir,
-    validate_dir,
-)
+from src.utils.platform import (device_is_android, device_is_windows, get_alarms_dir,
+                                get_recordings_dir, validate_dir)
 
 from src.settings import EXT
 
@@ -19,8 +14,8 @@ class AudioManager(AudioManagerUtils):
     Manages audio across the application.
     """
     def __init__(self):
-        self.is_android = device_is_android()
-        self.is_windows = device_is_windows()
+        self.is_android: bool = device_is_android()
+        self.is_windows: bool = device_is_windows()
         
         # Recorder
         if self.is_android:
@@ -29,21 +24,21 @@ class AudioManager(AudioManagerUtils):
         elif self.is_windows:
             self.recorder = WindowsAudioRecorder()
             logger.debug("Using Windows-specific audio recorder")
-
-        self.recordings_dir = get_recordings_dir(self.is_android)
+        
+        self.recordings_dir: str = get_recordings_dir()
         validate_dir(self.recordings_dir)
 
         # Alarms
-        self.alarms_dir = get_alarms_dir(self.is_android)
+        self.alarms_dir: str = get_alarms_dir()
         validate_dir(self.alarms_dir)
-        self.alarms = {}
+        self.alarms: dict[str, str] = {}
         self.load_alarms()
-        self.selected_alarm_name = None
-        self.selected_alarm_path = None
+        self.selected_alarm_name: str | None = None
+        self.selected_alarm_path: str | None = None
         
         # States
-        self.is_recording = False
-        self.has_recording_permission = self.check_recording_permission()
+        self.is_recording: bool = False
+        self.has_recording_permission: bool = self.check_recording_permission()
     
     def load_alarms(self):
         """Load the alarm files from the storage path."""
@@ -52,26 +47,26 @@ class AudioManager(AudioManagerUtils):
             if file.endswith(EXT.WAV):
                 alarms[file.split(".")[0]] = os.path.join(self.alarms_dir, file)
         
-        self.alarms = alarms
-
-    def start_recording(self):
+        self.alarms: dict[str, str] = alarms
+    
+    def start_recording(self) -> bool:
         """Start recording audio using the appropriate method based on the platform."""
         if not self.recorder:
             logger.error("No recorder available")
             return False
-            
+        
         if self.is_android and not self.has_recording_permission:
             self.request_android_recording_permissions()
             return False
         
-        path, filename = self.get_recording_path()        
+        path, filename = self.get_recording_path()
         try:
             if self.recorder.setup(path):
                 if self.is_android:
                     success = self.recorder.start_recording_android()
                 else:  # Windows
                     success = self.recorder.start_recording_desktop()
-                    
+                
                 if success:
                     self.is_recording = True
                     self.selected_alarm_name = filename
@@ -86,13 +81,13 @@ class AudioManager(AudioManagerUtils):
         except Exception as e:
             logger.error(f"Recording error: {e}")
             return False
-
-    def stop_recording(self):
+    
+    def stop_recording(self) -> bool:
         """Stop recording audio using the appropriate method based on the platform."""
         if not self.recorder:
             logger.error("No recorder available for this platform")
             return False
-            
+        
         success = False
         try:
             if self.is_android:
@@ -105,7 +100,7 @@ class AudioManager(AudioManagerUtils):
                     if self.is_windows:
                         import time
                         time.sleep(0.2)
-                        
+                    
                     # Verify file
                     if os.path.exists(self.selected_alarm_path):
                         with open(self.selected_alarm_path, "rb") as f:
@@ -115,7 +110,7 @@ class AudioManager(AudioManagerUtils):
                     else:
                         logger.error(f"File not found after recording: {self.selected_alarm_path}")
                         success = False
-
+                
                 except FileNotFoundError:
                     logger.error(f"File not found: {self.selected_alarm_path}")
                     success = False
@@ -137,7 +132,7 @@ class AndroidAudioRecorder:
     def __init__(self):
         self.recorder = None
         
-    def setup(self, path):
+    def setup(self, path: str) -> bool:
         """Configure the recorder for a new recording session"""
         try:
             from jnius import autoclass  # type: ignore
@@ -161,8 +156,8 @@ class AndroidAudioRecorder:
         except Exception as e:
             logger.error(f"Error setting up Android recorder: {e}")
             return False
-
-    def start_recording_android(self):
+    
+    def start_recording_android(self) -> bool:
         """Start the recording."""
         try:
             if not self.recorder:
@@ -174,8 +169,8 @@ class AndroidAudioRecorder:
         except Exception as e:
             logger.error(f"Error starting Android recorder: {e}")
             return False
-
-    def stop_recording_android(self):
+    
+    def stop_recording_android(self) -> bool:
         """Stop the recording and release resources."""
         try:
             if not self.recorder:
@@ -189,7 +184,7 @@ class AndroidAudioRecorder:
         except Exception as e:
             logger.error(f"Error stopping Android recorder: {e}")
             return False
-            
+    
     def release(self):
         """Release resources without stopping (for cleanup)."""
         try:
@@ -204,11 +199,11 @@ class AndroidAudioRecorder:
 class WindowsAudioRecorder:
     """Windows-specific audio recording implementation using PyAudio."""
     def __init__(self):
-        self.current_path = None
-        self.recording = False
-        self.stream = None
-        self.frames = []
-        self.pa = None
+        self.current_path: str | None = None
+        self.recording: bool = False
+        self.stream: pyaudio.Stream | None = None
+        self.frames: list[bytes] = []
+        self.pa: pyaudio.PyAudio | None = None
         
         try:
             import pyaudio
@@ -218,7 +213,7 @@ class WindowsAudioRecorder:
             self.pa = pyaudio.PyAudio()
             self.available = True
             logger.debug("Windows audio recorder initialized successfully with PyAudio")
-
+        
         except ImportError as e:
             logger.error(f"PyAudio not available: {e}")
             self.available = False
@@ -226,12 +221,12 @@ class WindowsAudioRecorder:
             logger.error(f"Error initializing PyAudio: {e}")
             self.available = False
     
-    def setup(self, path):
+    def setup(self, path: str) -> bool:
         """Configure the recorder for a new recording session"""
         if not self.available:
             logger.error("Windows audio recorder not available - PyAudio missing")
             return False
-            
+        
         try:
             self.current_path = path
             self.frames = []
@@ -240,12 +235,12 @@ class WindowsAudioRecorder:
             logger.error(f"Error setting up Windows recorder: {e}")
             return False
     
-    def start_recording_desktop(self):
+    def start_recording_desktop(self) -> bool:
         """Start recording using PyAudio"""
         if not self.available or not self.current_path:
             logger.error(f"Cannot start recording - recorder not available or path not set [{self.available=}, {self.current_path=}]")
             return False
-            
+        
         try:
             if self.recording:
                 logger.debug("Already recording")
@@ -272,21 +267,21 @@ class WindowsAudioRecorder:
             
             self.stream.start_stream()
             return True
-            
+        
         except Exception as e:
             logger.error(f"Error starting Windows recording: {e}")
             self.recording = False
             return False
     
-    def stop_recording_desktop(self):
+    def stop_recording_desktop(self) -> bool:
         """Stop the recording"""
         if not self.available:
             return False
-            
+        
         try:
             if not self.recording:
                 return False
-                
+            
             self.recording = False
             
             # Stop and close stream
@@ -307,12 +302,12 @@ class WindowsAudioRecorder:
             else:
                 logger.error("No audio data recorded")
                 return False
-            
+        
         except Exception as e:
             logger.error(f"Error stopping Windows recording: {e}")
             return False
     
-    def release(self):
+    def release(self) -> bool:
         """Release any resources"""
         try:
             if self.stream:

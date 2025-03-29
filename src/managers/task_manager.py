@@ -1,13 +1,14 @@
 import json
-import os
-import shutil
+
+from datetime import datetime
 
 from kivy.app import App
-from kivy.utils import platform
 
-from src.utils.platform import device_is_android
+from src.managers.task_manager_utils import Task
+from src.utils.logger import logger
+from src.utils.platform import device_is_android, get_storage_path, validate_file
 
-from src.settings import PATH, SCREEN, PLATFORM
+from src.settings import PATH, SCREEN
 
 
 class TaskManager:
@@ -16,139 +17,94 @@ class TaskManager:
     """
     def __init__(self):
         self.navigation_manager = App.get_running_app().navigation_manager
-        self.storage_path = self._get_storage_path()
-        self._make_storage_path()
+        self.new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
+        
+        self.task_file = get_storage_path(PATH.TASK_FILE)
+        validate_file(self.task_file)
+        self._load_saved_task_file()
         self.tasks = self.load_tasks()
 
-        self.current_edit = {
-            "task_id": None,
-            "message": None,
-            "timestamp": None
-        }
+    def _load_saved_task_file(self) -> bool:
+        """Load the saved task_file on initial app load"""
+        if not device_is_android():
+            return True
         
-    def _get_storage_path(self):
-        """Get the storage path based on platform"""
-        if device_is_android():
-            from android.storage import app_storage_path  # type: ignore
-            return os.path.join(app_storage_path(), PATH.TASK_FILE)
-        else:
-            return os.path.join(PATH.TASK_FILE)
-    
-    def _make_storage_path(self):
-        """Make the storage path"""
-        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
-    
-    def _load_saved_task_file(self):
-        """Load the saved task file on initial app load"""
         try:
-            if device_is_android():
-                from jnius import autoclass  # type: ignore
+            from jnius import autoclass  # type: ignore
+            # Get asset manager
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            activity = PythonActivity.mActivity
+            assets = activity.getAssets()
+            
+            try:
+                with assets.open(PATH.TASK_FILE) as asset_file:
+                    content = asset_file.read().decode("utf-8")
                 
-                # Get asset manager
-                PythonActivity = autoclass("org.kivy.android.PythonActivity")
-                activity = PythonActivity.mActivity
-                assets = activity.getAssets()
-                
-                try:
-                    with assets.open(PATH.TASK_FILE) as asset_file:
-                        content = asset_file.read().decode("utf-8")
-                        
-                    with open(self.storage_path, "w") as f:
-                        f.write(content)                    
-                    return True
-                except Exception as e:
-                    raise e
-            else:
-                # Desktop
-                default_task_path = os.path.join("assets", PATH.TASK_FILE)
-                if os.path.exists(default_task_path):
-                    shutil.copy(default_task_path, self.storage_path)
-                    return True
-        except Exception as e:
-            raise e
+                with open(self.task_file, "w") as f:
+                    f.write(content)                    
+                return True
+            
+            except Exception as e:
+                logger.error(f"Error loading task_file from Android assets: {e}")
+                return False
         
-        return False
+        except Exception as e:
+            logger.error(f"Error in Android setup: {e}")
+            return False
     
-    def add_task(self, message, timestamp):
+    def load_tasks(self) -> list[Task]:
+        """Load tasks from task_file"""
+        try:
+            with open(self.task_file, "r") as f:
+                task_data = json.load(f)
+            
+            tasks = [Task.from_dict(data) for data in task_data]
+            # Sort tasks by timestamp
+            tasks.sort(key=lambda task: task.timestamp)
+            return tasks
+        
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing task file: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error loading tasks: {e}")
+            return []
+    
+    def add_task(self, message: str, timestamp: datetime) -> None:
         """Add a new task"""
         task = Task(message=message, timestamp=timestamp)
         self.tasks.append(task)
         self._save_tasks()
-        return task
     
-    def _save_tasks(self):
-        """Save tasks to storage"""
-        
+    def _save_tasks(self) -> None:
+        """Save tasks to task_file"""
         try:
             task_data = [task.to_dict() for task in self.tasks]
-            with open(self.storage_path, "w") as f:
+            with open(self.task_file, "w") as f:
                 json.dump(task_data, f, indent=2)
-            
-            return True
         
         except Exception as e:
-            raise e
+            logger.error(f"Error saving tasks: {e}")
     
-    def load_tasks(self):
-        """Load tasks from storage"""
-        if not os.path.exists(self.storage_path):
-            # Try to copy the default task file
-            if self._load_saved_task_file():
-                # If successful, try loading again
-                if os.path.exists(self.storage_path):
-                    try:
-                        with open(self.storage_path, "r") as f:
-                            task_data = json.load(f)
-                        
-                        tasks = [Task.from_dict(data) for data in task_data]
-                        tasks.sort(key=lambda task: task.timestamp)
-                        return tasks
-                    except Exception as e:
-                        print(f"Error loading copied tasks: {e}")
-            
-            # If copying failed or loading failed, return empty list
-            return []
-        
-        try:
-            with open(self.storage_path, "r") as f:
-                task_data = json.load(f)
-            
-            self.tasks = [Task.from_dict(data) for data in task_data]
-            # Sort tasks by timestamp
-            self.tasks.sort(key=lambda task: task.timestamp)
-            return self.tasks
-        except Exception as e:
-            print(f"Error loading tasks: {e}")
-            return []
-    
-    def edit_task(self, task_id):
+    def edit_task(self, task_id: str):
         """Edit a task"""
         for task in self.tasks:
             if task.task_id == task_id:
-                # Store the task data for editing
-                # self.current_edit["task_id"] = task_id
-                # self.current_edit["message"] = task.message
-                # self.current_edit["timestamp"] = task.timestamp
-                
-                # Navigate to the new task screen
-                new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
-
-                new_task_screen.in_edit_task_mode = True
+                self.new_task_screen.in_edit_task_mode = True
                 # Pre-fill the data
-                new_task_screen.edit_mode = True
-                new_task_screen.task_id_to_edit = task_id
-                new_task_screen.task_input.set_text(task.message)
-                new_task_screen.selected_date = task.timestamp.date()
-                new_task_screen.selected_time = task.timestamp.time()
-                new_task_screen.update_datetime_display()
+                self.new_task_screen.edit_mode = True
+                self.new_task_screen.task_id_to_edit = task_id
+                self.new_task_screen.task_input.set_text(task.message)
+                self.new_task_screen.selected_date = task.timestamp.date()
+                self.new_task_screen.selected_time = task.timestamp.time()
+                self.new_task_screen.update_datetime_display()
                 
-                # Navigate to the edit screen
                 self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
-                return True
-                
-        return False
+                return
+        
+        logger.error(f"Task with id {task_id} not found")
 
-    def delete_task(self, task_id):
+    def delete_task(self, task_id: str) -> None:
         """Delete a task"""
         for i, task in enumerate(self.tasks):
             if task.task_id == task_id:
@@ -158,10 +114,11 @@ class TaskManager:
                 # Refresh home screen
                 home_screen = App.get_running_app().get_screen(SCREEN.HOME)
                 home_screen.update_task_display()
-                return True
-        return False
-    
-    def get_tasks_by_date(self):
+                return
+        
+        logger.error(f"Task with id {task_id} not found")
+
+    def get_tasks_by_date(self) -> list[dict]:
         """Group tasks by date"""
         tasks_by_date = {}
         for task in self.tasks:
@@ -185,49 +142,3 @@ class TaskManager:
             })
         
         return result 
-
-
-from datetime import datetime
-
-
-class Task:
-    """
-    Represents a task with a message and timestamp.
-    """
-    def __init__(self, task_id=None, message="", timestamp=None):
-        self.task_id = task_id if task_id else datetime.now().strftime("%Y%m%d%H%M%S")
-        self.message = message
-        self.timestamp = timestamp if timestamp else datetime.now()
-        
-    def to_dict(self):
-        """Convert task to dictionary for serialization"""
-        return {
-            "task_id": self.task_id,
-            "message": self.message,
-            "timestamp": self.timestamp.isoformat()
-        }
-    
-    @classmethod
-    def from_dict(cls, data):
-        """Create task from dictionary"""
-        return cls(
-            task_id=data.get("task_id"),
-            message=data.get("message"),
-            timestamp=datetime.fromisoformat(data.get("timestamp"))
-        )
-    
-    def get_date_str(self):
-        """Get formatted date string [Day DD Month]"""
-        if isinstance(self.timestamp, datetime):
-            dt = self.timestamp
-        else:
-            dt = datetime.fromtimestamp(self.timestamp)
-        return dt.strftime("%A %d %b")
-    
-    def get_time_str(self):
-        """Get formatted time string [HH:MM]"""
-        return self.timestamp.strftime("%H:%M")
-
-    def get_task_id(self):
-        """Get task id"""
-        return self.task_id
