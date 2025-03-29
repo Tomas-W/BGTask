@@ -15,6 +15,7 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Refactor StartScreen
 # TODO: Fix recording permission popup
 # TODO: Remove selected_task_alarm after saving
 # TODO: Button feedback

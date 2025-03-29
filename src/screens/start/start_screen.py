@@ -220,38 +220,27 @@ class StartScreen(Screen):
         return super().on_touch_up(touch)
 
     def on_swipe_right(self):
-        # Trigger method for right swipe
-        print("Swiped right!")
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="right")
 
     def on_swipe_left(self):
-        # Trigger method for left swipe
-        print("Swiped left!")
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="left")
     def on_swipe_up(self):
-        # Trigger method for up swipe
-        # print("Swiped up!")
-        # self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="up")
         pass
 
     def on_swipe_down(self):
-        # Trigger method for down swipe
-        # print("Swiped down!")
-        # self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="down")
         pass
 
     def take_screenshot(self, *args):
         try:
             from kivy.utils import platform
             import os
-            from kivy.uix.floatlayout import FloatLayout
             
             print("Starting screenshot capture process...")
             
             # Check and request permissions
             if platform == "android":
                 try:
-                    from android.permissions import request_permissions, Permission, check_permission
+                    from android.permissions import request_permissions, Permission, check_permission  # type: ignore
                     if not check_permission(Permission.SET_WALLPAPER):
                         request_permissions([Permission.SET_WALLPAPER])
                     else:
@@ -268,9 +257,7 @@ class StartScreen(Screen):
             
             button_visible = self.screenshot_button.opacity > 0
             self.screenshot_button.opacity = 0
-            
-            # self.scroll_container.padding = [0, 0, 0, SPACE.SPACE_MAX * 2]
-            
+                        
             # Force a redraw
             self.root_layout.do_layout()
             
@@ -285,16 +272,10 @@ class StartScreen(Screen):
             
             # Use app's external files directory (doesn't require special permissions)
             if platform == "android":
-                from jnius import autoclass
-                PythonActivity = autoclass('org.kivy.android.PythonActivity')
-                activity = PythonActivity.mActivity
-                
-                # Get the app's external files directory
-                file_dir = activity.getExternalFilesDir(None).getAbsolutePath()
-                screenshot_path = os.path.join(file_dir, "bgtask_screenshot.png")
+                from android.storage import app_storage_path  # type: ignore
+                screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")
             else:
-                # For non-Android platforms
-                screenshot_path = os.path.join(DIR.ALARMS, "bgtask_screenshot.png")
+                screenshot_path = os.path.join(DIR.IMG, "bgtask_screenshot.png")
             
             print(f"Saving screenshot to: {screenshot_path}")
             
@@ -304,6 +285,7 @@ class StartScreen(Screen):
             
             # Now set the wallpaper on Android using the bitmap approach
             if platform == "android":
+                from jnius import autoclass  # type: ignore
                 print("Setting wallpaper on Android using bitmap approach...")
                 # Get the current activity and context
                 PythonActivity = autoclass('org.kivy.android.PythonActivity')
