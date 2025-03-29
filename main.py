@@ -15,11 +15,12 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Fix recording permission popup
+# TODO: Remove selected_task_alarm after saving
 # TODO: Button feedback
 # TODO: Button feedback Recording / Playing
 # TODO: Saved alarms edit and delete
 # TODO: When no tasks, edit message for screenshot
-# TODO: Ask permissions on open alarms
 # TODO: Add alarm path to task
 # TODO: Add vibrtating to task
 # TODO: Add alarm check to task

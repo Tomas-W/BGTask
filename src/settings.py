@@ -6,9 +6,10 @@ from kivy.metrics import dp, sp
 class Directories:
     SRC = os.path.dirname(os.path.abspath(__file__))
     ASSETS = os.path.join(SRC, "assets")
+    IMG = os.path.join(SRC, ASSETS, "images")
 
     ALARMS = os.path.join(ASSETS, "alarms")
-    IMG = os.path.join(SRC, ASSETS, "images")
+    RECORDINGS = os.path.join(ASSETS, "recordings")
 
 
 class Paths(Directories):
@@ -136,8 +137,7 @@ class Screens:
 
 class Platforms:
     ANDROID = "android"
-    IOS = "ios"
-    WINDOWS = "windows"
+    WINDOWS = "Windows"
 
 
 class States:

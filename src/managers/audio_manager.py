@@ -1,25 +1,22 @@
 import os
 
-from datetime import datetime
+from src.managers.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
 
-from src.settings import DIR, PATH, PLATFORM, EXT
+from src.settings import EXT
 
 
-class AudioManager:
+class AudioManager(AudioManagerUtils):
     """
     Manages audio across the application.
     Loads the appropriate recorder based on the platform.
     """
     def __init__(self):
         self.logger = logger
+
         self.is_android = self.check_is_android()
         self.is_windows = self.check_is_windows()
-        
-        # Alarms directory
-        self.alarm_dir = self._get_alarm_dir()
-        self.validate_alarm_dir()
         
         # Platform-specific recorder
         if self.is_android:
@@ -28,8 +25,13 @@ class AudioManager:
         elif self.is_windows:
             self.recorder = WindowsAudioRecorder()
             self.logger.debug("Using Windows-specific audio recorder")
-        
+
+        self.recordings_dir = self._get_recordings_dir()
+        self.validate_dir(self.recordings_dir)
+
         # Alarms
+        self.alarms_dir = self._get_alarms_dir()
+        self.validate_dir(self.alarms_dir)
         self.alarms = {}
         self.load_alarms()
         self.selected_alarm_name = None
@@ -39,141 +41,19 @@ class AudioManager:
         self.is_recording = False
         self.has_recording_permission = self.check_recording_permission()
     
-    def check_is_android(self):
-        """Returns whether the app is running on Android."""
-        from kivy.utils import platform
-        return platform == PLATFORM.ANDROID
-    
-    def check_is_windows(self):
-        """Returns whether the app is running on Windows."""
-        import platform as py_platform
-        return py_platform.system() == "Windows"
-    
-    def check_recording_permission(self):
-        """Returns whether Android RECORD_AUDIO permission is granted."""
-        if not self.is_android:
-            return True
-        
-        try:
-            from android.permissions import check_permission, Permission  # type: ignore
-            return check_permission(Permission.RECORD_AUDIO)
-            
-        except ImportError:
-            self.logger.error("Android permissions module not available. Ensure this is running on Android.")
-            return False
-        except AttributeError:
-            self.logger.error("Permission.RECORD_AUDIO not found. Check Kivy's Android permissions module.")
-            return False
-        except RuntimeError as e:
-            self.logger.error(f"Runtime error: {e}. Ensure request_permissions is called from the main thread.")
-            return False
-        except Exception as e:
-            self.logger.error(f"Unexpected error while requesting permissions: {e}")
-            return False
-
-    def request_android_recording_permissions(self):
-        """Displays a dialog to request Android RECORD_AUDIO permissions."""
-        if not self.is_android:
-            return
-            
-        try:
-            from android.permissions import request_permissions, Permission  # type: ignore
-            request_permissions(
-                [Permission.RECORD_AUDIO],
-                self.recording_permission_callback
-            )
-        except ImportError:
-            self.logger.error("Android permissions module not available. Ensure this is running on Android.")
-        except AttributeError:
-            self.logger.error("Permission.RECORD_AUDIO not found. Check Kivy's Android permissions module.")
-        except RuntimeError as e:
-            self.logger.error(f"Runtime error: {e}. Ensure request_permissions is called from the main thread.")
-        except Exception as e:
-            self.logger.error(f"Unexpected error while requesting permissions: {e}")
-    
-    def recording_permission_callback(self, permissions, results):
-        """Handles recording permission response."""
-        if all(results):  # All permissions granted
-            self.logger.debug(f"Permissions {permissions} granted")
-            self.has_recording_permission = True
-        else:
-            self.logger.debug(f"Permissions {permissions} denied")
-            self.has_recording_permission = False
-    
-    def _get_alarm_dir(self):
-        """Get the directory path where the alarms are stored."""
-        if self.is_android:
-            try:
-                from android.storage import app_storage_path  # type: ignore
-                return os.path.join(app_storage_path(), DIR.ALARMS)
-            
-            except ImportError:
-                self.logger.error("Android storage module not available.")
-                return os.path.join(os.path.expanduser("~"), DIR.ALARMS)
-        else:
-            return os.path.join(DIR.ALARMS)
-    
-    def validate_alarm_dir(self):
-        """Validate the alarm directory."""
-        if not os.path.isdir(self.alarm_dir):
-            try:
-                os.makedirs(self.alarm_dir, exist_ok=True)
-                self.logger.debug(f"Created alarm directory: {self.alarm_dir}")
-
-            except PermissionError:
-                self.logger.error(f"Permission denied: Cannot create directory {self.alarm_dir}. Check app permissions.")
-            except FileNotFoundError:
-                self.logger.error(f"Invalid path: {self.alarm_dir} does not exist.")
-            except OSError as e:
-                self.logger.error(f"OS error while creating {self.alarm_dir}: {e}")
-    
-    def get_recording_path(self):
-        """Get the path and filename of the just started recording."""
-        filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
-        path = os.path.join(self.alarm_dir, filename + EXT.WAV)
-        return path, filename
-    
     def load_alarms(self):
         """Load the alarm files from the storage path."""
-        if not os.path.exists(self.alarm_dir):
-            self.logger.warning(f"Alarm directory not found: {self.alarm_dir}")
+        if not os.path.exists(self.alarms_dir):
+            self.logger.warning(f"Alarm directory not found: {self.alarms_dir}")
             return
             
         alarms = {}
-        for file in os.listdir(self.alarm_dir):
+        for file in os.listdir(self.alarms_dir):
             if file.endswith(EXT.WAV):
-                alarms[file.split(".")[0]] = os.path.join(self.alarm_dir, file)
+                alarms[file.split(".")[0]] = os.path.join(self.alarms_dir, file)
         
         self.alarms = alarms
         self.logger.debug(f"Loaded {len(alarms)} alarms")
-    
-    def name_to_path(self, name):
-        """Convert an alarm name to a path."""
-        return os.path.join(self.alarm_dir, f"{name}{EXT.WAV}")
-    
-    def path_to_name(self, path):
-        """Convert a path to an alarm name."""
-        return os.path.basename(path).split(".")[0]
-
-    def set_alarm_name(self, name=None, path=None):
-        """Set the name of the alarm"""
-        if path:
-            self.selected_alarm_name = self.path_to_name(path)
-        elif name:
-            self.selected_alarm_name = name
-        else:
-            self.logger.error("Either name or path must be provided")
-            raise ValueError("Either name or path must be provided")
-    
-    def set_alarm_path(self, path=None, name=None):
-        """Set the path of the alarm."""
-        if path:
-            self.selected_alarm_path = path
-        elif name:
-            self.selected_alarm_path = self.name_to_path(name)
-        else:
-            self.logger.error("Either path or name must be provided")
-            raise ValueError("Either path or name must be provided")
 
     def start_recording(self):
         """Start recording audio using the appropriate method based on the platform."""
@@ -230,13 +110,13 @@ class AudioManager:
                 try:
                     if self.is_windows:
                         import time
-                        time.sleep(0.5)
+                        time.sleep(0.2)
                         
-                    # Verify the file
+                    # Verify file
                     if os.path.exists(self.selected_alarm_path):
                         with open(self.selected_alarm_path, "rb") as f:
                             audio_data = f.read(1024)
-                        # Reload alarms to add new recording
+                        # Reload alarms to add recording
                         self.load_alarms()
                         self.logger.debug(f"Successfully saved recording to {self.selected_alarm_path}")
                     else:
