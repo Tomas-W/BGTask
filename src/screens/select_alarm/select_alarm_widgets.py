@@ -5,8 +5,8 @@ from kivy.uix.gridlayout import GridLayout
 from src.settings import COL, FONT, SIZE, SPACE
 
 
-from src.utils.containers import TopBarContainer
-from src.utils.buttons import TopBarTitle, TopBarButton
+from src.widgets.containers import TopBarContainer
+from src.widgets.buttons import TopBarTitle, TopBarButton
 
 from src.settings import PATH
 

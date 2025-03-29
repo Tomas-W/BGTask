@@ -1,4 +1,5 @@
 from kivy.uix.label import Label
+
 from src.settings import COL, SIZE, SPACE, FONT
 
 

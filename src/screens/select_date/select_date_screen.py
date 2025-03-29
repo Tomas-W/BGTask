@@ -8,11 +8,11 @@ from kivy.uix.label import Label
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 
-from src.utils.bars import TopBarClosed, TopBarExpanded
-from src.utils.buttons import CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
-from src.utils.labels import PartitionHeader
-from src.utils.fields import InputField
+from src.widgets.bars import TopBarClosed, TopBarExpanded
+from src.widgets.buttons import CustomButton
+from src.widgets.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
+from src.widgets.labels import PartitionHeader
+from src.widgets.fields import InputField
 from .select_date_widgets import DateTimeLabel, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
 
 from src.settings import COL, SIZE, SPACE, STATE, STYLE, SCREEN

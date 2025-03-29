@@ -7,10 +7,10 @@ from kivy.uix.label import Label
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.utils.bars import TopBarClosed, TopBarExpanded
-from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
-from src.utils.buttons import CustomButton, CustomSettingsButton
-from src.utils.fields import SettingsField
+from src.widgets.bars import TopBarClosed, TopBarExpanded
+from src.widgets.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
+from src.widgets.buttons import CustomButton, CustomSettingsButton
+from src.widgets.fields import SettingsField
 
 from src.settings import STATE, SCREEN
 

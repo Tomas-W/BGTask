@@ -3,10 +3,10 @@ from datetime import datetime
 from kivy.uix.floatlayout import FloatLayout
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 
-from src.utils.bars import TopBarClosed, TopBarExpanded
-from src.utils.buttons import CustomButton
-from src.utils.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
-from src.utils.fields import TextField, ButtonField
+from src.widgets.bars import TopBarClosed, TopBarExpanded
+from src.widgets.buttons import CustomButton
+from src.widgets.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
+from src.widgets.fields import TextField, ButtonField
 
 from src.settings import SCREEN, STATE
 

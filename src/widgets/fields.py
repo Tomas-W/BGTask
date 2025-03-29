@@ -2,7 +2,7 @@ from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 
-from src.utils.labels import ButtonFieldLabel, SettingsFieldLabel
+from src.widgets.labels import ButtonFieldLabel, SettingsFieldLabel
 
 from src.settings import COL, SIZE, SPACE, FONT, STYLE, TEXT, STATE
 

@@ -1,8 +1,8 @@
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 
-from src.utils.containers import BaseLayout
-from src.utils.buttons import CustomButton
+from src.widgets.containers import BaseLayout
+from src.widgets.buttons import CustomButton
 
 from src.settings import DIR, PATH, SCREEN
 
@@ -33,9 +33,9 @@ class StartScreen(Screen):
         """
         Builds the page with the day header and the tasks container.
         """
-        from src.utils.containers import ScrollContainer, Partition
+        from src.widgets.containers import ScrollContainer, Partition
         from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer
-        from src.utils.labels import PartitionHeader
+        from src.widgets.labels import PartitionHeader
         self.scroll_container = ScrollContainer()
 
         self.header_partition = Partition()

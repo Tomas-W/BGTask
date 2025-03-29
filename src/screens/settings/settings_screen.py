@@ -2,8 +2,9 @@ from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen
-from src.utils.containers import BaseLayout, ScrollContainer
-from src.utils.bars import TopBarClosed, TopBarExpanded
+
+from src.widgets.containers import BaseLayout, ScrollContainer
+from src.widgets.bars import TopBarClosed, TopBarExpanded
 
 from src.settings import SCREEN
 

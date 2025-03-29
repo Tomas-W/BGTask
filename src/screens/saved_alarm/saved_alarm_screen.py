@@ -2,9 +2,9 @@ from kivy.uix.floatlayout import FloatLayout
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.utils.bars import TopBarClosed, TopBarExpanded
-from src.utils.containers import Partition, ScrollContainer, BaseLayout, CustomButtonRow
-from src.utils.buttons import CustomButton, CustomSettingsButton
+from src.widgets.bars import TopBarClosed, TopBarExpanded
+from src.widgets.containers import Partition, ScrollContainer, BaseLayout, CustomButtonRow
+from src.widgets.buttons import CustomButton, CustomSettingsButton
 
 from src.settings import STATE, SCREEN
 
