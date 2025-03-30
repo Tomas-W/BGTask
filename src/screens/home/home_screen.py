@@ -68,6 +68,8 @@ class HomeScreen(BaseScreen):
         self.add_widget(self.root_layout)
     
     def navigate_to_new_task(self, *args) -> None:
+        if self.edit_delete_visible:
+            self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
     def check_for_edit_delete(self) -> None:

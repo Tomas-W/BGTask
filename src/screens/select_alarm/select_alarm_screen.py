@@ -99,7 +99,7 @@ class SelectAlarmScreen(BaseScreen):
         self.button_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomCancelButton(text="Cancel", width=2)
-        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
+        self.cancel_button.bind(on_press=self.cancel_select_alarm)
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = CustomConfirmButton(text="Select", width=2)
@@ -113,20 +113,29 @@ class SelectAlarmScreen(BaseScreen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
+    
+    def cancel_select_alarm(self, instance):
+        """Cancel the select alarm process"""
+        self.audio_manager.selected_alarm_name = None
+        self.audio_manager.selected_alarm_path = None
+        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
 
     def update_selected_alarm_text(self):
-        """Update the selected alarm text"""
+        """Update the selected alarm text and save button state"""
         if self.recording_on:
             self.selected_alarm.set_text("Recording...")
             self.play_selected_alarm_button.set_inactive_state()
+            self.save_button.set_inactive_state()  # Can't save while recording
 
         elif self.audio_manager.selected_alarm_name is None:
             self.selected_alarm.set_text("No alarm selected")
             self.play_selected_alarm_button.set_inactive_state()
+            self.save_button.set_inactive_state()  # No alarm selected = inactive save button
 
         else:
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
             self.play_selected_alarm_button.set_active_state()
+            self.save_button.set_active_state()  # Alarm selected = active save button
             
     def start_recording(self, instance):
         """Start recording an alarm"""
@@ -136,7 +145,7 @@ class SelectAlarmScreen(BaseScreen):
             self.start_recording_button.set_text("Recording...")
             self.start_recording_button.set_inactive_state()
             self.stop_recording_button.set_active_state()
-            self.update_selected_alarm_text()
+            self.update_selected_alarm_text()  # This will also update the save button
         else:
             # Show error popup
             popup = Popup(title="Recording Error",
@@ -152,7 +161,7 @@ class SelectAlarmScreen(BaseScreen):
             self.start_recording_button.set_text("Start Recording")
             self.start_recording_button.set_active_state()
             self.stop_recording_button.set_inactive_state()
-            self.update_selected_alarm_text()
+            self.update_selected_alarm_text()  # This will also update the save button
         else:
             # Show error popup
             popup = Popup(title="Recording Error",
@@ -229,4 +238,4 @@ class SelectAlarmScreen(BaseScreen):
     def on_pre_enter(self):
         """Called when the screen is entered"""
         super().on_pre_enter()
-        self.update_selected_alarm_text()
+        self.update_selected_alarm_text()  # This will also update the save button

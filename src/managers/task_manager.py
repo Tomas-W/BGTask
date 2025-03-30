@@ -96,7 +96,7 @@ class TaskManager:
                 # Pre-fill the data
                 new_task_screen.edit_mode = True
                 new_task_screen.task_id_to_edit = task_id
-                new_task_screen.task_input.set_text(task.message)
+                new_task_screen.task_input_field.set_text(task.message)
                 new_task_screen.selected_date = task.timestamp.date()
                 new_task_screen.selected_time = task.timestamp.time()
                 new_task_screen.update_datetime_display()

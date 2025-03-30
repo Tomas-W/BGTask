@@ -99,8 +99,8 @@ class NewTaskScreen(BaseScreen):
         self.cancel_button = CustomCancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_press=self.cancel_edit_task)
         self.button_row.add_widget(self.cancel_button)
-        # Save button
-        self.save_button = CustomConfirmButton(text="Save Task", width=2)
+        # Save button - with inactive state
+        self.save_button = CustomConfirmButton(text="Save Task", width=2, color_state=STATE.INACTIVE)
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
@@ -111,6 +111,10 @@ class NewTaskScreen(BaseScreen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
+        
+        # Add TextInput binding to validate form state
+        # Connect to the TextInput directly
+        self.task_input_field.text_input.bind(text=self.validate_form)
     
     def update_in_edit_task_mode(self, instance, value) -> None:
         self.in_edit_task_mode = value
@@ -134,6 +138,23 @@ class NewTaskScreen(BaseScreen):
         self.task_id_to_edit = None
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
+        self.audio_manager.selected_alarm_name = None
+        self.audio_manager.selected_alarm_path = None
+        # Make sure save button is inactive after clearing
+        self.save_button.set_inactive_state()
+    
+    def validate_form(self, *args) -> None:
+        """
+        Validates the form inputs and updates the save button state accordingly.
+        Button is active only when both task and date are properly set.
+        """
+        task_text = self.task_input_field.text.strip()
+        date_time_set = self.selected_date is not None and self.selected_time is not None
+        
+        if len(task_text) >= 3 and date_time_set:
+            self.save_button.set_active_state()
+        else:
+            self.save_button.set_inactive_state()
 
     def update_datetime_display(self) -> None:
         """
@@ -159,6 +180,8 @@ class NewTaskScreen(BaseScreen):
         self.update_datetime_display()
         # Reset the date picker button styles
         self.date_display_field.hide_border()
+        # Validate form after date selection
+        self.validate_form()
     
     def update_alarm_display(self) -> None:
         """
@@ -260,7 +283,9 @@ class NewTaskScreen(BaseScreen):
             self.save_button.set_text("Update Task")
         else:
             self.save_button.set_text("Save Task")
+        
+        # Validate form state when entering screen
+        self.validate_form()
 
     def on_enter(self):
         pass
-    
