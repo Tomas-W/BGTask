@@ -63,7 +63,7 @@ class SelectDateScreen(BaseScreen):
             symbol=True,
             color_state=STATE.ACTIVE,
         )
-        self.prev_month_button.bind(on_press=self.go_to_prev_month)
+        self.prev_month_button.bind(on_release=self.go_to_prev_month)
         # Select month label
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
@@ -74,7 +74,7 @@ class SelectDateScreen(BaseScreen):
             symbol=True,
             color_state=STATE.ACTIVE,
         )
-        self.next_month_button.bind(on_press=self.go_to_next_month)
+        self.next_month_button.bind(on_release=self.go_to_next_month)
         # Apply month row
         self.select_month_row.add_widget(self.prev_month_button)
         self.select_month_row.add_widget(self.month_label)
@@ -123,11 +123,11 @@ class SelectDateScreen(BaseScreen):
         self.confirmation_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomCancelButton(text="Cancel", width=2)
-        self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
+        self.cancel_button.bind(on_release=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         # Confirm button
         self.confirm_button = CustomConfirmButton(text="Confirm", width=2,
                                                   color_state=STATE.ACTIVE)
-        self.confirm_button.bind(on_press=self.confirm_date_selection)
+        self.confirm_button.bind(on_release=self.confirm_date_selection)
         # Apply confirmation partition
         self.confirmation_row.add_widget(self.cancel_button)
         self.confirmation_row.add_widget(self.confirm_button)
@@ -207,7 +207,7 @@ class SelectDateScreen(BaseScreen):
                         day_button.bind(pos=self.update_selected_day, 
                                        size=self.update_selected_day)
                     
-                    day_button.bind(on_press=lambda btn, d=day: self.select_day(d))
+                    day_button.bind(on_release=lambda btn, d=day: self.select_day(d))
                     self.calendar_grid.add_widget(day_button)
     
     def update_selected_day(self, instance, value):

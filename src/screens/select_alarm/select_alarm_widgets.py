@@ -26,12 +26,12 @@ class SelectAlarmBar():
         self.top_bar_container = TopBarContainer()
 
         self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
-        self.back_button.bind(on_press=back_callback)
+        self.back_button.bind(on_release=back_callback)
 
         self.new_task_button = TopBarTitle(text="Select Date", button=False)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG, radius_side="left")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.back_button)
         self.top_bar_container.add_widget(self.new_task_button)
@@ -57,18 +57,18 @@ class SelectDateBarExpanded():
         self.top_bar_container = TopBarContainer()
 
         self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
-        self.back_button.bind(on_press=back_callback)
+        self.back_button.bind(on_release=back_callback)
 
         self.new_task_button = TopBarTitle(button=False)
 
         self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="left")
-        self.settings_button.bind(on_press=settings_callback)
+        self.settings_button.bind(on_release=settings_callback)
 
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
-        self.exit_button.bind(on_press=exit_callback)
+        self.exit_button.bind(on_release=exit_callback)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG_BLACK, radius_side="none")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.back_button)
         self.top_bar_container.add_widget(self.new_task_button)

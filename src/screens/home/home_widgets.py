@@ -51,11 +51,11 @@ class TasksbyDate(BoxLayout):
         
         edit_button = EditTaskButton(text="Edit", type="edit")
         edit_button.set_size_hint_x(0.3)
-        edit_button.bind(on_press=lambda x, task_id=task.task_id: self.task_manager.edit_task(task_id))
+        edit_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.edit_task(task_id))
         
         delete_button = EditTaskButton(text="Delete", type="delete")
         delete_button.set_size_hint_x(0.3)
-        delete_button.bind(on_press=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
+        delete_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
         
         time_container.add_widget(time_label)
         time_container.add_widget(edit_button)

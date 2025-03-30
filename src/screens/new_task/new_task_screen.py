@@ -63,7 +63,7 @@ class NewTaskScreen(BaseScreen):
         self.date_picker_partition = Partition()
         # Date picker button
         self.pick_date_button = CustomConfirmButton(text="Select Date", color_state=STATE.ACTIVE)
-        self.pick_date_button.bind(on_press=self.go_to_select_date_screen)
+        self.pick_date_button.bind(on_release=self.go_to_select_date_screen)
         self.date_picker_partition.add_widget(self.pick_date_button)
         # Date display box
         self.date_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
@@ -83,7 +83,7 @@ class NewTaskScreen(BaseScreen):
         self.select_alarm_partition = Partition()
         # Alarm picker button
         self.select_alarm_button = CustomConfirmButton(text="Select Alarm", color_state=STATE.ACTIVE)
-        self.select_alarm_button.bind(on_press=self.go_to_select_alarm_screen)
+        self.select_alarm_button.bind(on_release=self.go_to_select_alarm_screen)
         self.select_alarm_partition.add_widget(self.select_alarm_button)
         # Alarm display box
         self.alarm_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
@@ -97,11 +97,11 @@ class NewTaskScreen(BaseScreen):
         self.button_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomCancelButton(text="Cancel", width=2)
-        self.cancel_button.bind(on_press=self.cancel_edit_task)
+        self.cancel_button.bind(on_release=self.cancel_edit_task)
         self.button_row.add_widget(self.cancel_button)
         # Save button - with inactive state
         self.save_button = CustomConfirmButton(text="Save Task", width=2, color_state=STATE.INACTIVE)
-        self.save_button.bind(on_press=self.save_task)
+        self.save_button.bind(on_release=self.save_task)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
         

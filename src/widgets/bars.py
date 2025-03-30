@@ -21,13 +21,13 @@ class HomeBarClosed():
         self.top_bar_container = TopBarContainer()
 
         self.edit_button = TopBarButton(img_path=PATH.EDIT_IMG, radius_side="right")
-        self.edit_button.bind(on_press=edit_callback)
+        self.edit_button.bind(on_release=edit_callback)
 
         self.new_task_button = TopBarTitle(text="+")
-        self.new_task_button.bind(on_press=new_task_callback)
+        self.new_task_button.bind(on_release=new_task_callback)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG, radius_side="left")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.edit_button)
         self.top_bar_container.add_widget(self.new_task_button)
@@ -53,21 +53,21 @@ class HomeBarExpanded():
         self.top_bar_container = TopBarContainer()
 
         self.edit_button = TopBarButton(img_path=PATH.EDIT_IMG, radius_side="right")
-        self.edit_button.bind(on_press=edit_callback)
+        self.edit_button.bind(on_release=edit_callback)
 
         self.new_task_button = TopBarTitle(button=False)
 
         self.screenshot_button = TopBarButton(img_path=PATH.SCREENSHOT_IMG, radius_side="left")
-        self.screenshot_button.bind(on_press=screenshot_callback)
+        self.screenshot_button.bind(on_release=screenshot_callback)
 
         self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="none")
-        self.settings_button.bind(on_press=settings_callback)
+        self.settings_button.bind(on_release=settings_callback)
 
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
-        self.exit_button.bind(on_press=exit_callback)
+        self.exit_button.bind(on_release=exit_callback)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG_BLACK, radius_side="none")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.edit_button)
         self.top_bar_container.add_widget(self.new_task_button)
@@ -93,12 +93,12 @@ class TopBarClosed():
         self.top_bar_container = TopBarContainer()
 
         self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
-        self.back_button.bind(on_press=back_callback)
+        self.back_button.bind(on_release=back_callback)
 
         self.bar_title = TopBarTitle(text=bar_title, button=False)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG, radius_side="left")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.back_button)
         self.top_bar_container.add_widget(self.bar_title)
@@ -125,21 +125,21 @@ class TopBarExpanded():
         self.top_bar_container = TopBarContainer()
 
         self.back_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
-        self.back_button.bind(on_press=back_callback)
+        self.back_button.bind(on_release=back_callback)
 
         self.bar_title = TopBarTitle(button=False)
 
         self.screenshot_button = TopBarButton(img_path=PATH.SCREENSHOT_IMG, radius_side="left")
-        self.screenshot_button.bind(on_press=screenshot_callback)
+        self.screenshot_button.bind(on_release=screenshot_callback)
 
         self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="none")
-        self.settings_button.bind(on_press=settings_callback)
+        self.settings_button.bind(on_release=settings_callback)
 
         self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
-        self.exit_button.bind(on_press=exit_callback)
+        self.exit_button.bind(on_release=exit_callback)
 
         self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG_BLACK, radius_side="none")
-        self.options_button.bind(on_press=options_callback)
+        self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.back_button)
         self.top_bar_container.add_widget(self.bar_title)

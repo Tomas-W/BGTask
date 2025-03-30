@@ -61,11 +61,11 @@ class SavedAlarmScreen(BaseScreen):
         self.confirmation_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CustomCancelButton(text="Cancel")
-        self.cancel_button.bind(on_press=self.cancel_alarm_selection)
+        self.cancel_button.bind(on_release=self.cancel_alarm_selection)
         self.confirmation_row.add_widget(self.cancel_button)
         # Confirm button
         self.confirm_button = CustomConfirmButton(text="Select")
-        self.confirm_button.bind(on_press=self.confirm_alarm_selection)
+        self.confirm_button.bind(on_release=self.confirm_alarm_selection)
         self.confirmation_row.add_widget(self.confirm_button)
         # Add to confirmation partition
         self.confirmation_partition.add_widget(self.confirmation_row)
@@ -104,7 +104,7 @@ class SavedAlarmScreen(BaseScreen):
                 width=1,
                 color_state=STATE.INACTIVE,
             )
-            button.bind(on_press=self.select_alarm)
+            button.bind(on_release=self.select_alarm)
             self.alarm_picker_partition.add_widget(button)
 
     def select_alarm(self, instance):

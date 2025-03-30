@@ -58,7 +58,7 @@ class HomeScreen(BaseScreen):
         
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")
-        self.bottom_bar.bind(on_press=self.scroll_container.scroll_to_top)
+        self.bottom_bar.bind(on_release=self.scroll_container.scroll_to_top)
         self.scroll_container.connect_bottom_bar(self.bottom_bar)
         
         # Apply layout
