@@ -22,36 +22,7 @@ class TaskManager:
         self.task_file = get_storage_path(PATH.TASK_FILE)
         validate_file(self.task_file)
         
-        self._load_saved_task_file()
         self.tasks = self.load_tasks()
-    
-    def _load_saved_task_file(self) -> bool:
-        """Load the saved task_file on initial app load."""
-        if not device_is_android():
-            return True
-        
-        try:
-            from jnius import autoclass  # type: ignore
-            # Get asset manager
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            activity = PythonActivity.mActivity
-            assets = activity.getAssets()
-            
-            try:
-                with assets.open(PATH.TASK_FILE) as asset_file:
-                    content = asset_file.read().decode("utf-8")
-                
-                with open(self.task_file, "w") as f:
-                    f.write(content)                    
-                return True
-            
-            except Exception as e:
-                logger.error(f"Error loading task_file from Android assets: {e}")
-                return False
-        
-        except Exception as e:
-            logger.error(f"Error in Android setup: {e}")
-            return False
     
     def load_tasks(self) -> list[Task]:
         """Load Tasks from task_file."""
