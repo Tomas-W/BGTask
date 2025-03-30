@@ -209,6 +209,8 @@ class CustomButton(Button):
         # Set default colors - can be overridden by subclasses
         self._init_colors()
         self.color_state = color_state
+        self.disabled_color = COL.WHITE
+        self.always_clickable = False  # New property
         
         # Background color - will be set based on state
         with self.canvas.before:
@@ -243,17 +245,25 @@ class CustomButton(Button):
     def set_error_state(self):
         self.color_state = STATE.ERROR
         self.color_instr.rgba = self.color_error
+        if not self.always_clickable:
+            self.disabled = True
     
     def set_active_state(self):
         self.color_state = STATE.ACTIVE
         self.color_instr.rgba = self.color_active
+        self.disabled = False
     
     def set_inactive_state(self):
         self.color_state = STATE.INACTIVE
         self.color_instr.rgba = self.color_inactive
-    
+        if not self.always_clickable:
+            self.disabled = True
+
     def set_text(self, text):
         self.text = text
+    
+    def set_disabled(self, value):
+        self.disabled = value
 
 
 class CustomCancelButton(CustomButton):
@@ -293,6 +303,8 @@ class CustomConfirmButton(CustomButton):
             **kwargs
         )
         self.disabled_color = COL.WHITE
+        self.always_clickable = True  # Set property to keep clickable
+        self.disabled = False  # Ensure it's enabled
     
     def _init_colors(self):
         """Override the button colors"""
@@ -306,12 +318,16 @@ class CustomSettingsButton(CustomButton):
     CustomSettingsButton is a button that:
     - Inherits styling and functionality from CustomButton
     - Is 2/3 the height of the CustomButton
+    - Always remains clickable regardless of visual state
     """
-    def __init__(self, width: int, symbol: bool = False, **kwargs):
+    def __init__(self, width: int, symbol: bool = False, color_state: str = STATE.INACTIVE, **kwargs):
         super().__init__(
             width=width,
             symbol=symbol,
+            color_state=color_state,
             **kwargs
         )
         self.height = SIZE.SETTINGS_BUTTON_HEIGHT
         self.font_size = FONT.SETTINGS_BUTTON if not symbol else FONT.SETTINGS_BUTTON_SYMBOL
+        self.always_clickable = True  # Set property to keep clickable
+        self.disabled = False  # Ensure it's enabled

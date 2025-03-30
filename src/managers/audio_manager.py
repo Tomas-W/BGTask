@@ -132,6 +132,84 @@ class AudioManager(AudioManagerUtils):
             self.is_recording = False
             return False
 
+    def play_alarm(self, alarm_path=None):
+        """Play the selected alarm or a specified alarm path"""
+        path_to_play = alarm_path or self.selected_alarm_path
+        logger.debug(f"Playing alarm: {path_to_play}")
+        
+        if not path_to_play:
+            logger.error("No alarm selected to play")
+            return False
+        
+        if not os.path.exists(path_to_play):
+            logger.error(f"Alarm file not found: {path_to_play}")
+            return False
+        
+        # Stop any currently playing sound first
+        self.stop_alarm()
+        
+        try:
+            if self.is_android:
+                from jnius import autoclass
+                MediaPlayer = autoclass("android.media.MediaPlayer")
+                
+                # Create and store a reference to the player
+                self._current_player = MediaPlayer()
+                self._current_player.setDataSource(path_to_play)
+                self._current_player.prepare()
+                self._current_player.start()
+                return True
+            else:
+                # Non-Android platforms
+                from kivy.core.audio import SoundLoader
+                sound = SoundLoader.load(path_to_play)
+                if sound:
+                    sound.play()
+                    self._current_sound = sound
+                    return True
+                else:
+                    logger.error(f"Could not load sound: {path_to_play}")
+                    return False
+        except Exception as e:
+            logger.error(f"Error playing alarm: {e}")
+            return False
+
+    def stop_alarm(self):
+        """Stop the currently playing alarm"""
+        try:
+            # For Android
+            if self.is_android and hasattr(self, "_current_player"):
+                try:
+                    if self._current_player.isPlaying():
+                        self._current_player.stop()
+                        self._current_player.reset()
+                        self._current_player.release()
+                    del self._current_player
+                except Exception as e:
+                    logger.error(f"Error stopping Android playback: {e}")
+            
+            # For non-Android platforms
+            elif hasattr(self, "_current_sound") and self._current_sound:
+                self._current_sound.stop()
+                del self._current_sound
+                
+            return True
+        except Exception as e:
+            logger.error(f"Error stopping alarm: {e}")
+            return False
+
+    def is_playing(self):
+        """Check if an alarm is currently playing"""
+        try:
+            if self.is_android and hasattr(self, "_current_player"):
+                return self._current_player.isPlaying()
+            elif hasattr(self, "_current_sound") and self._current_sound:
+                return self._current_sound.state == 'play'
+            return False
+        except Exception as e:
+            logger.error(f"Error checking if alarm is playing: {e}")
+            return False
+
 
 class AndroidAudioRecorder:
     """Android-specific audio recording implementation."""

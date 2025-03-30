@@ -182,6 +182,18 @@ class CustomButtonRow(BoxLayout):
         )
 
 
+class CustomSettingsButtonsRow(CustomButtonRow):
+    """
+    CustomSettingsButtonsRow is the base for a row of CustomSettingsButtons that:
+    - Contains CustomSettingsButtons
+    - Has spacing between its children
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            **kwargs
+        )
+        self.height = SIZE.SETTINGS_BUTTON_HEIGHT
+
 class CustomRow(BoxLayout):
     """
     CustomRow is the base for a row of widgets that:

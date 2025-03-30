@@ -81,7 +81,12 @@ class AudioManagerUtils:
     
     def set_alarm_name(self, name: str | None = None, path: str | None = None) -> None:
         if path:
-            self.selected_alarm_name = self.alarm_path_to_name(path)
+            path_name = self.alarm_path_to_name(path)
+            if os.path.exists(path):
+                self.selected_alarm_name = path_name
+            else:
+                name = os.path.basename(path).split(".")[0]
+                self.selected_alarm_name = self.recording_path_to_name(name)
         elif name:
             self.selected_alarm_name = name
         else:
@@ -92,7 +97,11 @@ class AudioManagerUtils:
         if path:
             self.selected_alarm_path = path
         elif name:
-            self.selected_alarm_path = self.alarm_name_to_path(name)
+            path_name = self.alarm_name_to_path(name)
+            if os.path.exists(path_name):
+                self.selected_alarm_path = path_name
+            else:
+                self.selected_alarm_path = self.recording_name_to_path(name)
         else:
             logger.error("Either path or name must be provided")
             raise ValueError("Either path or name must be provided")
