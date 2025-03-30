@@ -3,7 +3,7 @@ from datetime import datetime
 
 class Task:
     """
-    Represents a task with a message and timestamp.
+    Represents a Task with a message and timestamp.
     """
     def __init__(self, task_id=None, message="", timestamp=None):
         self.task_id = task_id if task_id else datetime.now().strftime("%Y%m%d%H%M%S")
@@ -11,7 +11,7 @@ class Task:
         self.timestamp = timestamp if timestamp else datetime.now()
     
     def to_dict(self) -> dict:
-        """Convert task to dictionary for serialization"""
+        """Convert Task to dictionary for serialization."""
         return {
             "task_id": self.task_id,
             "message": self.message,
@@ -20,7 +20,7 @@ class Task:
     
     @classmethod
     def from_dict(cls, data: dict) -> "Task":
-        """Create task from dictionary"""
+        """Create Task from dictionary."""
         return cls(
             task_id=data.get("task_id"),
             message=data.get("message"),
@@ -28,7 +28,7 @@ class Task:
         )
     
     def get_date_str(self) -> str:
-        """Get formatted date string [Day DD Month]"""
+        """Get formatted date string [Day DD Month]."""
         if isinstance(self.timestamp, datetime):
             dt = self.timestamp
         else:
@@ -36,9 +36,8 @@ class Task:
         return dt.strftime("%A %d %b")
     
     def get_time_str(self) -> str:
-        """Get formatted time string [HH:MM]"""
+        """Get formatted time string [HH:MM]."""
         return self.timestamp.strftime("%H:%M")
-    
+
     def get_task_id(self) -> str:
-        """Get task id"""
         return self.task_id

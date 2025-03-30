@@ -158,7 +158,6 @@ class AndroidAudioRecorder:
             return False
     
     def start_recording_android(self) -> bool:
-        """Start the recording."""
         try:
             if not self.recorder:
                 return False
@@ -222,7 +221,7 @@ class WindowsAudioRecorder:
             self.available = False
     
     def setup(self, path: str) -> bool:
-        """Configure the recorder for a new recording session"""
+        """Configure the recorder for a new recording session."""
         if not self.available:
             logger.error("Windows audio recorder not available - PyAudio missing")
             return False
@@ -236,7 +235,6 @@ class WindowsAudioRecorder:
             return False
     
     def start_recording_desktop(self) -> bool:
-        """Start recording using PyAudio"""
         if not self.available or not self.current_path:
             logger.error(f"Cannot start recording - recorder not available or path not set [{self.available=}, {self.current_path=}]")
             return False
@@ -274,7 +272,6 @@ class WindowsAudioRecorder:
             return False
     
     def stop_recording_desktop(self) -> bool:
-        """Stop the recording"""
         if not self.available:
             return False
         

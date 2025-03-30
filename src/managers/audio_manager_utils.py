@@ -74,15 +74,12 @@ class AudioManagerUtils:
         return path, filename
     
     def alarm_name_to_path(self, name: str) -> str:
-        """Convert an alarm name to a path."""
         return os.path.join(self.alarms_dir, f"{name}{EXT.WAV}")
     
     def alarm_path_to_name(self, path: str) -> str:
-        """Convert a path to an alarm name."""
         return os.path.basename(path).split(".")[0]
     
     def set_alarm_name(self, name: str | None = None, path: str | None = None) -> None:
-        """Set the name of the alarm"""
         if path:
             self.selected_alarm_name = self.alarm_path_to_name(path)
         elif name:
@@ -92,7 +89,6 @@ class AudioManagerUtils:
             raise ValueError("Either name or path must be provided")
     
     def set_alarm_path(self, path: str | None = None, name: str | None = None) -> None:
-        """Set the path of the alarm."""
         if path:
             self.selected_alarm_path = path
         elif name:
@@ -102,15 +98,12 @@ class AudioManagerUtils:
             raise ValueError("Either path or name must be provided")
     
     def recording_name_to_path(self, name: str) -> str:
-        """Convert a recording name to a path."""
         return os.path.join(self.recordings_dir, f"{name}{EXT.WAV}")
     
     def recording_path_to_name(self, path: str) -> str:
-        """Convert a path to a recording name."""
         return os.path.basename(path).split(".")[0]
     
     def set_recording_name(self, name: str | None = None, path: str | None = None) -> None:
-        """Set the name of the recording."""
         if path:
             self.selected_recording_name = self.recording_path_to_name(path)
         elif name:
@@ -120,7 +113,6 @@ class AudioManagerUtils:
             raise ValueError("Either name or path must be provided")
     
     def set_recording_path(self, path: str | None = None, name: str | None = None) -> None:
-        """Set the path of the recording."""
         if path:
             self.selected_recording_path = path
         elif name:
