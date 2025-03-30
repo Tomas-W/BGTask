@@ -46,7 +46,7 @@ class SavedAlarmScreen(BaseScreen):
         self.layout.add_widget(self.top_bar.top_bar_container)
 
         # Scroll container
-        self.scroll_container = ScrollContainer(allow_scroll_y=False)
+        self.scroll_container = ScrollContainer()
 
         # Alarm picker partition
         self.alarm_picker_partition = Partition()

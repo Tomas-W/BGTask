@@ -43,6 +43,12 @@ class AudioManager(AudioManagerUtils):
     def load_alarms(self):
         """Load the alarm files from the storage path."""
         alarms = {}
+        # Recordings
+        for file in os.listdir(self.recordings_dir):
+            if file.endswith(EXT.WAV):
+                alarms[file.split(".")[0]] = os.path.join(self.recordings_dir, file)
+
+        # Default alarms
         for file in os.listdir(self.alarms_dir):
             if file.endswith(EXT.WAV):
                 alarms[file.split(".")[0]] = os.path.join(self.alarms_dir, file)

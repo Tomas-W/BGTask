@@ -15,6 +15,7 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Edit and delete recordings
 # TODO: Refactor StartScreen
 # TODO: Fix recording permission popup
 # TODO: Remove selected_task_alarm after saving
@@ -24,13 +25,11 @@ if platform != PLATFORM.ANDROID:
 # TODO: When no tasks, edit message for screenshot
 # TODO: Add alarm path to task
 # TODO: Add vibrtating to task
-# TODO: Add alarm check to task
 # TODO: Rework audio preview and limit to play once
  
 # TODO: Editing last task adds new default message
 # TODO: Save scroll value when going to new task screen
 # TODO: Look at caching
-# TODO: Seperate logic in build method in main.py
 # TODO: Add on_pause saving data
 # TODO: Add on_resume loading data
 # TODO: Add on_stop saving data
