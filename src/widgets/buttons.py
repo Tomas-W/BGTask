@@ -189,96 +189,6 @@ class BottomBar(Button):
         anim.start(self)
 
 
-class CustomCancelButton(Button):
-    """
-    CustomCancelButton is a Cancel button that:
-    - Has a background color
-    """
-    def __init__(self, width: int = 1, symbol: bool = False, **kwargs):
-        super().__init__(
-            size_hint=(width, None),
-            height=SIZE.BUTTON_HEIGHT,
-            font_size=FONT.BUTTON if not symbol else FONT.BUTTON_SYMBOL,
-            bold=True if symbol else False,
-            color=COL.WHITE,
-            background_color=COL.OPAQUE,
-            **kwargs
-        )
-        
-        with self.canvas.before:
-            Color(*COL.CANCEL_BUTTON)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[STYLE.RADIUS_M])
-            self.bind(pos=self._update, size=self._update)
-
-    def _update(self, instance, value):
-        """Update background"""
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
-    
-    def set_text(self, text):
-        self.text = text
-
-
-class CustomConfirmButton(Button):
-    """
-    CustomConfirmButton is a Confirm button that:
-    - Has a state (active, inactive, error)
-    - Has a background color based on state
-    """
-    def __init__(self, width: int = 1, color_state: str = STATE.INACTIVE, symbol: bool = False, **kwargs):
-        super().__init__(
-            size_hint=(width, None),
-            height=SIZE.BUTTON_HEIGHT,
-            font_size=FONT.BUTTON if not symbol else FONT.BUTTON_SYMBOL,
-            bold=True if symbol else False,
-            color=COL.WHITE,
-            background_color=COL.OPAQUE,
-            **kwargs
-        )
-        
-        self.color_active = COL.CONFIRM_BUTTON_ACTIVE
-        self.color_inactive = COL.CONFIRM_BUTTON_INACTIVE
-        self.color_error = COL.ERROR
-        self.color_state = color_state
-        self.disabled_color = COL.WHITE
-        
-        # Background color - will be set based on state
-        with self.canvas.before:
-            self.color_instr = Color(1, 1, 1)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[STYLE.RADIUS_M])
-            self.bind(pos=self._update, size=self._update)
-        
-        # Apply the initial state
-        if self.color_state == STATE.ACTIVE:
-            self.set_active_state()
-        elif self.color_state == STATE.INACTIVE:
-            self.set_inactive_state()
-        elif self.color_state == STATE.ERROR:
-            self.set_error_state()
-        else:
-            raise ValueError(f"Invalid state: {self.color_state}")
-
-    def _update(self, instance, value):
-        """Update background"""
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
-
-    def set_error_state(self):
-        self.color_state = STATE.ERROR
-        self.color_instr.rgba = self.color_error      
-    
-    def set_active_state(self):
-        self.color_state = STATE.ACTIVE
-        self.color_instr.rgba = self.color_active
-
-    def set_inactive_state(self):
-        self.color_state = STATE.INACTIVE
-        self.color_instr.rgba = self.color_inactive
-
-    def set_text(self, text):
-        self.text = text
-
-
 class CustomButton(Button):
     """
     CustomButton is a button that:
@@ -296,9 +206,8 @@ class CustomButton(Button):
             **kwargs
         )
         
-        self.color_active = COL.BUTTON_ACTIVE
-        self.color_inactive = COL.BUTTON_INACTIVE
-        self.color_error = COL.ERROR
+        # Set default colors - can be overridden by subclasses
+        self._init_colors()
         self.color_state = color_state
         
         # Background color - will be set based on state
@@ -308,6 +217,15 @@ class CustomButton(Button):
             self.bind(pos=self._update, size=self._update)
         
         # Apply the initial state
+        self._init_state()
+    
+    def _init_colors(self):
+        """Initialize the button colors - can be overridden by subclasses"""
+        self.color_active = COL.BUTTON_ACTIVE
+        self.color_inactive = COL.BUTTON_INACTIVE
+        self.color_error = COL.ERROR
+    
+    def _init_state(self):
         if self.color_state == STATE.ACTIVE:
             self.set_active_state()
         elif self.color_state == STATE.INACTIVE:
@@ -336,12 +254,51 @@ class CustomButton(Button):
     
     def set_text(self, text):
         self.text = text
+
+
+class CustomCancelButton(CustomButton):
+    """
+    CustomCancelButton is a Cancel button that:
+    - Inherits from CustomButton
+    - Only differs in color
+    - Does not use states
+    """
+    def __init__(self, width: int = 1, symbol: bool = False, color_state: str = STATE.ACTIVE, **kwargs):
+        super().__init__(
+            width=width,
+            color_state=color_state,
+            symbol=symbol,
+            **kwargs
+        )
+        self.disabled_color = COL.WHITE
     
-    def set_disabled(self, bool: bool):
-        self.disabled = bool
+    def _init_colors(self):
+        """Override the button colors"""
+        self.color_active = COL.CANCEL_BUTTON
+        self.color_inactive = COL.CANCEL_BUTTON
+        self.color_error = COL.CANCEL_BUTTON
+
+
+class CustomConfirmButton(CustomButton):
+    """
+    CustomConfirmButton is a Confirm button that:
+    - Inherits from CustomButton
+    - Only differs in color
+    """
+    def __init__(self, width: int = 1, color_state: str = STATE.ACTIVE, symbol: bool = False, **kwargs):
+        super().__init__(
+            width=width,
+            color_state=color_state,
+            symbol=symbol,
+            **kwargs
+        )
+        self.disabled_color = COL.WHITE
     
-    def set_opacity(self, opacity: float):
-        self.opacity = opacity
+    def _init_colors(self):
+        """Override the button colors"""
+        self.color_active = COL.CONFIRM_BUTTON_ACTIVE
+        self.color_inactive = COL.CONFIRM_BUTTON_INACTIVE
+        self.color_error = COL.ERROR
 
 
 class CustomSettingsButton(CustomButton):

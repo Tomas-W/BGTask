@@ -168,9 +168,6 @@ class StartScreen(Screen):
         self._load_attributes()
     
     def on_pre_enter(self):
-        """
-        
-        """
         if self.start_screen_loaded:
             self.reset_start_screen()
 

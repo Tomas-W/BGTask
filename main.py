@@ -21,6 +21,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Remove selected_task_alarm after saving
 # TODO: Button feedback
 # TODO: Button feedback Recording / Playing
+# TODO: Check on_press / on_release
 # TODO: Saved alarms edit and delete
 # TODO: When no tasks, edit message for screenshot
 # TODO: Add alarm path to task
