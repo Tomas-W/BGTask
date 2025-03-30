@@ -9,7 +9,7 @@ from kivy.uix.label import Label
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 
 from src.widgets.bars import TopBarClosed, TopBarExpanded
-from src.widgets.buttons import CustomButton
+from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
 from src.widgets.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
 from src.widgets.labels import PartitionHeader
 from src.widgets.fields import InputField
@@ -57,20 +57,22 @@ class SelectDateScreen(BaseScreen):
         # Select month row
         self.select_month_row = CustomButtonRow()
         # Previous month button
-        self.prev_month_button = CustomButton(
+        self.prev_month_button = CustomConfirmButton(
             text="<",
             width=0.6,
             symbol=True,
+            color_state=STATE.ACTIVE,
         )
         self.prev_month_button.bind(on_press=self.go_to_prev_month)
         # Select month label
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
         # Next month button
-        self.next_month_button = CustomButton(
+        self.next_month_button = CustomConfirmButton(
             text=">",
             width=0.6,
             symbol=True,
+            color_state=STATE.ACTIVE,
         )
         self.next_month_button.bind(on_press=self.go_to_next_month)
         # Apply month row
@@ -120,17 +122,11 @@ class SelectDateScreen(BaseScreen):
         self.confirmation_partition = Partition()
         self.confirmation_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomButton(
-            text="Cancel",
-            width=2,
-            color_state=STATE.INACTIVE
-        )
+        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         # Confirm button
-        self.confirm_button = CustomButton(
-            text="Confirm",
-            width=2,
-        )
+        self.confirm_button = CustomConfirmButton(text="Confirm", width=2,
+                                                  color_state=STATE.ACTIVE)
         self.confirm_button.bind(on_press=self.confirm_date_selection)
         # Apply confirmation partition
         self.confirmation_row.add_widget(self.cancel_button)

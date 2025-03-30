@@ -9,7 +9,7 @@ from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.bars import TopBarClosed, TopBarExpanded
 from src.widgets.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
-from src.widgets.buttons import CustomButton, CustomSettingsButton
+from src.widgets.buttons import CustomConfirmButton, CustomSettingsButton, CustomCancelButton
 from src.widgets.fields import SettingsField
 
 from src.settings import STATE, SCREEN
@@ -98,11 +98,11 @@ class SelectAlarmScreen(BaseScreen):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
+        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_press=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         self.button_row.add_widget(self.cancel_button)
         # Save button
-        self.save_button = CustomButton(text="Select", width=2, color_state=STATE.ACTIVE)
+        self.save_button = CustomConfirmButton(text="Select", width=2)
         self.save_button.bind(on_press=self.select_alarm)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)

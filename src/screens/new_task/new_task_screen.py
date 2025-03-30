@@ -1,22 +1,35 @@
 from datetime import datetime
 
 from kivy.uix.floatlayout import FloatLayout
-from src.screens.base.base_screen import BaseScreen  # type: ignore
+
+from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.bars import TopBarClosed, TopBarExpanded
-from src.widgets.buttons import CustomButton
-from src.widgets.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow
+from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
+from src.widgets.containers import (BaseLayout, ScrollContainer, Partition,
+                                    CustomButtonRow)
 from src.widgets.fields import TextField, ButtonField
 
 from src.settings import SCREEN, STATE
 
 
 class NewTaskScreen(BaseScreen):
+    """
+    NewTaskScreen is the screen for creating or editing a new Task that:
+    - Has a top bar with a back button, options button, and exit button.
+    - Has a select date partition.
+    - Has a task input partition.
+    - Has a select alarm partition.
+    - Has a confirmation partition.
+    """
     def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
         super().__init__(**kwargs)       
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
         self.audio_manager = audio_manager
+
+        self.selected_date = None
+        self.selected_time = None
 
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
@@ -49,32 +62,32 @@ class NewTaskScreen(BaseScreen):
         # Date picker partition
         self.date_picker_partition = Partition()
         # Date picker button
-        self.pick_date_button = CustomButton(text="Select Date")
+        self.pick_date_button = CustomConfirmButton(text="Select Date", color_state=STATE.ACTIVE)
         self.pick_date_button.bind(on_press=self.go_to_select_date_screen)
         self.date_picker_partition.add_widget(self.pick_date_button)
         # Date display box
-        self.date_display = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
-        self.date_picker_partition.add_widget(self.date_display)
+        self.date_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
+        self.date_picker_partition.add_widget(self.date_display_field)
 
         self.scroll_container.container.add_widget(self.date_picker_partition)
 
         # Task input partition
         self.task_input_partition = Partition()
         # Task input
-        self.task_input = TextField(hint_text="Enter your task here")
-        self.task_input_partition.add_widget(self.task_input)
+        self.task_input_field = TextField(hint_text="Enter your task here")
+        self.task_input_partition.add_widget(self.task_input_field)
 
         self.scroll_container.container.add_widget(self.task_input_partition)
 
         # Alarm picker partition
         self.select_alarm_partition = Partition()
         # Alarm picker button
-        self.select_alarm_button = CustomButton(text="Select Alarm")
+        self.select_alarm_button = CustomConfirmButton(text="Select Alarm", color_state=STATE.ACTIVE)
         self.select_alarm_button.bind(on_press=self.go_to_select_alarm_screen)
         self.select_alarm_partition.add_widget(self.select_alarm_button)
         # Alarm display box
-        self.alarm_display = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
-        self.select_alarm_partition.add_widget(self.alarm_display)
+        self.alarm_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
+        self.select_alarm_partition.add_widget(self.alarm_display_field)
 
         self.scroll_container.container.add_widget(self.select_alarm_partition)
 
@@ -83,11 +96,11 @@ class NewTaskScreen(BaseScreen):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomButton(text="Cancel", width=2, color_state=STATE.INACTIVE)
+        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_press=self.cancel_edit_task)
         self.button_row.add_widget(self.cancel_button)
         # Save button
-        self.save_button = CustomButton(text="Save Task", width=2)
+        self.save_button = CustomConfirmButton(text="Save Task", width=2)
         self.save_button.bind(on_press=self.save_task)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
@@ -99,74 +112,87 @@ class NewTaskScreen(BaseScreen):
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
     
-    def update_in_edit_task_mode(self, instance, value):
-        """Update the in edit mode state"""
+    def update_in_edit_task_mode(self, instance, value) -> None:
         self.in_edit_task_mode = value
     
-    def cancel_edit_task(self, instance):
-        """Cancel the edit task"""
+    def cancel_edit_task(self, instance) -> None:
+        """Cancel the edit task.
+        If in edit task mode, clear the inputs and navigate back to the home screen.
+        """
         if self.in_edit_task_mode:
             self.clear_inputs()
         
         self.navigation_manager.navigate_back_to(SCREEN.HOME)
     
-    def clear_inputs(self):
-        """Clear the task input and date display data"""
-        self.task_input.set_text("")
-        if hasattr(self, 'selected_date'):
-            del self.selected_date
-        if hasattr(self, 'selected_time'):
-            del self.selected_time
-        self.date_display.set_text("")
+    def clear_inputs(self) -> None:
+        """Clear the task_input_field and date_display_field data."""
+        self.task_input_field.set_text("")
+        self.selected_date = None
+        self.selected_time = None
+        self.date_display_field.set_text("")
         self.in_edit_task_mode = False
         self.task_id_to_edit = None
         self.selected_alarm = None
         self.selected_alarm_text = "No alarm set"
 
-    def update_datetime_display(self):
-        """Update the date display with the selected date and time"""
-        if hasattr(self, 'selected_date') and hasattr(self, 'selected_time'):
+    def update_datetime_display(self) -> None:
+        """
+        Update the date_display_field with the selected date and time.
+        If no date or time is selected, set the date_display_field to "No date selected".
+        """
+        if self.selected_date is not None and self.selected_time is not None:
             date_str = self.selected_date.strftime("%A, %B %d, %Y")
             time_str = self.selected_time.strftime("%H:%M")
-            self.date_display.set_text(f"{date_str} at {time_str}")
-            self.date_display.hide_border()
+            self.date_display_field.set_text(f"{date_str} at {time_str}")
+            self.date_display_field.hide_border()
         else:
-            self.date_display.set_text("No date selected")
+            self.date_display_field.set_text("No date selected")
 
-    def on_datetime_selected(self, selected_date, selected_time):
-        """Callback when date and time are selected in calendar"""
+    def on_datetime_selected(self, selected_date, selected_time) -> None:
+        """
+        Callback when date and time are selected in calendar.
+        Set the selected_date and selected_time to the selected date and time.
+        Update the date_display_field with the selected date and time.
+        """
         self.selected_date = selected_date
         self.selected_time = selected_time
         self.update_datetime_display()
-        
         # Reset the date picker button styles
-        self.date_display.hide_border()
+        self.date_display_field.hide_border()
     
-    def update_alarm_display(self):
-        """Update the alarm display with the selected alarm"""
+    def update_alarm_display(self) -> None:
+        """
+        Update the alarm_display_field with the selected alarm.
+        If no alarm is selected, set the alarm_display_field to "No alarm set".
+        """
         if self.audio_manager.selected_alarm_name is not None:
-            self.alarm_display.set_text(self.audio_manager.selected_alarm_name)
+            self.alarm_display_field.set_text(self.audio_manager.selected_alarm_name)
         else:
-            self.alarm_display.set_text("No alarm set")
+            self.alarm_display_field.set_text("No alarm set")
     
-    def save_task(self, instance):
-        """Save the task and return to home screen"""
-        message = self.task_input.text.strip()
+    def save_task(self, instance) -> None:
+        """
+        Save the task and return to home screen.
+        If the task_input_field is empty or too short, show an error border.
+        If there is an error, return.
+        Otherwise, save the task and clear the inputs.
+        """
+        message = self.task_input_field.text.strip()
         has_error = False
         
         # Visual error when no message
         if not message:
-            self.task_input.show_error_border()
+            self.task_input_field.show_error_border()
             has_error = True
         
         # Visual error when message too short
         if len(message.strip()) < 3:
-            self.task_input.show_error_border()
+            self.task_input_field.show_error_border()
             has_error = True
         
         # Visual error when no date selected
-        if not hasattr(self, "selected_date") or not hasattr(self, "selected_time"):
-            self.date_display.show_error_border()
+        if self.selected_date is None or self.selected_time is None:
+            self.date_display_field.show_error_border()
             has_error = True
         
         if has_error:
@@ -185,19 +211,18 @@ class NewTaskScreen(BaseScreen):
         self.in_edit_task_mode = False
         self.navigation_manager.navigate_to(SCREEN.HOME)
     
-    def go_to_select_date_screen(self, instance):
-        """Show the calendar screen"""
+    def go_to_select_date_screen(self, instance) -> None:
         select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
         
-        # When editing a task, use the task's datetime values
+        # If in edit Task mode, load the task's datetime values
         if self.in_edit_task_mode and self.task_id_to_edit:
             select_date_screen.selected_date = self.selected_date
             select_date_screen.selected_time = self.selected_time
             select_date_screen.current_month = self.selected_date.month
             select_date_screen.current_year = self.selected_date.year
         else:
-            # For new tasks, use current values if they exist, otherwise use current datetime
-            if hasattr(self, "selected_date"):
+            # If new Task, use current values if they exist, otherwise use current datetime
+            if self.selected_date:
                 select_date_screen.selected_date = self.selected_date
                 select_date_screen.selected_time = self.selected_time
                 select_date_screen.current_month = self.selected_date.month
@@ -208,26 +233,24 @@ class NewTaskScreen(BaseScreen):
         select_date_screen.update_calendar()
         
         # Also update the time inputs and month label to match the selected date/time
-        if hasattr(self, "selected_time"):
+        if self.selected_time is not None:
             select_date_screen.hours_input.set_text(self.selected_time.strftime("%H"))
             select_date_screen.minutes_input.set_text(self.selected_time.strftime("%M"))
         
         # Update the date label
-        if hasattr(self, "selected_date"):
+        if self.selected_date is not None:
             date_str = self.selected_date.strftime("%A %d")
             select_date_screen.selected_date_label.set_text(f"{date_str}")
         
         self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
     
-    def go_to_select_alarm_screen(self, instance):
-        """Show the alarm screen"""
+    def go_to_select_alarm_screen(self, instance) -> None:
         self.navigation_manager.navigate_to(SCREEN.SELECT_ALARM)
 
-    def on_pre_enter(self):
-        """Called just before the screen is entered"""
+    def on_pre_enter(self) -> None:
         super().on_pre_enter()
-        self.task_input.hide_border()
-        self.date_display.hide_border()
+        self.task_input_field.hide_border()
+        self.date_display_field.hide_border()
 
         self.update_datetime_display()
         self.update_alarm_display()
@@ -239,6 +262,5 @@ class NewTaskScreen(BaseScreen):
             self.save_button.set_text("Save Task")
 
     def on_enter(self):
-        """Called when screen is entered"""
         pass
     

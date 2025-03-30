@@ -229,7 +229,7 @@ class EditTaskButton(Button):
         home_screen.edit_delete_buttons.append(self)
 
         self.type = type
-        self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.FIELD_ERROR
+        self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
         with self.canvas.before:
             Color(*self.bg_color)
             self.bg_rect = RoundedRectangle(

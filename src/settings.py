@@ -42,12 +42,18 @@ class Colors:
 
     BUTTON_ACTIVE = (0.2, 0.4, 0.7, 0.8)
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
-    BUTTON_ERROR = (0.6, 0, 0, 0.7)
+
+    ERROR = (1, 0.35, 0.35, 0.7)
+
+    CANCEL_BUTTON = (0.7, 0.7, 0.7, 1.0)
+
+    CONFIRM_BUTTON_ACTIVE = (0.25, 0.45, 0.7, 1.0)
+    CONFIRM_BUTTON_INACTIVE = (0.45, 0.65, 0.85, 1.0)
+
     BUTTON_TEXT = (0.0, 0.0, 0.0, 1.0)
 
     TEXT = (0, 0, 0, 1.0)
     TEXT_GREY = (0.4, 0.4, 0.4, 1.0)
-    ERROR_TEXT = (1.0, 0.0, 0.0, 0.8)
 
     FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
     FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)

@@ -2,11 +2,11 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 
 from src.widgets.containers import BaseLayout
-from src.widgets.buttons import CustomButton
+from src.widgets.buttons import CustomConfirmButton
 
 from src.utils.platform import device_is_android
 
-from src.settings import DIR, PATH, SCREEN
+from src.settings import DIR, PATH, SCREEN, STATE
 
 class StartScreen(Screen):
     """
@@ -55,7 +55,8 @@ class StartScreen(Screen):
         self.scroll_container.container.add_widget(self.current_task_partition)
 
         self.screenshot_partition = Partition()
-        self.screenshot_button = CustomButton(text="Set as Wallpaper", width=1)
+        self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
+                                                     color_state=STATE.ACTIVE)
         self.screenshot_button.bind(on_release=self.take_screenshot)
         self.screenshot_partition.add_widget(self.screenshot_button)
         self.scroll_container.container.add_widget(self.screenshot_partition)
@@ -249,7 +250,7 @@ class StartScreen(Screen):
                 except Exception as e:
                     print(f"Error requesting permissions: {str(e)}")
             
-            # Temporarily hide widgets we don't want in the screenshot
+            # Hide widgets from screenshot
             if hasattr(self, "header_partition"):
                 header_visible = self.header_partition.opacity > 0
                 self.header_partition.opacity = 0
@@ -259,10 +260,10 @@ class StartScreen(Screen):
             button_visible = self.screenshot_button.opacity > 0
             self.screenshot_button.opacity = 0
                         
-            # Force a redraw
+            # Redraw
             self.root_layout.do_layout()
             
-            # Take the screenshot
+            # Take screenshot
             texture = self.root_layout.export_as_image()
             print(f"Screenshot captured as texture type: {type(texture)}")
             
@@ -271,7 +272,6 @@ class StartScreen(Screen):
                 self.header_partition.opacity = 1
             self.screenshot_button.opacity = 1
             
-            # Use app's external files directory (doesn't require special permissions)
             if device_is_android():
                 from android.storage import app_storage_path  # type: ignore
                 screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")

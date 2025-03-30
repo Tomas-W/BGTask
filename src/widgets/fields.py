@@ -103,8 +103,8 @@ class TextField(BoxLayout):
     def show_error_border(self):
         """Show error styling on the field"""
         self.set_hint_text(self._error_message)
-        self.set_text_color(COL.ERROR_TEXT)
-        self.set_border_color(COL.FIELD_ERROR)
+        self.set_text_color(COL.ERROR)
+        self.set_border_color(COL.ERROR)
     
     def set_text(self, text):
         self.text_input.text = text
@@ -226,8 +226,8 @@ class InputField(BoxLayout):
 
     def show_error_border(self):
         """Show error styling on the field"""
-        self.set_text_color(COL.ERROR_TEXT)
-        self.set_border_color(COL.FIELD_ERROR)
+        self.set_text_color(COL.ERROR)
+        self.set_border_color(COL.ERROR)
     
     def set_text(self, text):
         self.text_input.text = text
@@ -281,7 +281,7 @@ class ButtonField(BoxLayout):
         
         self.color_active = COL.BUTTON_ACTIVE
         self.color_inactive = COL.BUTTON_INACTIVE
-        self.color_error = COL.BUTTON_ERROR
+        self.color_error = COL.ERROR
         
         self.border_width = STYLE.BORDER_WIDTH
         self.color_state = color_state
@@ -310,6 +310,7 @@ class ButtonField(BoxLayout):
             self.bind(pos=self._update, size=self._update)
         
         self.label = ButtonFieldLabel(text=self.text)
+        self.label.color = COL.TEXT
         self.add_widget(self.label)
         
         # Apply the initial state
@@ -335,36 +336,26 @@ class ButtonField(BoxLayout):
     
     def set_text(self, text):
         self.label.text = text
-    
-    def set_text_color(self, color):
-        self.label.color = color
 
     def _set_error_state(self):
         self.color_instr.rgba = self.color_error
-        self.set_text_color(COL.ERROR_TEXT)
     
     def _set_active_state(self):
         self.color_instr.rgba = self.color_active
-        self.set_text_color(COL.TEXT)
 
     def _set_inactive_state(self):
         self.color_instr.rgba = self.color_inactive
-        self.set_text_color(COL.TEXT)
 
     def show_border(self, color=None):
         """Show border with optional color"""
         if color:
             self.border_color_instr.rgba = color
-        else:
-            self.border_color_instr.rgba = COL.WHITE
     
     def hide_border(self):
         self.border_color_instr.rgba = COL.OPAQUE
-        self.set_text_color(COL.TEXT)
 
     def show_error_border(self):
-        self.border_color_instr.rgba = COL.FIELD_ERROR
-        self.set_text_color(COL.ERROR_TEXT)
+        self.border_color_instr.rgba = COL.ERROR
 
 
 class SettingsField(ButtonField):
