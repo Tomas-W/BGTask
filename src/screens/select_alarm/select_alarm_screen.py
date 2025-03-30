@@ -168,6 +168,15 @@ class SelectAlarmScreen(BaseScreen):
             
     def start_recording(self, instance):
         """Start recording an alarm"""
+        # Stop any playing audio before recording
+        was_playing = self.audio_manager.is_playing()
+        self.audio_manager.stop_alarm()
+        
+        # We need to unschedule the check that would otherwise
+        # automatically re-enable the play button
+        from kivy.clock import Clock
+        Clock.unschedule(self.check_audio_finished)
+        
         if self.audio_manager.start_recording():
             # Update UI
             self.recording_on = True
@@ -178,7 +187,8 @@ class SelectAlarmScreen(BaseScreen):
             self.stop_recording_button.set_active_state()
             self.stop_recording_button.set_disabled(False)
             
-            # Disable play/stop buttons during recording
+            # Always disable play/stop buttons during recording
+            # regardless of what happened before
             self.play_selected_alarm_button.set_inactive_state()
             self.play_selected_alarm_button.set_disabled(True)
             self.stop_selected_alarm_button.set_inactive_state()
@@ -188,9 +198,14 @@ class SelectAlarmScreen(BaseScreen):
         else:
             # Show error popup
             popup = Popup(title="Recording Error",
-                        content=Label(text="Could not start recording"),
-                        size_hint=(0.8, 0.4))
+                         content=Label(text="Could not start recording"),
+                         size_hint=(0.8, 0.4))
             popup.open()
+            
+            # If recording failed but we stopped playback, restore buttons to non-recording state
+            if was_playing:
+                self.play_selected_alarm_button.set_active_state()
+                self.play_selected_alarm_button.set_disabled(False)
 
     def stop_recording(self, instance):
         """Stop recording an alarm"""

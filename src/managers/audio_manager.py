@@ -41,19 +41,24 @@ class AudioManager(AudioManagerUtils):
         self.has_recording_permission: bool = self.check_recording_permission()
     
     def load_alarms(self):
-        """Load the alarm files from the storage path."""
+        """Load all audio files from alarms and recordings directories."""
         alarms = {}
-        # Recordings
-        for file in os.listdir(self.recordings_dir):
-            if file.endswith(EXT.WAV):
-                alarms[file.split(".")[0]] = os.path.join(self.recordings_dir, file)
-
-        # Default alarms
-        for file in os.listdir(self.alarms_dir):
-            if file.endswith(EXT.WAV):
-                alarms[file.split(".")[0]] = os.path.join(self.alarms_dir, file)
         
-        self.alarms: dict[str, str] = alarms
+        # Load recordings
+        if os.path.exists(self.recordings_dir):
+            for file in os.listdir(self.recordings_dir):
+                if file.endswith(EXT.WAV):
+                    name = os.path.splitext(file)[0]
+                    alarms[name] = os.path.join(self.recordings_dir, file)
+
+        # Load default alarms
+        if os.path.exists(self.alarms_dir):
+            for file in os.listdir(self.alarms_dir):
+                if file.endswith(EXT.WAV):
+                    name = os.path.splitext(file)[0]
+                    alarms[name] = os.path.join(self.alarms_dir, file)
+        
+        self.alarms = alarms
     
     def start_recording(self) -> bool:
         """Start recording audio using the appropriate method based on the platform."""
@@ -75,8 +80,10 @@ class AudioManager(AudioManagerUtils):
                 
                 if success:
                     self.is_recording = True
-                    self.selected_alarm_name = filename
-                    self.selected_alarm_path = path
+                    # Don't try to select the file yet - just store the info for later
+                    self.selected_alarm_name = filename  # Store name for UI display during recording
+                    self.selected_alarm_path = path      # Store path for later use
+                    logger.debug(f"Recording started: {filename} at {path}")
                     return True
                 else:
                     logger.error("Failed to start recording")
@@ -95,33 +102,47 @@ class AudioManager(AudioManagerUtils):
             return False
         
         success = False
+        
+        # Store the current name and path for later use
+        current_name = self.selected_alarm_name
+        current_path = self.selected_alarm_path
+        
         try:
             if self.is_android:
                 success = self.recorder.stop_recording_android()
             else:  # Windows
                 success = self.recorder.stop_recording_desktop()
             
-            if success and self.selected_alarm_path:
+            if success and current_path:
                 try:
+                    # Give the file system time to finish writing the file
                     if self.is_windows:
                         import time
                         time.sleep(0.2)
                     
-                    # Verify file
-                    if os.path.exists(self.selected_alarm_path):
-                        with open(self.selected_alarm_path, "rb") as f:
+                    # Check if the file actually exists now
+                    if os.path.exists(current_path):
+                        # Ensure we have read access to the file
+                        with open(current_path, "rb") as f:
                             audio_data = f.read(1024)
-                        # Reload alarms to add recording
+                        
+                        # Add to alarms dictionary
+                        self.alarms[current_name] = current_path
+                        
+                        # Reload all alarms
                         self.load_alarms()
+                        
+                        # Now it's safe to properly set the selected audio
+                        self.selected_alarm_name = current_name
+                        self.selected_alarm_path = current_path
+                        
+                        logger.debug(f"Recording saved successfully: {current_name} at {current_path}")
+                        logger.debug(f"Selected alarm: {self.selected_alarm_name}")
                     else:
-                        logger.error(f"File not found after recording: {self.selected_alarm_path}")
+                        logger.error(f"File not found after recording: {current_path}")
                         success = False
-                
-                except FileNotFoundError:
-                    logger.error(f"File not found: {self.selected_alarm_path}")
-                    success = False
                 except Exception as e:
-                    logger.error(f"Error reading audio data: {e}")
+                    logger.error(f"Error processing recording: {e}")
                     success = False
             
             self.is_recording = False
@@ -150,7 +171,7 @@ class AudioManager(AudioManagerUtils):
         
         try:
             if self.is_android:
-                from jnius import autoclass
+                from jnius import autoclass  # type: ignore
                 MediaPlayer = autoclass("android.media.MediaPlayer")
                 
                 # Create and store a reference to the player

@@ -78,14 +78,20 @@ class SavedAlarmScreen(BaseScreen):
         self.add_widget(self.root_layout)
 
     def confirm_alarm_selection(self, instance):
-        """
-        Confirm the alarm selection.
-        """
+        """Confirm the alarm selection."""
         logger.debug(f"Confirming alarm selection: {self.alarm_name}")
         if self.alarm_name is not None:
-            self.audio_manager.set_alarm_name(name=self.alarm_name)
-            self.audio_manager.set_alarm_path(name=self.alarm_name)
-            self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
+            success = self.audio_manager.select_audio(name=self.alarm_name)
+            if success:
+                self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
+            else:
+                # Show error popup if selection failed
+                from kivy.uix.popup import Popup
+                from kivy.uix.label import Label
+                popup = Popup(title="Selection Error",
+                            content=Label(text=f"Could not select alarm: {self.alarm_name}"),
+                            size_hint=(0.8, 0.4))
+                popup.open()
     
     def cancel_alarm_selection(self, instance):
         """
@@ -112,7 +118,8 @@ class SavedAlarmScreen(BaseScreen):
         Select the alarm.
         """
         self.alarm_name = instance.text
-        self.alarm_path = self.audio_manager.alarm_name_to_path(instance.text)
+        self.alarm_path = self.audio_manager.get_audio_path(instance.text)
+        
         for button in self.alarm_picker_partition.children:
             if button.text == self.alarm_name:
                 button.set_active_state()

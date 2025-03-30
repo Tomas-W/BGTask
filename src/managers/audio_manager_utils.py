@@ -1,15 +1,15 @@
 import os
-
 from datetime import datetime
+from enum import Enum
+from typing import Tuple
 
 from src.utils.logger import logger
-
 from src.settings import EXT
 
 
 class AudioManagerUtils:
     """
-    Utils for the AudioManager class that are unrelated to audio.
+    Utils for the AudioManager class.
     """
     def __init__(self):
         pass
@@ -68,64 +68,66 @@ class AudioManagerUtils:
             self.has_recording_permission = False
     
     def get_recording_path(self) -> tuple[str, str]:
-        """Get the path and filename of the just started recording."""
+        """Get the path and filename of a new recording."""
         filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
         path = os.path.join(self.recordings_dir, filename + EXT.WAV)
         return path, filename
     
-    def alarm_name_to_path(self, name: str) -> str:
-        return os.path.join(self.alarms_dir, f"{name}{EXT.WAV}")
+    def get_audio_path(self, name: str) -> str:
+        """
+        Get the full path for an audio file based on its name and type.
+        If type is not specified, it tries to find the file in both directories.
+        """
+        # Otherwise, check if file exists in either directory
+        alarm_path = os.path.join(self.alarms_dir, f"{name}{EXT.WAV}")
+        if os.path.exists(alarm_path):
+            return alarm_path
+            
+        recording_path = os.path.join(self.recordings_dir, f"{name}{EXT.WAV}")
+        if os.path.exists(recording_path):
+            return recording_path
+            
+        # Default to recordings directory if file doesn't exist anywhere
+        return recording_path
     
-    def alarm_path_to_name(self, path: str) -> str:
-        return os.path.basename(path).split(".")[0]
+    def get_audio_name(self, path: str) -> str:
+        """Extract the name from an audio file path"""
+        return os.path.splitext(os.path.basename(path))[0]
     
-    def set_alarm_name(self, name: str | None = None, path: str | None = None) -> None:
+    def select_audio(self, name: str = None, path: str = None) -> bool:
+        """
+        Select an audio file by name or path.
+        Sets both selected_alarm_name and selected_alarm_path for compatibility.
+        
+        Returns True if successful, False otherwise.
+        """
         if path:
-            path_name = self.alarm_path_to_name(path)
+            # Path provided - extract name
             if os.path.exists(path):
-                self.selected_alarm_name = path_name
+                self.selected_alarm_path = path
+                self.selected_alarm_name = self.get_audio_name(path)
+                return True
             else:
-                name = os.path.basename(path).split(".")[0]
-                self.selected_alarm_name = self.recording_path_to_name(name)
+                logger.error(f"Audio file not found: {path}")
+                return False
+        
         elif name:
-            self.selected_alarm_name = name
+            # Name provided - find path
+            path = self.get_audio_path(name)
+            logger.error(f"Path: {path}")
+            if os.path.exists(path):
+                self.selected_alarm_path = path
+                self.selected_alarm_name = name
+                return True
+            else:
+                logger.error(f"Audio file not found for name: {name}")
+                return False
+        
         else:
             logger.error("Either name or path must be provided")
-            raise ValueError("Either name or path must be provided")
+            return False
     
-    def set_alarm_path(self, path: str | None = None, name: str | None = None) -> None:
-        if path:
-            self.selected_alarm_path = path
-        elif name:
-            path_name = self.alarm_name_to_path(name)
-            if os.path.exists(path_name):
-                self.selected_alarm_path = path_name
-            else:
-                self.selected_alarm_path = self.recording_name_to_path(name)
-        else:
-            logger.error("Either path or name must be provided")
-            raise ValueError("Either path or name must be provided")
-    
-    def recording_name_to_path(self, name: str) -> str:
-        return os.path.join(self.recordings_dir, f"{name}{EXT.WAV}")
-    
-    def recording_path_to_name(self, path: str) -> str:
-        return os.path.basename(path).split(".")[0]
-    
-    def set_recording_name(self, name: str | None = None, path: str | None = None) -> None:
-        if path:
-            self.selected_recording_name = self.recording_path_to_name(path)
-        elif name:
-            self.selected_recording_name = name
-        else:
-            logger.error("Either name or path must be provided")
-            raise ValueError("Either name or path must be provided")
-    
-    def set_recording_path(self, path: str | None = None, name: str | None = None) -> None:
-        if path:
-            self.selected_recording_path = path
-        elif name:
-            self.selected_recording_path = self.recording_name_to_path(name)
-        else:
-            logger.error("Either path or name must be provided")
-            raise ValueError("Either path or name must be provided")
+    def clear_selection(self) -> None:
+        """Clear the selected audio"""
+        self.selected_alarm_name = None
+        self.selected_alarm_path = None
