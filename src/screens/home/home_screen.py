@@ -1,6 +1,5 @@
 import time
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from kivy.uix.floatlayout import FloatLayout
@@ -11,6 +10,8 @@ from .home_widgets import TasksByDate
 from src.widgets.bars import HomeBarClosed, HomeBarExpanded
 from src.widgets.buttons import BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
+
+from src.utils.logger import logger
 
 from src.settings import TEXT, SCREEN
 
@@ -29,8 +30,6 @@ class HomeScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        
-        # Bind to task changes but don't call load_tasks here
         self.task_manager.bind(on_tasks_changed=self.update_task_display)
 
         self.tasks_loaded: bool = False
@@ -73,6 +72,10 @@ class HomeScreen(BaseScreen):
         self.add_widget(self.root_layout)
 
     def navigate_to_new_task(self, *args) -> None:
+        """
+        Navigate to the NewTaskScreen.
+        If the edit/delete icons are visible, toggle them off first.
+        """
         if self.edit_delete_visible:
             self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
@@ -103,10 +106,10 @@ class HomeScreen(BaseScreen):
             button.set_opacity(0)
             button.set_disabled(True)
 
-    def load_in_tasks(self) -> None:
-        """Load tasks from the TaskManager and update the task display."""
-        self.task_manager.load_tasks()
-        self.update_task_display()
+    # def load_in_tasks(self) -> None:
+    #     """Load tasks from the TaskManager and update the task display."""
+    #     self.task_manager.load_tasks()
+    #     self.update_task_display()
     
     def update_task_display(self, *args) -> None:
         """Update the task display widgets."""
@@ -125,23 +128,26 @@ class HomeScreen(BaseScreen):
             self.tasks_by_dates.append(task_group)
         
         self.check_for_edit_delete()
+        logger.debug(f"Updated task display")
     
     def on_pre_enter(self):
         super().on_pre_enter()
-        
-        # Only load and update if this is the first time visiting the screen
         if not self.tasks_loaded:
-            # Load tasks before checking if we need to show hints
-            self.task_manager.load_tasks()
-            self.update_task_display()  # Update display with current tasks
+            self.update_task_display()
             self.tasks_loaded = True
+        # # Only load and update if this is the first time visiting the screen
+        # if not self.tasks_loaded:
+        #     # Load tasks before checking if we need to show hints
+        #     self.task_manager.load_tasks()
+        #     self.update_task_display()  # Update display with current tasks
+        #     self.tasks_loaded = True
             
-            # Then check if we should add a hint task
-            if not self.task_manager.tasks and self.show_hints:
-                self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
-                self.show_hints = False
-                # No need to update_task_display here as the add_task will trigger
-                # the on_tasks_changed event
+        #     # Then check if we should add a hint task
+        #     if not self.task_manager.tasks and self.show_hints:
+        #         self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
+        #         self.show_hints = False
+        #         # No need to update_task_display here as the add_task will trigger
+        #         # the on_tasks_changed event
 
     def on_enter(self):
         on_enter_time = time.time()

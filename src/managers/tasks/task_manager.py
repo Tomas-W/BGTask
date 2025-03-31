@@ -28,7 +28,7 @@ class TaskManager(EventDispatcher):
     
     def on_tasks_changed(self, *args):
         """Default handler for on_tasks_changed event"""
-        logger.debug("Triggered on_tasks_changed event")
+        logger.debug("on_tasks_changed event finished")
     
     def load_tasks(self) -> list[Task]:
         """Load Tasks from task_file."""
@@ -92,6 +92,24 @@ class TaskManager(EventDispatcher):
         
         # Navigate to the edit screen
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+    
+    def update_task(self, task_id: str, message: str, timestamp: datetime) -> None:
+        """Update an existing Task by its ID."""
+        task = next((task for task in self.tasks if task.task_id == task_id), None)
+        if not task:
+            logger.error(f"Task with id {task_id} not found for update")
+            return
+        
+        # Update the task
+        task.message = message
+        task.timestamp = timestamp
+        logger.debug(f"Updated task: {task_id}")
+        
+        # Save changes
+        self._save_tasks()
+
+        # Notify listeners
+        self.dispatch("on_tasks_changed")
 
     def delete_task(self, task_id: str) -> None:
         """Delete a task by ID."""
@@ -102,6 +120,7 @@ class TaskManager(EventDispatcher):
             
         # Remove task and save task_file
         self.tasks.remove(task)
+        logger.debug(f"Deleted task: {task_id}")
         self._save_tasks()
         
         # Notify listeners that tasks have changed

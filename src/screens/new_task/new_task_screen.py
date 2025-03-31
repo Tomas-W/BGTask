@@ -223,15 +223,20 @@ class NewTaskScreen(BaseScreen):
         
         task_datetime = datetime.combine(self.selected_date, self.selected_time)
         if self.in_edit_task_mode:
-            self.task_manager.delete_task(self.task_id_to_edit)
-            self.task_manager.add_task(message=message, timestamp=task_datetime)
+            self.task_manager.update_task(
+                task_id=self.task_id_to_edit,
+                message=message,
+                timestamp=task_datetime
+            )
             self.in_edit_task_mode = False
             self.task_id_to_edit = None
         else:
-            self.task_manager.add_task(message=message, timestamp=task_datetime)
+            self.task_manager.add_task(
+                message=message,
+                timestamp=task_datetime
+            )
         
         self.clear_inputs()
-        self.in_edit_task_mode = False
         self.navigation_manager.navigate_to(SCREEN.HOME)
     
     def go_to_select_date_screen(self, instance) -> None:

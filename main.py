@@ -15,6 +15,7 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Only show tasks/edit/delete if visible
 # TODO: After saving task, reset task details
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Check for name taken in alarms/recordings
