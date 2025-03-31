@@ -1,11 +1,17 @@
 from kivy.app import App
 
+from src.utils.logger import logger
+
 from src.settings import SCREEN
 
 
 class NavigationManager:
     """
-    NavigationManager is a class that manages the navigation from and to screens.
+    Manages the navigation from and to screens.
+    Keeps track of the history of screens.
+    Default animation:
+    - Going to a screen - slide_direction = "right"
+    - Going back - slide_direction = "left"
     """
     def __init__(self, screen_manager, start_screen: str):
         self.screen_manager = screen_manager
@@ -16,6 +22,12 @@ class NavigationManager:
     
     def navigate_to(self, screen_name: str, slide_direction: str = "right", *args) -> None:
         """Navigate TO a screen."""
+        previous_screen = self.screen_manager.current
+        # Don't add if same screen
+        if screen_name == previous_screen:
+            return
+        
+        # Add to history
         if not self._check_is_home_screen(screen_name):
             self.history.append(screen_name)
         else:
@@ -26,6 +38,8 @@ class NavigationManager:
     
     def navigate_back_to(self, screen_name: str, slide_direction: str = "left", *args) -> None:
         """Navigate BACK TO a screen."""
+        self.history.append(screen_name)
+
         self._set_slide_directionn(slide_direction)
         self.screen_manager.current = screen_name
     
@@ -40,9 +54,6 @@ class NavigationManager:
             
             self._set_slide_directionn(slide_direction)
             self.screen_manager.current = previous
-
-    def exit_app(self, *args) -> None:
-        App.get_running_app().stop()
     
     def _check_is_home_screen(self, screen: str | None = None) -> bool:
         """
@@ -54,21 +65,6 @@ class NavigationManager:
             return False
         
         return True
-    
-    def go_to_home_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.HOME)
-    
-    def go_to_new_task_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.NEW_TASK)
-    
-    def go_to_select_date_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.SELECT_DATE)
-    
-    def go_to_select_alarm_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.SELECT_ALARM)
-    
-    def go_to_saved_alarms_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.SAVED_ALARMS)
-    
-    def go_to_settings_screen(self, *args) -> None:
-        self.navigate_to(SCREEN.SETTINGS)
+
+    def exit_app(self, *args) -> None:
+        App.get_running_app().stop()

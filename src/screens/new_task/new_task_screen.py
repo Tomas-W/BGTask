@@ -43,12 +43,12 @@ class NewTaskScreen(BaseScreen):
         # Top bar
         self.top_bar = TopBarClosed(
             bar_title="New Task",
-            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.HOME),
+            back_callback=lambda instance: self.navigation_manager.go_back(),
             options_callback=lambda instance: self.switch_top_bar(),
         )
         # Top bar with expanded options
         self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.HOME),
+            back_callback=lambda instance: self.navigation_manager.go_back(),
             screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
             options_callback=lambda instance: self.switch_top_bar(),
             settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
