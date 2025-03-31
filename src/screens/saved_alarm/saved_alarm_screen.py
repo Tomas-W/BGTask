@@ -79,9 +79,8 @@ class SavedAlarmScreen(BaseScreen):
 
     def confirm_alarm_selection(self, instance):
         """Confirm the alarm selection."""
-        logger.debug(f"Confirming alarm selection: {self.alarm_name}")
         if self.alarm_name is not None:
-            success = self.audio_manager.select_audio(name=self.alarm_name)
+            success = self.audio_manager.select_alarm_audio(name=self.alarm_name)
             if success:
                 self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
             else:
@@ -110,22 +109,24 @@ class SavedAlarmScreen(BaseScreen):
                 width=1,
                 color_state=STATE.INACTIVE,
             )
-            button.bind(on_release=self.select_alarm)
+            button.bind(on_release=self.select_saved_alarm)
             self.alarm_picker_partition.add_widget(button)
 
-    def select_alarm(self, instance):
+    def select_saved_alarm(self, instance):
         """
         Select the alarm.
         """
         self.alarm_name = instance.text
         self.alarm_path = self.audio_manager.get_audio_path(instance.text)
-        
+        found = False
         for button in self.alarm_picker_partition.children:
             if button.text == self.alarm_name:
                 button.set_active_state()
+                found = True
             else:
                 button.set_inactive_state()
-        self.confirm_button.set_active_state()
+        if found:
+            self.confirm_button.set_active_state()
     
 
     def set_button_states(self):
@@ -144,7 +145,6 @@ class SavedAlarmScreen(BaseScreen):
             for button in self.alarm_picker_partition.children:
                 button.set_inactive_state()
             self.confirm_button.set_inactive_state()
-            logger.debug(f"No alarm selected")
     
     def on_pre_enter(self):
         """

@@ -303,8 +303,8 @@ class CustomConfirmButton(CustomButton):
             **kwargs
         )
         self.disabled_color = COL.WHITE
-        self.always_clickable = True  # Set property to keep clickable
-        self.disabled = False  # Ensure it's enabled
+        self.always_clickable = True
+        self.disabled = False
     
     def _init_colors(self):
         """Override the button colors"""

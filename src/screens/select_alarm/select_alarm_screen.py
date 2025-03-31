@@ -63,11 +63,11 @@ class SelectAlarmScreen(BaseScreen):
         self.create_alarm_partition = Partition()
         # Start recording button
         self.start_recording_button = CustomSettingsButton(text="Start Recording", width=1, color_state=STATE.ACTIVE)
-        self.start_recording_button.bind(on_release=self.start_recording)
+        self.start_recording_button.bind(on_release=self.start_recording_alarm)
         self.create_alarm_partition.add_widget(self.start_recording_button)
         # Stop recording button
         self.stop_recording_button = CustomSettingsButton(text="Stop Recording", width=1, color_state=STATE.INACTIVE)
-        self.stop_recording_button.bind(on_release=self.stop_recording)
+        self.stop_recording_button.bind(on_release=self.stop_recording_alarm)
         self.create_alarm_partition.add_widget(self.stop_recording_button)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.create_alarm_partition)
@@ -128,8 +128,6 @@ class SelectAlarmScreen(BaseScreen):
     
     def cancel_select_alarm(self, instance):
         """Cancel the select alarm process"""
-        # Stop any playing audio before navigating away
-        self.audio_manager.stop_alarm()
         # Unschedule any check
         from kivy.clock import Clock
         Clock.unschedule(self.check_audio_finished)
@@ -166,18 +164,16 @@ class SelectAlarmScreen(BaseScreen):
             self.save_button.set_active_state()  # Alarm selected = active save button
             self.save_button.set_disabled(False)
             
-    def start_recording(self, instance):
+    def start_recording_alarm(self, instance):
         """Start recording an alarm"""
-        # Stop any playing audio before recording
         was_playing = self.audio_manager.is_playing()
-        self.audio_manager.stop_alarm()
         
         # We need to unschedule the check that would otherwise
         # automatically re-enable the play button
         from kivy.clock import Clock
         Clock.unschedule(self.check_audio_finished)
         
-        if self.audio_manager.start_recording():
+        if self.audio_manager.start_recording_audio():
             # Update UI
             self.recording_on = True
             self.start_recording_button.set_text("Recording...")
@@ -207,9 +203,9 @@ class SelectAlarmScreen(BaseScreen):
                 self.play_selected_alarm_button.set_active_state()
                 self.play_selected_alarm_button.set_disabled(False)
 
-    def stop_recording(self, instance):
+    def stop_recording_alarm(self, instance):
         """Stop recording an alarm"""
-        if self.audio_manager.stop_recording():
+        if self.audio_manager.stop_recording_audio():
             # Update UI
             self.recording_on = False
             self.start_recording_button.set_text("Start Recording")
@@ -236,9 +232,7 @@ class SelectAlarmScreen(BaseScreen):
             popup.open()
             return
         
-        success = self.audio_manager.play_alarm()
-        
-        if success:
+        if self.audio_manager.start_playing_audio():
             # Update button states
             self.play_selected_alarm_button.set_inactive_state()
             self.play_selected_alarm_button.set_disabled(True)
@@ -267,7 +261,7 @@ class SelectAlarmScreen(BaseScreen):
 
     def stop_selected_alarm(self, instance):
         """Stop the currently playing alarm"""
-        success = self.audio_manager.stop_alarm()
+        success = self.audio_manager.stop_playing_audio()
         
         if success:
             # Update button states
@@ -322,8 +316,6 @@ class SelectAlarmScreen(BaseScreen):
 
     def select_alarm(self, instance):
         """Select the alarm and return to previous screen"""
-        # Stop any playing audio before navigating away
-        self.audio_manager.stop_alarm()
         # Unschedule any check
         from kivy.clock import Clock
         Clock.unschedule(self.check_audio_finished)
@@ -355,6 +347,7 @@ class SelectAlarmScreen(BaseScreen):
         """Called when the screen is left"""
         super().on_leave()
         # Make sure we stop any playing audio and unschedule checks
-        self.audio_manager.stop_alarm()
+        self.audio_manager.stop_playing_audio(log=False)
         from kivy.clock import Clock
         Clock.unschedule(self.check_audio_finished)
+ 
