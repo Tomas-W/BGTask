@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 
 from kivy.uix.floatlayout import FloatLayout
 
-from src.screens.base.base_screen import BaseScreen  # type: ignore
+from src.screens.base.base_screen import BaseScreen
 
-from .home_widgets import TasksbyDate
+from .home_widgets import TasksByDate
 from src.widgets.bars import HomeBarClosed, HomeBarExpanded
 from src.widgets.buttons import BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
@@ -29,6 +29,11 @@ class HomeScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
+        
+        # Bind to task changes but don't call load_tasks here
+        self.task_manager.bind(on_tasks_changed=self.update_task_display)
+
+        self.tasks_loaded: bool = False
         
         self.show_hints: bool = True
         self.edit_delete_visible: bool = False
@@ -66,7 +71,7 @@ class HomeScreen(BaseScreen):
         self.root_layout.add_widget(self.layout)
         self.root_layout.add_widget(self.bottom_bar)
         self.add_widget(self.root_layout)
-    
+
     def navigate_to_new_task(self, *args) -> None:
         if self.edit_delete_visible:
             self.toggle_edit_delete()
@@ -98,20 +103,22 @@ class HomeScreen(BaseScreen):
             button.set_opacity(0)
             button.set_disabled(True)
 
-    def load_tasks(self) -> None:
+    def load_in_tasks(self) -> None:
         """Load tasks from the TaskManager and update the task display."""
         self.task_manager.load_tasks()
         self.update_task_display()
     
-    def update_task_display(self) -> None:
+    def update_task_display(self, *args) -> None:
         """Update the task display widgets."""
         self.scroll_container.clear_widgets()
         
+        self.edit_delete_buttons = []  # Clear the buttons list first
         self.tasks_by_dates = []
-        for group in self.task_manager.get_tasks_by_dates()    :
-            task_group = TasksbyDate(
+        for group in self.task_manager.get_tasks_by_dates():
+            task_group = TasksByDate(
                 date_str=group["date"],
                 tasks=group["tasks"],
+                parent_screen=self,  # Pass self as parent_screen
                 size_hint=(1, None)
             )
             self.scroll_container.add_widget_to_container(task_group)
@@ -121,15 +128,25 @@ class HomeScreen(BaseScreen):
     
     def on_pre_enter(self):
         super().on_pre_enter()
-        # Load tasks first
-        self.task_manager.load_tasks()
-        # Then check if we have any tasks
-        if not self.task_manager.tasks and self.show_hints:
-            self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
-            self.show_hints = False
         
-        self.update_task_display()
-    
+        # Only load and update if this is the first time visiting the screen
+        if not self.tasks_loaded:
+            # Load tasks before checking if we need to show hints
+            self.task_manager.load_tasks()
+            self.update_task_display()  # Update display with current tasks
+            self.tasks_loaded = True
+            
+            # Then check if we should add a hint task
+            if not self.task_manager.tasks and self.show_hints:
+                self.task_manager.add_task(message=TEXT.NO_TASKS, timestamp=datetime.now())
+                self.show_hints = False
+                # No need to update_task_display here as the add_task will trigger
+                # the on_tasks_changed event
+
     def on_enter(self):
         on_enter_time = time.time()
         self.on_enter_time = on_enter_time
+
+    def register_edit_delete_button(self, button):
+        """Register an edit/delete button with this screen"""
+        self.edit_delete_buttons.append(button)

@@ -1,4 +1,8 @@
+import uuid
+
 from datetime import datetime
+
+from src.utils.logger import logger
 
 
 class Task:
@@ -6,9 +10,10 @@ class Task:
     Represents a Task with a message and timestamp.
     """
     def __init__(self, task_id=None, message="", timestamp=None):
-        self.task_id = task_id if task_id else datetime.now().strftime("%Y%m%d%H%M%S")
+        self.task_id = task_id if task_id else str(uuid.uuid4())
         self.message = message
         self.timestamp = timestamp if timestamp else datetime.now()
+        logger.debug(f"Created Task: {self.task_id} - {self.message} - {self.timestamp}")
     
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
@@ -23,17 +28,13 @@ class Task:
         """Create Task from dictionary."""
         return cls(
             task_id=data.get("task_id"),
-            message=data.get("message"),
-            timestamp=datetime.fromisoformat(data.get("timestamp"))
+            message=data.get("message", "Error loading task data"),
+            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now().strftime("%H:%M")))
         )
     
     def get_date_str(self) -> str:
         """Get formatted date string [Day DD Month]."""
-        if isinstance(self.timestamp, datetime):
-            dt = self.timestamp
-        else:
-            dt = datetime.fromtimestamp(self.timestamp)
-        return dt.strftime("%A %d %b")
+        return self.timestamp.strftime("%A %d %b")
     
     def get_time_str(self) -> str:
         """Get formatted time string [HH:MM]."""

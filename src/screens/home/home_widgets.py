@@ -8,12 +8,12 @@ from kivy.uix.label import Label
 from src.settings import SPACE, SIZE, COL, STYLE, FONT, SCREEN
 
 
-class TasksbyDate(BoxLayout):
+class TasksByDate(BoxLayout):
     """
-    A TasksbyDate is used to display all Tasks for a specific date.
+    A TasksByDate is used to display all Tasks for a specific date.
     It has a TaskHeader on top, and a TaskGroupContainer below, which as a background.
     
-    TasksbyDate structure:
+    TasksByDate structure:
     - A TaskHeader [ Label (Monday 24 Mar) ]
     - A TaskGroupContainer [ BoxLayout - TaskContainers ]
       |-- TaskContainer(s) [ BoxLayout - time Label, task Label ]
@@ -24,10 +24,11 @@ class TasksbyDate(BoxLayout):
           |
           |--A TaskLabel [ Label (Task message) ]
     """
-    def __init__(self, date_str, tasks, **kwargs):
+    def __init__(self, date_str, tasks, parent_screen=None, **kwargs):
         super().__init__(**kwargs)
         self.task_manager = App.get_running_app().task_manager
         self.orientation = "vertical"
+        self.parent_screen = parent_screen
         
         day_header = TaskHeader(text=date_str)
         self.add_widget(day_header)
@@ -56,6 +57,11 @@ class TasksbyDate(BoxLayout):
         delete_button = EditTaskButton(text="Delete", type="delete")
         delete_button.set_size_hint_x(0.3)
         delete_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
+        
+        # Register the buttons with the parent screen
+        if self.parent_screen:
+            self.parent_screen.register_edit_delete_button(edit_button)
+            self.parent_screen.register_edit_delete_button(delete_button)
         
         time_container.add_widget(time_label)
         time_container.add_widget(edit_button)
@@ -225,9 +231,6 @@ class EditTaskButton(Button):
             disabled=True,
             **kwargs
         )
-        home_screen = App.get_running_app().get_screen(SCREEN.HOME)
-        home_screen.edit_delete_buttons.append(self)
-
         self.type = type
         self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
         with self.canvas.before:

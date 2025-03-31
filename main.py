@@ -15,6 +15,7 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: After saving task, reset task details
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Check for name taken in alarms/recordings
 # TODO: Edit and delete recordings
@@ -80,7 +81,7 @@ class TaskApp(App):
     def _init_managers(self):
         from src.managers.audio.audio_manager import AudioManager
         from src.managers.navigation_manager import NavigationManager
-        from src.managers.task_manager import TaskManager
+        from src.managers.tasks.task_manager import TaskManager
 
         self.audio_manager = AudioManager()       
         self.navigation_manager = NavigationManager(
