@@ -1,11 +1,11 @@
 import calendar
-
 from datetime import datetime, date
 
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.label import Label
+from kivy.app import App
 
-from src.screens.base.base_screen import BaseScreen  # type: ignore
+from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
 from src.widgets.containers import (ScrollContainer, CustomButtonRow, Partition,
@@ -25,11 +25,9 @@ class SelectDateScreen(BaseScreen):
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
 
-        # Initialize date and time
-        self.selected_date = datetime.now().date()
-        self.selected_time = datetime.now().time()
-        self.current_month = self.selected_date.month
-        self.current_year = self.selected_date.year
+        # Initialize current month/year for calendar view
+        self.current_month = datetime.now().month
+        self.current_year = datetime.now().year
         
         # TopBar title
         self.top_bar.bar_title.set_text("Select Date")
@@ -72,14 +70,12 @@ class SelectDateScreen(BaseScreen):
         self.select_time_partition = Partition()
         self.select_time_partition.spacing = SPACE.SPACE_L
         # Date label
-        date_str = self.selected_date.strftime("%A %d")
-        self.selected_date_label = PartitionHeader(text=f"{date_str}")
+        self.selected_date_label = PartitionHeader(text="")
         self.select_time_partition.add_widget(self.selected_date_label)
         # Time selection row
         self.select_time_row = CustomRow()
         # Hours input
         self.hours_input = InputField()
-        self.hours_input.set_text(self.selected_time.strftime("%H"))
         self.hours_input.text_input.input_filter = "int"
         self.hours_input.text_input.bind(text=self.validate_hours)
         # Colon separator
@@ -87,7 +83,6 @@ class SelectDateScreen(BaseScreen):
         colon_label.size_hint_x = 0.2
         # Minutes input
         self.minutes_input = InputField()
-        self.minutes_input.set_text(self.selected_time.strftime("%M"))
         self.minutes_input.text_input.input_filter = "int"
         self.minutes_input.text_input.bind(text=self.validate_minutes)
         # Apply time row
@@ -178,10 +173,11 @@ class SelectDateScreen(BaseScreen):
                         text=str(day),
                     )
                     
-                    # Highlight the selected date
-                    if (day == self.selected_date.day and 
-                        self.current_month == self.selected_date.month and 
-                        self.current_year == self.selected_date.year):
+                    # Highlight the selected date if it exists
+                    if (self.task_manager.selected_date and
+                        day == self.task_manager.selected_date.day and 
+                        self.current_month == self.task_manager.selected_date.month and 
+                        self.current_year == self.task_manager.selected_date.year):
                         with day_button.canvas.before:
                             Color(*COL.FIELD_ACTIVE)
                             RoundedRectangle(pos=day_button.pos,
@@ -199,8 +195,11 @@ class SelectDateScreen(BaseScreen):
         """
         Add background, text color and bold to the selected day
         """
+        if not self.task_manager.selected_date:
+            return
+            
         for child in self.calendar_grid.children:
-            if isinstance(child, DateTimeLabel) and child.text == str(self.selected_date.day):
+            if isinstance(child, DateTimeLabel) and child.text == str(self.task_manager.selected_date.day):
                 for instr in child.canvas.before.children:
                     if isinstance(instr, Rectangle):
                         instr.pos = child.pos
@@ -209,12 +208,21 @@ class SelectDateScreen(BaseScreen):
     def select_day(self, day: int) -> None:
         """Handle day selection"""
         try:
-            self.selected_date = date(self.current_year, self.current_month, day)
+            selected_date = date(self.current_year, self.current_month, day)
+            self.task_manager.selected_date = selected_date
+            
+            # If time not set yet, initialize it
+            if not self.task_manager.selected_time:
+                now = datetime.now().time()
+                self.task_manager.selected_time = now
+                self.hours_input.set_text(now.strftime("%H"))
+                self.minutes_input.set_text(now.strftime("%M"))
+                
             # Highlight selected day
             self.update_calendar()
             
             # Update date label
-            date_str = self.selected_date.strftime("%A %d")
+            date_str = selected_date.strftime("%A %d")
             self.selected_date_label.set_text(f"{date_str}")
         except ValueError:
             pass
@@ -257,18 +265,24 @@ class SelectDateScreen(BaseScreen):
             if not valid:
                 return
 
-            # Update selected time
+            # Ensure we have a selected date
+            if not self.task_manager.selected_date:
+                self.task_manager.selected_date = datetime.now().date()
+                
+            # Update selected time in task_manager
             try:
-                self.selected_time = self.selected_time.replace(
-                    hour=int(hours_input) if hours_input else self.selected_time.hour,
-                    minute=int(minutes_input) if minutes_input else self.selected_time.minute
+                current_time = self.task_manager.selected_time or datetime.now().time()
+                updated_time = current_time.replace(
+                    hour=int(hours_input) if hours_input else current_time.hour,
+                    minute=int(minutes_input) if minutes_input else current_time.minute
                 )
+                self.task_manager.selected_time = updated_time
             except ValueError:
                 return
 
             # Handle callback
             if self.callback:
-                self.callback(self.selected_date, self.selected_time)
+                self.callback(self.task_manager.selected_date, self.task_manager.selected_time)
 
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
     
@@ -286,29 +300,31 @@ class SelectDateScreen(BaseScreen):
         """Called when the screen is entered"""
         super().on_pre_enter()
         
+        # If no date/time is selected, initialize with current values
+        if not self.task_manager.selected_date:
+            self.task_manager.selected_date = datetime.now().date()
+            
+        if not self.task_manager.selected_time:
+            self.task_manager.selected_time = datetime.now().time()
+            
+        # Set current month/year based on selected date
+        self.current_month = self.task_manager.selected_date.month
+        self.current_year = self.task_manager.selected_date.year
+        
         # Update hours and minutes input with selected time values
-        if hasattr(self, "selected_time"):
-            self.hours_input.set_text(self.selected_time.strftime("%H"))
-            self.minutes_input.set_text(self.selected_time.strftime("%M"))
+        self.hours_input.set_text(self.task_manager.selected_time.strftime("%H"))
+        self.minutes_input.set_text(self.task_manager.selected_time.strftime("%M"))
         
         # Update date label with selected date
-        if hasattr(self, "selected_date"):
-            date_str = self.selected_date.strftime("%A %d")
-            self.selected_date_label.set_text(f"{date_str}")
+        date_str = self.task_manager.selected_date.strftime("%A %d")
+        self.selected_date_label.set_text(f"{date_str}")
         
         # Update month label
         month_name = calendar.month_name[self.current_month]
         self.month_label.set_text(f"{month_name} {self.current_year}")
         
-        # Apply styling to selected date
-        for child in self.calendar_grid.children:
-            if isinstance(child, DateTimeLabel):
-                if child.text == str(self.selected_date.day):
-                    child.color = COL.TEXT
-                    child.set_bold(True)
-                else:
-                    child.color = COL.TEXT_GREY
-                    child.set_bold(False)
+        # Update calendar to show selected date
+        self.update_calendar()
     
     def on_enter(self) -> None:
         """Called when the screen is entered"""

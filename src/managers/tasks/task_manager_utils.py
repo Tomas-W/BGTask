@@ -9,15 +9,20 @@ class Task:
     """
     Represents a Task with a message and timestamp.
     """
-    def __init__(self, task_id=None, message="", timestamp=None, alarm_name=None):
+    def __init__(self, task_id=None, message="", timestamp=None,
+                 alarm_name=None, vibrate=False):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.message = message
         self.timestamp = timestamp if timestamp else datetime.now()
         self.alarm_name = alarm_name
+        self.vibrate = vibrate
+
         logger.debug(f"Created Task: {self.task_id}"
                      f"\n\tTimestamp: {self.get_time_str()}"
                      f"\n\tMessage: {self.message[:10]}.."
-                     f"\n\tAlarm Name: {self.alarm_name}")
+                     f"\n\tAlarm Name: {self.alarm_name}"
+                     f"\n\tVibrate: {self.vibrate}"
+                     )
     
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
@@ -25,7 +30,8 @@ class Task:
             "task_id": self.task_id,
             "timestamp": self.timestamp.isoformat(),
             "message": self.message,
-            "alarm_name": self.alarm_name
+            "alarm_name": self.alarm_name,
+            "vibrate": self.vibrate
         }
     
     @classmethod
@@ -35,7 +41,8 @@ class Task:
             task_id=data.get("task_id"),
             timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now().strftime("%H:%M"))),
             message=data.get("message", "Error loading task data"),
-            alarm_name=data.get("alarm_name", None)
+            alarm_name=data.get("alarm_name", None),
+            vibrate=data.get("vibrate", False)
         )
     
     def get_date_str(self) -> str:

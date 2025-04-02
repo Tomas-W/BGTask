@@ -25,6 +25,14 @@ class TaskManager(EventDispatcher):
         self.task_file = get_storage_path(PATH.TASK_FILE)
         validate_file(self.task_file)
         self.tasks = self.load_tasks()
+
+        # Editing
+        self.selected_task_id: str | None = None
+        # Date & Time
+        self.selected_date: datetime | None = None
+        self.selected_time: datetime | None = None
+        # Vibration
+        self.vibrate: bool = False
     
     def on_tasks_changed(self, *args):
         """Default handler for on_tasks_changed event"""
@@ -52,9 +60,11 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error loading tasks: {e}")
             return []
     
-    def add_task(self, message: str, timestamp: datetime, alarm_name: str) -> None:
+    def add_task(self, message: str, timestamp: datetime,
+                 alarm_name: str, vibrate: bool) -> None:
         """Add a new Task to self.tasks and save to task_file."""
-        task = Task(message=message, timestamp=timestamp, alarm_name=alarm_name)
+        task = Task(message=message, timestamp=timestamp,
+                    alarm_name=alarm_name, vibrate=vibrate)
         self.tasks.append(task)
         self._save_tasks()
         # Notify listeners that tasks have changed
@@ -88,7 +98,7 @@ class TaskManager(EventDispatcher):
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
     def update_task(self, task_id: str, message: str,
-                    timestamp: datetime, alarm_name: str) -> None:
+                    timestamp: datetime, alarm_name: str, vibrate: bool) -> None:
         """Update an existing Task by its ID."""
         task = next((task for task in self.tasks if task.task_id == task_id), None)
         if not task:
@@ -99,11 +109,11 @@ class TaskManager(EventDispatcher):
         task.timestamp = timestamp
         task.message = message
         task.alarm_name = alarm_name
+        task.vibrate = vibrate
         logger.debug(f"Updated task: {task_id}")
         
         # Save changes
         self._save_tasks()
-
         # Notify listeners
         self.dispatch("on_tasks_changed")
 

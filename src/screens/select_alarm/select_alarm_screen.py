@@ -23,10 +23,6 @@ class SelectAlarmScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
-        # Recording and vibration states
-        self.recording_on: bool = False
-        self.vibration_on: bool = False
-
         # TopBar title
         self.top_bar.bar_title.set_text("Select Alarm")
 
@@ -127,10 +123,17 @@ class SelectAlarmScreen(BaseScreen):
             active=is_playing, 
             enabled=is_playing
         )
-        # Also disable edit button while playing
+        
+        # Also disable edit and save buttons while playing
         if is_playing:
             self.set_button_state(
                 self.edit_selected_alarm_button,
+                active=False,
+                enabled=False
+            )
+            # Disable save button during playback
+            self.set_button_state(
+                self.save_button,
                 active=False,
                 enabled=False
             )
@@ -141,6 +144,12 @@ class SelectAlarmScreen(BaseScreen):
                 self.edit_selected_alarm_button,
                 active=has_alarm,
                 enabled=has_alarm
+            )
+            # Always enable save button when not playing
+            self.set_button_state(
+                self.save_button,
+                active=True,
+                enabled=True
             )
     
     def update_recording_button_states(self, is_recording: bool) -> None:
@@ -173,7 +182,7 @@ class SelectAlarmScreen(BaseScreen):
         """
         Update the selected alarm text display only.
         """
-        if self.recording_on:
+        if self.audio_manager.is_recording:
             self.selected_alarm.set_text("Recording...")
         elif self.audio_manager.selected_alarm_name is None:
             self.selected_alarm.set_text("No alarm selected")
@@ -184,23 +193,29 @@ class SelectAlarmScreen(BaseScreen):
         """
         Update button states based on alarm selection and recording state.
         """
-        if self.recording_on:
-            # Disable play, stop, edit and save buttons during recording
+        has_alarm = self.audio_manager.selected_alarm_name is not None
+        is_playing = self.audio_manager.is_playing()
+        
+        if self.audio_manager.is_recording:
+            # Disable play, stop, edit during recording
             self.set_button_state(self.play_selected_alarm_button, active=False, enabled=False)
             self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
             self.set_button_state(self.edit_selected_alarm_button, active=False, enabled=False)
+            # Keep existing logic for save button during recording
             self.set_button_state(self.save_button, active=False, enabled=False)
-        elif self.audio_manager.selected_alarm_name is None:
-            # Disable play, stop, edit and save buttons when no alarm is selected
+        elif is_playing:
+            # Disable edit and select buttons during playback
             self.set_button_state(self.play_selected_alarm_button, active=False, enabled=False)
-            self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.stop_selected_alarm_button, active=True, enabled=True)
             self.set_button_state(self.edit_selected_alarm_button, active=False, enabled=False)
             self.set_button_state(self.save_button, active=False, enabled=False)
         else:
-            # Enable play, stop, edit and save buttons when alarm is selected
-            self.set_button_state(self.play_selected_alarm_button, active=True, enabled=True)
+            # Normal state when not recording or playing
+            self.set_button_state(self.play_selected_alarm_button, active=has_alarm, enabled=has_alarm)
             self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
-            self.set_button_state(self.edit_selected_alarm_button, active=True, enabled=True)
+            self.set_button_state(self.edit_selected_alarm_button, active=has_alarm, enabled=has_alarm)
+            
+            # Always enable save button when not recording or playing
             self.set_button_state(self.save_button, active=True, enabled=True)
     
     def update_screen_state(self) -> None:
@@ -218,7 +233,7 @@ class SelectAlarmScreen(BaseScreen):
         self.unschedule_audio_check()
         
         if self.audio_manager.start_recording_audio():
-            self.recording_on = True
+            self.audio_manager.is_recording = True
             self.update_recording_button_states(True)
             self.update_screen_state()
 
@@ -232,7 +247,7 @@ class SelectAlarmScreen(BaseScreen):
     def stop_recording_alarm(self, instance) -> None:
         """Stop recording an alarm"""
         if self.audio_manager.stop_recording_audio():
-            self.recording_on = False
+            self.audio_manager.is_recording = False
             self.update_recording_button_states(False)
             self.update_screen_state()
 
@@ -259,11 +274,12 @@ class SelectAlarmScreen(BaseScreen):
         
         if success:
             self.update_playback_button_states(False)
+            # Re-enable the save button when audio stops playing
+            self.set_button_state(self.save_button, active=True, enabled=True)
             # Remove scheduled check
             self.unschedule_audio_check()
-        
-        else:
-            self.show_error_popup("Playback Error", "Could not stop the alarm playback")
+            return False
+        return True
 
     def check_audio_finished(self, dt: float) -> bool:
         """Check if audio has finished playing and update buttons accordingly"""
@@ -280,11 +296,11 @@ class SelectAlarmScreen(BaseScreen):
 
     def toggle_vibration(self, instance) -> None:
         """Toggle vibration on the selected alarm"""
-        self.vibration_on = not self.vibration_on
+        self.task_manager.vibrate = not self.task_manager.vibrate
         self.set_button_state(
             self.vibration_button,
-            active=self.vibration_on,
-            text="Vibrating on" if self.vibration_on else "Vibration off"
+            active=self.task_manager.vibrate,
+            text="Vibrating on" if self.task_manager.vibrate else "Vibration off"
         )
 
     def select_alarm(self, instance) -> None:

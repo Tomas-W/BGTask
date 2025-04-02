@@ -26,13 +26,8 @@ class NewTaskScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
-        # Date and time attributes
-        self.selected_date: datetime | None = None
-        self.selected_time: datetime | None = None
-
         # Edit/delete attributes
         self.in_edit_task_mode: bool = False
-        self.task_id_to_edit: int | None = None
 
         # TopBar title
         self.top_bar.bar_title.set_text("New Task")
@@ -109,11 +104,11 @@ class NewTaskScreen(BaseScreen):
     def clear_inputs(self) -> None:
         """Clear the task_input_field and date_display_field data."""
         self.task_input_field.set_text("")
-        self.selected_date = None
-        self.selected_time = None
+        self.task_manager.selected_date = None
+        self.task_manager.selected_time = None
         self.date_display_field.set_text("")
         self.in_edit_task_mode = False
-        self.task_id_to_edit = None
+        self.task_manager.selected_task_id = None
         self.audio_manager.selected_alarm_name = None
         self.audio_manager.selected_alarm_path = None
         self.save_button.set_inactive_state()
@@ -124,7 +119,7 @@ class NewTaskScreen(BaseScreen):
         Updates the save_button state accordingly.
         """
         task_text = self.task_input_field.text.strip()
-        date_time_set = self.selected_date is not None and self.selected_time is not None
+        date_time_set = self.task_manager.selected_date is not None and self.task_manager.selected_time is not None
         
         if len(task_text) >= 3 and date_time_set:
             self.save_button.set_active_state()
@@ -136,23 +131,19 @@ class NewTaskScreen(BaseScreen):
         Update the date_display_field with the selected date and time,
          or "No date selected".
         """
-        if self.selected_date is not None and self.selected_time is not None:
-            date_str = self.selected_date.strftime("%A, %B %d, %Y")
-            time_str = self.selected_time.strftime("%H:%M")
+        if self.task_manager.selected_date is not None and self.task_manager.selected_time is not None:
+            date_str = self.task_manager.selected_date.strftime("%A, %B %d, %Y")
+            time_str = self.task_manager.selected_time.strftime("%H:%M")
             self.date_display_field.set_text(f"{date_str} at {time_str}")
             self.date_display_field.hide_border()
         else:
             self.date_display_field.set_text(TEXT.NO_DATE)
 
-    def on_datetime_selected(self,
-                             selected_date: datetime,
-                             selected_time: datetime) -> None:
+    def on_datetime_selected(self, *args) -> None:
         """
-        Callback when date and time are selected in the CalendarScreen.
-        Set the selected_date and selected_time and update the date_display_field.
+        Callback when returning from SelectDateScreen.
+        Update the date display field.
         """
-        self.selected_date = selected_date
-        self.selected_time = selected_time
         self.update_datetime_display()
         # Remove any visual errors
         self.date_display_field.hide_border()
@@ -170,14 +161,14 @@ class NewTaskScreen(BaseScreen):
     
     def load_task_data(self, task) -> None:
         self.in_edit_task_mode = True
-        self.edit_mode = True
         
-        self.task_id_to_edit = task.task_id
-
-        self.selected_date = task.timestamp.date()
-        self.selected_time = task.timestamp.time()
+        self.task_manager.selected_task_id = task.task_id
+        self.task_manager.selected_date = task.timestamp.date()
+        self.task_manager.selected_time = task.timestamp.time()
 
         self.task_input_field.set_text(task.message)
+        
+        self.audio_manager.selected_alarm_name = task.alarm_name
         alarm_name = task.alarm_name if task.alarm_name else TEXT.NO_ALARM
         self.alarm_display_field.set_text(alarm_name)
 
@@ -204,63 +195,44 @@ class NewTaskScreen(BaseScreen):
             has_error = True
         
         # Visual error when no date selected
-        if self.selected_date is None or self.selected_time is None:
+        if self.task_manager.selected_date is None or self.task_manager.selected_time is None:
             self.date_display_field.show_error_border()
             has_error = True
         
         if has_error:
             return
         
-        task_datetime = datetime.combine(self.selected_date, self.selected_time)
+        task_datetime = datetime.combine(self.task_manager.selected_date,
+                                         self.task_manager.selected_time)
         if self.in_edit_task_mode:
             self.task_manager.update_task(
-                task_id=self.task_id_to_edit,
+                task_id=self.task_manager.selected_task_id,
                 timestamp=task_datetime,
                 message=message,
-                alarm_name=self.audio_manager.selected_alarm_name
+                alarm_name=self.audio_manager.selected_alarm_name,
+                vibrate=self.task_manager.vibrate
             )
             self.in_edit_task_mode = False
-            self.task_id_to_edit = None
+            self.task_manager.selected_task_id = None
         else:
             self.task_manager.add_task(
                 timestamp=task_datetime,
                 message=message,
-                alarm_name=self.audio_manager.selected_alarm_name
+                alarm_name=self.audio_manager.selected_alarm_name,
+                vibrate=self.task_manager.vibrate
             )
         
         self.clear_inputs()
         self.navigation_manager.navigate_to(SCREEN.HOME)
     
     def go_to_select_date_screen(self, instance) -> None:
+        """Navigate to select date screen and set up callback for return"""
         select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
         
-        # If in edit Task mode, load the task's datetime values
-        if self.in_edit_task_mode and self.task_id_to_edit:
-            select_date_screen.selected_date = self.selected_date
-            select_date_screen.selected_time = self.selected_time
-            select_date_screen.current_month = self.selected_date.month
-            select_date_screen.current_year = self.selected_date.year
-        else:
-            # If new Task, use current values or else current datetime
-            if self.selected_date:
-                select_date_screen.selected_date = self.selected_date
-                select_date_screen.selected_time = self.selected_time
-                select_date_screen.current_month = self.selected_date.month
-                select_date_screen.current_year = self.selected_date.year
+        # Set up callback for when returning from the date selection screen
+        select_date_screen.callback = self.on_datetime_selected
         
-        select_date_screen.set_callback(self.on_datetime_selected)
-        select_date_screen.update_calendar()
-        
-        # Update time input fields
-        if self.selected_time is not None:
-            select_date_screen.hours_input.set_text(self.selected_time.strftime("%H"))
-            select_date_screen.minutes_input.set_text(self.selected_time.strftime("%M"))
-        
-        # Update selected date label
-        if self.selected_date is not None:
-            date_str = self.selected_date.strftime("%A %d")
-            select_date_screen.selected_date_label.set_text(f"{date_str}")
-        
+        # Navigate to the select date screen
         self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
 
     def on_pre_enter(self) -> None:

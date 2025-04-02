@@ -59,11 +59,14 @@ class TasksByDate(BoxLayout):
 
         # Icons
         task_icon_container = TaskIconContainer()
-        sound_icon = TaskIcon(source=PATH.SOUND_IMG)
-        vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
-        # Add icons to container
-        task_icon_container.add_widget(sound_icon)
-        task_icon_container.add_widget(vibrate_icon)
+        # Sound
+        if task.alarm_name is not None:
+            sound_icon = TaskIcon(source=PATH.SOUND_IMG)
+            task_icon_container.add_widget(sound_icon)
+        # Vibrate
+        if task.vibrate:
+            vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
+            task_icon_container.add_widget(vibrate_icon)
         # Add to container
         time_container.add_widget(task_icon_container)
 
@@ -237,7 +240,7 @@ class TimeLabel(Label):
 
 class TaskIconContainer(BoxLayout):
     """
-    A TaskIconContainer is a container for TaskIcons with width based on content
+    A TaskIconContainer is a container for TaskIcons with fixed width for 2 icons
     """
     def __init__(self, **kwargs):
         super().__init__(
@@ -248,21 +251,14 @@ class TaskIconContainer(BoxLayout):
             padding=[0, 0, SPACE.SPACE_XS, 0],
             **kwargs
         )
-        self.bind(children=self._update_width)
-        self.width = 0
-    
-    def _update_width(self, *args):
-        """Update width based on children"""
-        total_width = sum(c.width for c in self.children) + len(self.children) * self.spacing
-        if self.padding:
-            total_width += self.padding[0] + self.padding[2]
-        self.width = max(total_width, FONT.DEFAULT)
+        
+        # Calculate fixed width for 2 icons
+        icon_width = FONT.DEFAULT * 0.8
+        self.width = (icon_width * 2) + SPACE.SPACE_S + self.padding[0] + self.padding[2]
     
     def add_widget(self, widget, *args, **kwargs):
-        """Override to update width when widgets are added"""
+        """Override to maintain fixed width when widgets are added"""
         super().add_widget(widget, *args, **kwargs)
-        self._update_width()
-
 
 class TaskIcon(Image):
     """

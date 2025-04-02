@@ -1,7 +1,5 @@
 import os
 
-from datetime import datetime
-
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
@@ -48,6 +46,7 @@ class AudioManager(AudioManagerUtils):
         # Recordings
         self.recordings_dir: str = get_recordings_dir()
         validate_dir(self.recordings_dir)
+        self.is_recording: bool = False
 
         # Alarms
         self.alarms_dir: str = get_alarms_dir()
