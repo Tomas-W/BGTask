@@ -22,6 +22,9 @@ class Paths(Directories):
     SCREENSHOT_IMG = os.path.join(Directories.IMG, "screenshot_64.png")
     SETTINGS_IMG = os.path.join(Directories.IMG, "settings_64.png")
     EXIT_IMG = os.path.join(Directories.IMG, "exit_64.png")
+
+    SOUND_IMG = os.path.join(Directories.IMG, "sound_64.png")
+    VIBRATE_IMG = os.path.join(Directories.IMG, "vibrate_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
 
@@ -131,7 +134,10 @@ class Styles:
 class Text:
     TYPE_HINT = "Start typing.."
     TYPE_ERROR = "Input is required!"
+
     NO_TASKS = "Create a new task by clicking the + button!"
+    NO_DATE = "No date selected"
+    NO_ALARM = "No alarm set"
 
 
 class Extensions:

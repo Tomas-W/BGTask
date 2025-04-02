@@ -6,7 +6,7 @@ from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
 from src.widgets.containers import ScrollContainer, Partition, CustomButtonRow
 from src.widgets.fields import TextField, ButtonField
 
-from src.settings import SCREEN, STATE
+from src.settings import SCREEN, STATE, TEXT
 
 
 class NewTaskScreen(BaseScreen):
@@ -142,7 +142,7 @@ class NewTaskScreen(BaseScreen):
             self.date_display_field.set_text(f"{date_str} at {time_str}")
             self.date_display_field.hide_border()
         else:
-            self.date_display_field.set_text("No date selected")
+            self.date_display_field.set_text(TEXT.NO_DATE)
 
     def on_datetime_selected(self,
                              selected_date: datetime,
@@ -166,7 +166,22 @@ class NewTaskScreen(BaseScreen):
         if self.audio_manager.selected_alarm_name is not None:
             self.alarm_display_field.set_text(self.audio_manager.selected_alarm_name)
         else:
-            self.alarm_display_field.set_text("No alarm set")
+            self.alarm_display_field.set_text(TEXT.NO_ALARM)
+    
+    def load_task_data(self, task) -> None:
+        self.in_edit_task_mode = True
+        self.edit_mode = True
+        
+        self.task_id_to_edit = task.task_id
+
+        self.selected_date = task.timestamp.date()
+        self.selected_time = task.timestamp.time()
+
+        self.task_input_field.set_text(task.message)
+        alarm_name = task.alarm_name if task.alarm_name else TEXT.NO_ALARM
+        self.alarm_display_field.set_text(alarm_name)
+
+        self.update_datetime_display()
     
     def save_task(self, instance) -> None:
         """
@@ -200,15 +215,17 @@ class NewTaskScreen(BaseScreen):
         if self.in_edit_task_mode:
             self.task_manager.update_task(
                 task_id=self.task_id_to_edit,
+                timestamp=task_datetime,
                 message=message,
-                timestamp=task_datetime
+                alarm_name=self.audio_manager.selected_alarm_name
             )
             self.in_edit_task_mode = False
             self.task_id_to_edit = None
         else:
             self.task_manager.add_task(
+                timestamp=task_datetime,
                 message=message,
-                timestamp=task_datetime
+                alarm_name=self.audio_manager.selected_alarm_name
             )
         
         self.clear_inputs()

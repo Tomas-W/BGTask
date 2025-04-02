@@ -52,9 +52,9 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error loading tasks: {e}")
             return []
     
-    def add_task(self, message: str, timestamp: datetime) -> None:
+    def add_task(self, message: str, timestamp: datetime, alarm_name: str) -> None:
         """Add a new Task to self.tasks and save to task_file."""
-        task = Task(message=message, timestamp=timestamp)
+        task = Task(message=message, timestamp=timestamp, alarm_name=alarm_name)
         self.tasks.append(task)
         self._save_tasks()
         # Notify listeners that tasks have changed
@@ -82,18 +82,13 @@ class TaskManager(EventDispatcher):
             return
         
         new_task_screen = App.get_running_app().get_screen(SCREEN.NEW_TASK)
-        new_task_screen.in_edit_task_mode = True
-        new_task_screen.edit_mode = True
-        new_task_screen.task_id_to_edit = task_id
-        new_task_screen.task_input_field.set_text(task.message)
-        new_task_screen.selected_date = task.timestamp.date()
-        new_task_screen.selected_time = task.timestamp.time()
-        new_task_screen.update_datetime_display()
+        new_task_screen.load_task_data(task)
         
         # Navigate to the edit screen
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
-    def update_task(self, task_id: str, message: str, timestamp: datetime) -> None:
+    def update_task(self, task_id: str, message: str,
+                    timestamp: datetime, alarm_name: str) -> None:
         """Update an existing Task by its ID."""
         task = next((task for task in self.tasks if task.task_id == task_id), None)
         if not task:
@@ -101,8 +96,9 @@ class TaskManager(EventDispatcher):
             return
         
         # Update the task
-        task.message = message
         task.timestamp = timestamp
+        task.message = message
+        task.alarm_name = alarm_name
         logger.debug(f"Updated task: {task_id}")
         
         # Save changes

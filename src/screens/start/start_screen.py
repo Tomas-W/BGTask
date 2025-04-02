@@ -104,9 +104,13 @@ class StartScreen(Screen):
         """
         try:
             import json
+            import os
             from datetime import datetime
-            with open(PATH.TASK_FILE, "r") as f:
-                task_data = json.load(f)
+            if os.path.exists(PATH.TASK_FILE):
+                with open(PATH.TASK_FILE, "r") as f:
+                    task_data = json.load(f)
+            else:
+                task_data = []
             
             today = datetime.now().date()
             future_tasks = []

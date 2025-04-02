@@ -15,34 +15,46 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# StartScreen
+# TODO: Refactor StartScreen
+# TODO: When no tasks, edit message for screenshot
+
+
+# HomeScreen
 # TODO: Hide edit/delete when not in edit mode in on_enter on HomeScreen
 # TODO: Create generic popup for errors
-# TODO: Preview alarm on saved alarm screen
-# TODO: Delete alarm button on NewTask screen
 # TODO: Only show tasks/edit/delete if visible
+# TODO: Save scroll value when going to new task screen
+
+
+# NewTaskScreen
+# TODO: Delete alarm button on NewTask screen
 # TODO: After saving task, reset task details
-# TODO: When AudioManager is initialized without audio player, prevent audio functionality
-# TODO: Check for name taken in alarms/recordings
-# TODO: Edit and delete recordings
-# TODO: Refactor StartScreen
-# TODO: Fix recording permission popup
 # TODO: Remove selected_task_alarm after saving
+
+
+# SelectDateScreen
+
+
+# SelectAlarmScreen
+# TODO: Save - Alarm Name - Delete [with confirmation]
+# TODO: PLay - Stop - Rename
+# TODO: Rework audio preview
+# TODO: Fix alarm name taken filename
+
+
+# SavedAlarmScreen
+
+
+# General
+# TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
-# TODO: Button feedback Recording / Playing
-# TODO: Check on_press / on_release
-# TODO: Saved alarms edit and delete
-# TODO: When no tasks, edit message for screenshot
 # TODO: Add alarm path to task
 # TODO: Add vibrtating to task
-# TODO: Rework audio preview and limit to play once
- 
-# TODO: Editing last task adds new default message
-# TODO: Save scroll value when going to new task screen
 # TODO: Look at caching
 # TODO: Add on_pause saving data
 # TODO: Add on_resume loading data
 # TODO: Add on_stop saving data
-# TODO: Fix alarm name taken filename
 
 
 class TaskApp(App):
