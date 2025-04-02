@@ -128,7 +128,7 @@ class WindowsAudioPlayer:
             logger.error(f"Error playing audio on Windows: {e}")
             return False
     
-    def stop(self, log: bool = True) -> bool:
+    def stop(self) -> bool:
         """
         Stop any playing audio.
         If log is True, logs a debug message.
@@ -136,8 +136,6 @@ class WindowsAudioPlayer:
         """
         try:
             if not self.sound or not self.sound.state == "play":
-                if log:
-                    logger.debug("Windows audio not playing, nothing to stop")
                 return True
             
             self.sound.stop()

@@ -1,5 +1,5 @@
-from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.screenmanager import Screen
 
 from src.widgets.containers import BaseLayout
 from src.widgets.buttons import CustomConfirmButton
@@ -7,6 +7,7 @@ from src.widgets.buttons import CustomConfirmButton
 from src.utils.platform import device_is_android
 
 from src.settings import DIR, PATH, SCREEN, STATE
+
 
 class StartScreen(Screen):
     """
@@ -19,10 +20,10 @@ class StartScreen(Screen):
         When the screen is shown, the page is built and the data is loaded in.
         """
         super().__init__(**kwargs)
-        self.start_screen_loaded = False
+        self.start_screen_loaded: bool = False
 
-        self.task_data = []
-        self.task_date = ""
+        self.task_data: list[dict] = []
+        self.task_date: str = ""
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -37,6 +38,7 @@ class StartScreen(Screen):
         from src.widgets.containers import ScrollContainer, Partition
         from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer
         from src.widgets.labels import PartitionHeader
+
         self.scroll_container = ScrollContainer()
 
         self.header_partition = Partition()
@@ -63,12 +65,13 @@ class StartScreen(Screen):
 
         self.layout.add_widget(self.scroll_container)
 
-    def _load_current_tasks_widgets(self):
+    def _load_current_tasks_widgets(self) -> None:
         """
         Loads the tasks widgets into the tasks container.
         These contain the next tasks that are expiring, grouped by date.
         """
-        from src.screens.home.home_widgets import TaskContainer, TaskLabel, TimeLabel, TimeLabelContainer
+        from src.screens.home.home_widgets import (TaskContainer, TaskLabel,
+                                                   TimeLabel, TimeLabelContainer)
         
         for task in self.task_data:
             task_container = TaskContainer()
@@ -76,7 +79,6 @@ class StartScreen(Screen):
 
             time = task["timestamp"].strftime("%H:%M")
             start_time_label = TimeLabel(text=time)
-            start_time_label.size_hint_x = 0.3
 
             time_container.add_widget(start_time_label)
             task_container.add_widget(time_container)
@@ -95,10 +97,10 @@ class StartScreen(Screen):
             task_container.add_widget(task_message)
             self.tasks_container.add_widget(task_container)
 
-    def _get_current_task_data(self):
+    def _get_current_task_data(self) -> list[dict]:
         """
         Gets the current task data from the task file.
-        It returns the first task that is expiring in the future.
+        It returns todays Task, or nearest future Task.
         """
         try:
             import json
@@ -127,14 +129,14 @@ class StartScreen(Screen):
         except Exception as e:
             raise e
     
-    def _load_attributes(self):
+    def _load_attributes(self) -> None:
         """
         Loads the attributes of the screen.
         """
         from kivy.app import App
         self.navigation_manager = App.get_running_app().navigation_manager
         
-    def reset_start_screen(self, *args):
+    def reset_start_screen(self, *args) -> None:
         """
         Reloads start screen data.
         """
@@ -143,11 +145,11 @@ class StartScreen(Screen):
         self._load_current_tasks_widgets()
 
     @property
-    def is_completed(self):
+    def is_completed(self) -> bool:
         return self.start_screen_loaded
 
     @is_completed.setter
-    def is_completed(self, value):
+    def is_completed(self, value: bool) -> None:
         """
         Sets the start screen loaded to the value.
         Triggers loading the rest of the app in the background.
@@ -155,23 +157,23 @@ class StartScreen(Screen):
         self.start_screen_loaded = value
         self.on_is_completed_change()
 
-    def on_is_completed_change(self):
+    def on_is_completed_change(self) -> None:
         """
-        When the StartScreen is loaded, the rest of the app is loaded.
+        When the StartScreen finished loading, the rest of the app is loaded.
         """
         from kivy.clock import Clock
         Clock.schedule_once(self.background_load_app_components, 0.01)
 
-    def background_load_app_components(self, dt):
+    def background_load_app_components(self, dt: float) -> None:
         from kivy.app import App
         App.get_running_app()._load_app_components()
         self._load_attributes()
     
-    def on_pre_enter(self):
+    def on_pre_enter(self) -> None:
         if self.start_screen_loaded:
             self.reset_start_screen()
 
-    def on_enter(self):
+    def on_enter(self) -> None:
         """
         When the screen is shown, the page is built and the data is loaded in.
         """
@@ -181,7 +183,7 @@ class StartScreen(Screen):
             from kivy.clock import Clock
             Clock.schedule_once(self.load_data_background, 0.1)
         
-    def load_data_background(self, dt):
+    def load_data_background(self, dt: float) -> None:
         self._build_page()
         self.task_data = self._get_current_task_data()
         
@@ -192,13 +194,13 @@ class StartScreen(Screen):
         
         self.is_completed = True
 
-    def on_touch_down(self, touch):
+    def on_touch_down(self, touch) -> bool:
         # Store the initial touch position
         self.touch_start_x = touch.x
         self.touch_start_y = touch.y
         return super().on_touch_down(touch)
 
-    def on_touch_up(self, touch):
+    def on_touch_up(self, touch) -> bool:
         # Calculate the distance moved
         delta_x = touch.x - self.touch_start_x
         delta_y = touch.y - self.touch_start_y
@@ -218,22 +220,21 @@ class StartScreen(Screen):
 
         return super().on_touch_up(touch)
 
-    def on_swipe_right(self):
+    def on_swipe_right(self) -> None:
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="right")
 
-    def on_swipe_left(self):
+    def on_swipe_left(self) -> None:
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="left")
-    def on_swipe_up(self):
+
+    def on_swipe_up(self) -> None:
         pass
 
-    def on_swipe_down(self):
+    def on_swipe_down(self) -> None:
         pass
 
-    def take_screenshot(self, *args):
+    def take_screenshot(self, *args) -> None:
         try:
-            from kivy.utils import platform
             import os
-            
             print("Starting screenshot capture process...")
             
             # Check and request permissions
@@ -254,7 +255,6 @@ class StartScreen(Screen):
             else:
                 header_visible = False
             
-            button_visible = self.screenshot_button.opacity > 0
             self.screenshot_button.opacity = 0
                         
             # Redraw

@@ -119,7 +119,6 @@ class ScrollContainer(BoxLayout):
         """Add widget to the container"""
         self.container.add_widget(widget)
 
-
 class TopBarContainer(BoxLayout):
     """
     Top bar container is the base for the TopBar that:

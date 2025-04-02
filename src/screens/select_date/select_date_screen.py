@@ -3,17 +3,18 @@ import calendar
 from datetime import datetime, date
 
 from kivy.graphics import Color, Rectangle, RoundedRectangle
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 
 from src.screens.base.base_screen import BaseScreen  # type: ignore
 
-from src.widgets.bars import TopBarClosed, TopBarExpanded
 from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
-from src.widgets.containers import BaseLayout, ScrollContainer, CustomButtonRow, Partition, CustomRow
+from src.widgets.containers import (ScrollContainer, CustomButtonRow, Partition,
+                                    CustomRow)
 from src.widgets.labels import PartitionHeader
 from src.widgets.fields import InputField
-from .select_date_widgets import DateTimeLabel, CalendarContainer, CalendarHeadersContainer, CalendarHeaderLabel, CalendarGrid
+from .select_date_widgets import (DateTimeLabel, CalendarContainer,
+                                  CalendarHeadersContainer, CalendarHeaderLabel,
+                                  CalendarGrid)
 
 from src.settings import COL, SIZE, SPACE, STATE, STYLE, SCREEN
 
@@ -23,31 +24,15 @@ class SelectDateScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        
-        self.root_layout = FloatLayout()
-        self.layout = BaseLayout()
 
         # Initialize date and time
         self.selected_date = datetime.now().date()
         self.selected_time = datetime.now().time()
         self.current_month = self.selected_date.month
         self.current_year = self.selected_date.year
-
-        # Top bar
-        self.top_bar = TopBarClosed(
-            bar_title="Select Date",
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            options_callback=lambda instance: self.switch_top_bar(),
-        )
-        # Top bar with expanded options
-        self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
-            options_callback=lambda instance: self.switch_top_bar(),
-            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(),
-        )
-        self.layout.add_widget(self.top_bar.top_bar_container)
+        
+        # TopBar title
+        self.top_bar.bar_title.set_text("Select Date")
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
@@ -142,7 +127,7 @@ class SelectDateScreen(BaseScreen):
         # Add callback property
         self.callback = None
     
-    def create_calendar_grid(self):
+    def create_calendar_grid(self) -> None:
         """Create and populate the calendar grid"""
         self.calendar_container = CalendarContainer()
 
@@ -160,7 +145,7 @@ class SelectDateScreen(BaseScreen):
         self.update_calendar()
         self.select_day_partition.add_widget(self.calendar_container)
 
-    def update_calendar(self):
+    def update_calendar(self) -> None:
         """Update the calendar grid for the current month/year"""
         month_name = calendar.month_name[self.current_month]
         self.month_label.set_text(f"{month_name} {self.current_year}")
@@ -210,7 +195,7 @@ class SelectDateScreen(BaseScreen):
                     day_button.bind(on_release=lambda btn, d=day: self.select_day(d))
                     self.calendar_grid.add_widget(day_button)
     
-    def update_selected_day(self, instance, value):
+    def update_selected_day(self, instance, value) -> None:
         """
         Add background, text color and bold to the selected day
         """
@@ -221,7 +206,7 @@ class SelectDateScreen(BaseScreen):
                         instr.pos = child.pos
                         instr.size = child.size
     
-    def select_day(self, day):
+    def select_day(self, day: int) -> None:
         """Handle day selection"""
         try:
             self.selected_date = date(self.current_year, self.current_month, day)
@@ -234,7 +219,7 @@ class SelectDateScreen(BaseScreen):
         except ValueError:
             pass
     
-    def go_to_prev_month(self, instance):
+    def go_to_prev_month(self, instance) -> None:
         """Go to previous month"""
         self.current_month -= 1
         if self.current_month < 1:
@@ -242,7 +227,7 @@ class SelectDateScreen(BaseScreen):
             self.current_year -= 1
         self.update_calendar()
     
-    def go_to_next_month(self, instance):
+    def go_to_next_month(self, instance) -> None:
         """Go to next month"""
         self.current_month += 1
         if self.current_month > 12:
@@ -250,11 +235,11 @@ class SelectDateScreen(BaseScreen):
             self.current_year += 1
         self.update_calendar()
 
-    def confirm_date_selection(self, instance):
+    def confirm_date_selection(self, instance) -> None:
         """Return to new task screen, passing selected date if confirm was pressed"""
         if instance == self.confirm_button:
-            hours_input = self.hours_input.text_input.text.strip()
-            minutes_input = self.minutes_input.text_input.text.strip()
+            hours_input: str = self.hours_input.text_input.text.strip()
+            minutes_input: str = self.minutes_input.text_input.text.strip()
 
             valid = True
             if hours_input and (not hours_input.isdigit() or int(hours_input) > 23 or int(hours_input) < 0):
@@ -287,17 +272,17 @@ class SelectDateScreen(BaseScreen):
 
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
     
-    def validate_hours(self, instance, value):
+    def validate_hours(self, instance, value) -> None:
         """Allow any input during typing"""
         if len(value) > 2:
             instance.set_text(instance.text[:2])
 
-    def validate_minutes(self, instance, value):
+    def validate_minutes(self, instance, value) -> None:
         """Allow any input during typing"""
         if len(value) > 2:
             instance.set_text(instance.text[:2])
 
-    def on_pre_enter(self):
+    def on_pre_enter(self) -> None:
         """Called when the screen is entered"""
         super().on_pre_enter()
         
@@ -325,6 +310,6 @@ class SelectDateScreen(BaseScreen):
                     child.color = COL.TEXT_GREY
                     child.set_bold(False)
     
-    def on_enter(self):
+    def on_enter(self) -> None:
         """Called when the screen is entered"""
         pass

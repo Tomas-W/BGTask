@@ -1,15 +1,13 @@
-from kivy.uix.floatlayout import FloatLayout
-
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.bars import TopBarClosed, TopBarExpanded
-from src.widgets.containers import (Partition, ScrollContainer, BaseLayout,
-                                    CustomButtonRow)
-from src.widgets.buttons import CustomConfirmButton, CustomSettingsButton, CustomCancelButton
+from src.widgets.containers import Partition, ScrollContainer, CustomButtonRow
+from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
+                                 CustomCancelButton)
 
 from src.utils.logger import logger
 
 from src.settings import STATE, SCREEN
+
 
 class SavedAlarmScreen(BaseScreen):
     """
@@ -24,26 +22,8 @@ class SavedAlarmScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
-        self.alarm_name = None
-
-        self.root_layout = FloatLayout()
-        self.layout = BaseLayout()
-
-        # Top bar
-        self.top_bar = TopBarClosed(
-            bar_title="Saved Alarms",
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            options_callback=lambda instance: self.switch_top_bar(),
-        )
-        # Top bar with expanded options
-        self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
-            options_callback=lambda instance: self.switch_top_bar(),
-            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(),
-        )
-        self.layout.add_widget(self.top_bar.top_bar_container)
+        # TopBar title
+        self.top_bar.bar_title.set_text("Saved Alarms")
 
         # Scroll container
         self.scroll_container = ScrollContainer()
@@ -75,33 +55,30 @@ class SavedAlarmScreen(BaseScreen):
         # Add layouts
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
+        # Add bottom bar
+        self.add_bottom_bar()
+        # Apply layout
         self.add_widget(self.root_layout)
 
-    def confirm_alarm_selection(self, instance):
+    def confirm_alarm_selection(self, instance) -> None:
         """Confirm the alarm selection."""
-        if self.alarm_name is not None:
-            success = self.audio_manager.select_alarm_audio(name=self.alarm_name)
-            if success:
-                self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
-            else:
-                # Show error popup if selection failed
-                from kivy.uix.popup import Popup
-                from kivy.uix.label import Label
-                popup = Popup(title="Selection Error",
-                            content=Label(text=f"Could not select alarm: {self.alarm_name}"),
-                            size_hint=(0.8, 0.4))
-                popup.open()
+        if self.audio_manager.selected_alarm_name is not None:
+            self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
+        
+        else:
+            self.show_error_popup("Selection Error", "No alarm selected")
     
-    def cancel_alarm_selection(self, instance):
+    def cancel_alarm_selection(self, instance) -> None:
         """
         Cancel the alarm selection.
         """
-        self.alarm_name = None
+        self.audio_manager.selected_alarm_name = None
+        self.audio_manager.selected_alarm_path = None
         self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
 
-    def create_alarm_buttons(self):
+    def create_alarm_buttons(self) -> None:
         """
-        Create the alarm buttons for the alarm picker partition.
+        Create the alarm buttons for the AlarmPicker partition.
         """
         for name, path in self.audio_manager.alarms.items():
             button = CustomSettingsButton(
@@ -112,46 +89,44 @@ class SavedAlarmScreen(BaseScreen):
             button.bind(on_release=self.select_saved_alarm)
             self.alarm_picker_partition.add_widget(button)
 
-    def select_saved_alarm(self, instance):
+    def select_saved_alarm(self, instance) -> None:
         """
-        Select the alarm.
+        Callback for saved alarm buttons.
+        Select the alarm and update the button states.
         """
-        self.alarm_name = instance.text
-        self.alarm_path = self.audio_manager.get_audio_path(instance.text)
-        found = False
+        if self.audio_manager.select_alarm_audio(name=instance.text):
+            self.update_button_states()
+        else:
+            logger.error(f"Failed to select alarm: {instance.text}")
+            self.show_error_popup("Selection Error", "No alarm selected")
+
+    def update_button_states(self) -> None:
+        """
+        Sets the states of the alarm buttons and the confirm button.
+        The selected alarm gets state=ACTIVE, all other buttons get state=INACTIVE.
+        The confirm button gets state=ACTIVE if an alarm is selected.
+        """
+        # Use provided name or get from audio_manager
+        selected_alarm_name = self.audio_manager.selected_alarm_name
+        
+        # Update alarm buttons
         for button in self.alarm_picker_partition.children:
-            if button.text == self.alarm_name:
+            if selected_alarm_name and button.text == selected_alarm_name:
                 button.set_active_state()
-                found = True
             else:
                 button.set_inactive_state()
-        if found:
-            self.confirm_button.set_active_state()
-    
-
-    def set_button_states(self):
-        """
-        Set the button states.
-        """
-        alarm_name = self.audio_manager.selected_alarm_name
-        if alarm_name is not None:
-            for button in self.alarm_picker_partition.children:
-                if button.text == alarm_name:
-                    button.set_active_state()
-                else:
-                    button.set_inactive_state()
+        
+        # Update confirm button
+        if selected_alarm_name:
             self.confirm_button.set_active_state()
         else:
-            for button in self.alarm_picker_partition.children:
-                button.set_inactive_state()
             self.confirm_button.set_inactive_state()
-    
-    def on_pre_enter(self):
+
+    def on_pre_enter(self) -> None:
         """
         Called when the screen is entered.
         """
         super().on_pre_enter()
         self.alarm_picker_partition.clear_widgets()
         self.create_alarm_buttons()
-
-        self.set_button_states()
+        self.update_button_states()

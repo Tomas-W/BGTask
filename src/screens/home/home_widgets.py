@@ -1,11 +1,10 @@
-from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 
-from src.settings import SPACE, SIZE, COL, STYLE, FONT, SCREEN
+from src.settings import SPACE, SIZE, COL, STYLE, FONT
 
 
 class TasksByDate(BoxLayout):
@@ -14,20 +13,22 @@ class TasksByDate(BoxLayout):
     It has a TaskHeader on top, and a TaskGroupContainer below, which as a background.
     
     TasksByDate structure:
-    - A TaskHeader [ Label (Monday 24 Mar) ]
-    - A TaskGroupContainer [ BoxLayout - TaskContainers ]
-      |-- TaskContainer(s) [ BoxLayout - time Label, task Label ]
-          |-- A TimeLabelContainer [ BoxLayout - time Label, edit button, delete button ]
+    - A TaskHeader
+    - A TaskGroupContainer [vertical]
+      |-- TaskContainer(s) [vertical]
+          |-- A TimeLabelContainer [horizontal]
           |    |-- A TimeLabel [ Label (HH:MM) ]
           |    |-- An EditTaskButton [ Button (Edit) ]
           |    |-- A DeleteTaskButton [ Button (Delete) ]
           |
-          |--A TaskLabel [ Label (Task message) ]
+          |--A TaskLabel
     """
-    def __init__(self, date_str, tasks, parent_screen=None, **kwargs):
-        super().__init__(**kwargs)
-        self.task_manager = App.get_running_app().task_manager
-        self.orientation = "vertical"
+    def __init__(self, date_str, tasks, task_manager, parent_screen=None, **kwargs):
+        super().__init__(
+            orientation="vertical",
+            **kwargs
+        )
+        self.task_manager = task_manager
         self.parent_screen = parent_screen
         
         day_header = TaskHeader(text=date_str)
@@ -48,17 +49,14 @@ class TasksByDate(BoxLayout):
         time_container = TimeLabelContainer()
         
         time_label = TimeLabel(text=task.get_time_str())
-        time_label.set_size_hint_x(0.3)
         
         edit_button = EditTaskButton(text="Edit", type="edit")
-        edit_button.set_size_hint_x(0.3)
         edit_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.edit_task(task_id))
         
         delete_button = EditTaskButton(text="Delete", type="delete")
-        delete_button.set_size_hint_x(0.3)
         delete_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
         
-        # Register the buttons with the parent screen
+        # Register the buttons
         if self.parent_screen:
             self.parent_screen.register_edit_delete_button(edit_button)
             self.parent_screen.register_edit_delete_button(delete_button)
@@ -77,7 +75,6 @@ class TasksByDate(BoxLayout):
                 instance.height = instance.texture_size[1]
                 task_container.height = time_container.height + instance.height
             
-            # Height adjustment for next frame
             Clock.schedule_once(adjust_height, 0)
         
         task_label.bind(size=update_text_size)
@@ -93,20 +90,22 @@ class TaskGroupContainer(BoxLayout):
     and place a background behind them.
     
     TaskGroupContainer structure:
-    - TaskContainer(s) [ BoxLayout - time Label, task Label ]
-      |-- A TimeLabelContainer [ BoxLayout - time Label, edit button, delete button ]
+    - TaskContainer(s) [vertical]
+      |-- A TimeLabelContainer [horizontal]
       |    |-- A TimeLabel [ Label (HH:MM) ]
       |    |-- An EditTaskButton [ Button (Edit) ]
       |    |-- A DeleteTaskButton [ Button (Delete) ]
       |
-      |--A TaskLabel [ Label (Task message) ]
+      |--A TaskLabel
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = "vertical"
-        self.size_hint_y = None
-        self.spacing = SPACE.SPACE_M
-        self.padding = [0, SPACE.SPACE_M, 0, SPACE.SPACE_M]
+        super().__init__(
+            orientation="vertical",
+            size_hint_y=None,
+            spacing=SPACE.SPACE_M,
+            padding=[0, SPACE.SPACE_M, 0, SPACE.SPACE_M],
+            **kwargs
+        )
         self.bind(minimum_height=self.setter("height"))
         
         with self.canvas.before:
@@ -125,11 +124,11 @@ class TaskGroupContainer(BoxLayout):
 
 class TaskContainer(BoxLayout):
     """
-    A TaskContainer is used to group a time label, edit button, delete button,
-     and a task label.
+    A TaskContainer is used to group a TimeLabel, EditTaskButton, DeleteTaskButton,
+     and a TaskLabel.
     
     TaskContainer structure:
-    - A TimeLabelContainer [ BoxLayout - time Label, edit button, delete button ]
+    - A TimeLabelContainer [vertical]
       |-- A TimeLabel [ Label (HH:MM) ]
       |-- An EditTaskButton [ Button (Edit) ]
       |-- A DeleteTaskButton [ Button (Delete) ]
@@ -169,9 +168,9 @@ class TaskHeader(Label):
 
 class TimeLabelContainer(BoxLayout):
     """
-    TimeLabelContainer contains a time label, edit button, and delete button.
+    TimeLabelContainer contains a TimeLabel, EditTaskButton, and DeleteTaskButton.
 
-    TimeLabelContainer structure:
+    TimeLabelContainer structure [horizontal]:
     - A TimeLabel [ Label (HH:MM) ]
     - An EditTaskButton [ Button (Edit) ]
     - A DeleteTaskButton [ Button (Delete) ]
@@ -196,7 +195,7 @@ class TimeLabel(Label):
     def __init__(self, text: str, **kwargs):
         super().__init__(
             text=text,
-            size_hint=(1, None),
+            size_hint=(0.3, None),
             height=SIZE.TIME_LABEL_HEIGHT,
             halign="left",
             font_size=FONT.DEFAULT,
@@ -216,12 +215,11 @@ class EditTaskButton(Button):
     An EditTaskButton is a button for editing or deleting a Task.
     - Has an opacity of 0 by default
     - Has a disabled=True to prevent it from being clickable by default.
-    - Can be switched on and off using the switch_opacity and switch_disabled methods.
     """
     def __init__(self, text: str, type: str, **kwargs):
         super().__init__(
             text=text,
-            size_hint_y=None,
+            size_hint=(0.3, None),
             height=SIZE.TIME_LABEL_HEIGHT,
             font_size=FONT.SETTINGS_BUTTON,
             bold=False,
@@ -254,12 +252,6 @@ class EditTaskButton(Button):
     
     def set_disabled(self, disabled: bool):
         self.disabled = disabled
-
-    def switch_opacity(self):
-        self.opacity = int(not self.opacity)
-    
-    def switch_disabled(self):
-        self.disabled = not self.disabled
 
 
 class TaskLabel(Label):

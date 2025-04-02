@@ -15,6 +15,10 @@ if platform != PLATFORM.ANDROID:
     Window.top = 350
 
 
+# TODO: Hide edit/delete when not in edit mode in on_enter on HomeScreen
+# TODO: Create generic popup for errors
+# TODO: Preview alarm on saved alarm screen
+# TODO: Delete alarm button on NewTask screen
 # TODO: Only show tasks/edit/delete if visible
 # TODO: After saving task, reset task details
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality

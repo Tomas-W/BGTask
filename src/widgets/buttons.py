@@ -1,9 +1,8 @@
-from kivy.animation import Animation, AnimationTransition
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 
-from src.settings import COL, SIZE, SPACE, FONT, STYLE, STATE
+from src.settings import COL, SIZE, FONT, STYLE, STATE
 
 
 class TopBarButton(Button):
@@ -95,6 +94,18 @@ class TopBarButton(Button):
         """Set the background color"""
         self.bg_color = color
         self.update_bg_color()
+    
+    def set_image(self, img_path):
+        """Set the image"""
+        self.img_path = img_path
+        self.remove_widget(self.image)  # Remove old image widget
+        self.image = Image(source=img_path)
+        if not self.image.texture:
+            raise ValueError(f"Texture not found for {img_path}")
+        
+        self.image.size = (self.icon_size, self.icon_size)
+        self.add_widget(self.image)
+        self._update_image(self, self.size)  # Position the new image correctly
 
 
 class TopBarTitle(Button):
@@ -104,14 +115,16 @@ class TopBarTitle(Button):
     - Has a background color
     - Can be set unclickable
     """
-    def __init__(self, text="", button=True,**kwargs):
+    def __init__(self, text="", disabled=True,**kwargs):
         super().__init__(
             size_hint=(1, None),
             height=SIZE.TOP_BAR_HEIGHT,
             text=text,
-            font_size=FONT.TOP_BAR_SYMBOL if button else FONT.TOP_BAR,
+            font_size=FONT.TOP_BAR,
             bold=True,
             color=COL.WHITE,
+            disabled_color=COL.WHITE,
+            disabled=disabled,
             background_color=COL.OPAQUE,
             **kwargs
         )
@@ -124,69 +137,18 @@ class TopBarTitle(Button):
     def _update(self, instance, value):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
-
-
-class BottomBar(Button):
-    """
-    BottomBar is the bottom navigation button that:
-    - Brings the user back to the top of the screen
-    - Has a background color
-    - Has a symbol
-    - Is initially hidden
-    - Has an animation
-    """
-    def __init__(self, text="", **kwargs):
-        super().__init__(
-            size_hint=(1, None),
-            height=SIZE.BOTTOM_BAR_HEIGHT,
-            padding=[0, SPACE.SPACE_M, 0, 0],
-            pos_hint={"center_x": 0.5, "y": -0.15},  # Just below screen
-            text=text,
-            font_size=FONT.BOTTOM_BAR,
-            bold=True,
-            color=COL.WHITE,
-            background_color=COL.OPAQUE,
-            opacity=0,  # Start hidden
-            **kwargs
-        )
-        self.visible = False
-
-        with self.canvas.before:
-            Color(*COL.BAR)
-            self.bg_rect = Rectangle(pos=self.pos, size=self.size)
-            self.bind(pos=self._update, size=self._update)
     
-    def _update(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+    def set_disabled(self, disabled: bool):
+        """Set the disabled state"""
+        self.disabled = disabled
     
-    def show(self, *args):
-        """Animate the bottom bar into view with smooth sliding"""
-        if self.visible:
-            return
-            
-        self.visible = True
-        anim = Animation(
-            opacity=1, 
-            pos_hint={"center_x": 0.5, "y": 0}, 
-            duration=0.3,
-            transition=AnimationTransition.out_quad
-        )
-        anim.start(self)
-    
-    def hide(self, *args):
-        """Animate the bottom bar out of view with smooth sliding"""
-        if not self.visible:
-            return
-            
-        self.visible = False        
-        anim = Animation(
-            opacity=0, 
-            pos_hint={"center_x": 0.5, "y": -0.15}, 
-            duration=0.3,
-            transition=AnimationTransition.in_quad
-        )
-        anim.start(self)
+    def set_symbol_font_size(self, symbol_font_size: int):
+        """Set the symbol font size"""
+        self.font_size = symbol_font_size
+
+    def set_text(self, text: str):
+        """Set the text"""
+        self.text = text
 
 
 class CustomButton(Button):

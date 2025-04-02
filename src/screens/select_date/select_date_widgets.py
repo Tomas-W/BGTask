@@ -52,7 +52,7 @@ class CalendarGrid(GridLayout):
         super().__init__(
             cols=7,
             size_hint=(1, None),
-            height=7 * SIZE.HEADER_HEIGHT,  # Max 6 weeks, add 1 for spacing below
+            height=7 * SIZE.HEADER_HEIGHT,  # Max 6 weeks, + 1 for spacing below
             **kwargs
         )
         self.bind(height=self.setter("height"))

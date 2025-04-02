@@ -157,7 +157,6 @@ class AudioManager(AudioManagerUtils):
         Validates the alarm path and plays the audio file.
         """
         path_to_play = self.selected_alarm_path
-        logger.debug(f"Playing alarm: {path_to_play}")
         
         if not path_to_play:
             logger.error("No alarm selected to play")
@@ -179,12 +178,12 @@ class AudioManager(AudioManagerUtils):
             logger.error(f"Error playing alarm: {e}")
             return False
 
-    def stop_playing_audio(self, log: bool = True) -> bool:
+    def stop_playing_audio(self) -> bool:
         """
         Stops any currently playing audio.
         """
         # Try stopping the audio
-        return self.audio_player.stop(log=log)
+        return self.audio_player.stop()
 
     def is_playing(self):
         """Check if an alarm is currently playing"""

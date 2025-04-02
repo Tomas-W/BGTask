@@ -1,16 +1,14 @@
-import os
-
-from kivy.core.audio import SoundLoader
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.popup import Popup
-from kivy.uix.label import Label
+from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.bars import TopBarClosed, TopBarExpanded
-from src.widgets.containers import BaseLayout, ScrollContainer, Partition, CustomButtonRow, CustomSettingsButtonsRow
-from src.widgets.buttons import CustomConfirmButton, CustomSettingsButton, CustomCancelButton
+from src.widgets.containers import (ScrollContainer, Partition,
+                                    CustomButtonRow, CustomSettingsButtonsRow)
+from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
+                                CustomCancelButton)
 from src.widgets.fields import SettingsField
+
+from src.utils.logger import logger
 
 from src.settings import STATE, SCREEN
 
@@ -25,27 +23,12 @@ class SelectAlarmScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
-        self.recording_on = False
-        self.vibration_on = False
+        # Recording and vibration states
+        self.recording_on: bool = False
+        self.vibration_on: bool = False
 
-        self.root_layout = FloatLayout()
-        self.layout = BaseLayout()
-
-        # Top bar
-        self.top_bar = TopBarClosed(
-            bar_title="Select Alarm",
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            options_callback=lambda instance: self.switch_top_bar(),
-        )
-        # Top bar with expanded options
-        self.top_bar_expanded = TopBarExpanded(
-            back_callback=lambda instance: self.navigation_manager.go_back(),
-            screenshot_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.START),
-            options_callback=lambda instance: self.switch_top_bar(),
-            settings_callback=lambda instance: self.navigation_manager.navigate_to(SCREEN.SETTINGS),
-            exit_callback=lambda instance: self.navigation_manager.exit_app(),
-        )
-        self.layout.add_widget(self.top_bar.top_bar_container)
+        # TopBar title
+        self.top_bar.bar_title.set_text("Select Alarm")
 
         # Scroll container
         self.scroll_container = ScrollContainer(allow_scroll_y=False)
@@ -126,228 +109,206 @@ class SelectAlarmScreen(BaseScreen):
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
     
-    def cancel_select_alarm(self, instance):
-        """Cancel the select alarm process"""
-        # Unschedule any check
-        from kivy.clock import Clock
+    def unschedule_audio_check(self):
+        """Unschedule the audio finished check."""
         Clock.unschedule(self.check_audio_finished)
+    
+    def update_playback_button_states(self, is_playing: bool) -> None:
+        """
+        Update playback button states based on whether audio is playing.
+        """
+        self.set_button_state(
+            self.play_selected_alarm_button, 
+            active=not is_playing, 
+            enabled=not is_playing
+        )
+        self.set_button_state(
+            self.stop_selected_alarm_button, 
+            active=is_playing, 
+            enabled=is_playing
+        )
+        # Also disable edit button while playing
+        if is_playing:
+            self.set_button_state(
+                self.edit_selected_alarm_button,
+                active=False,
+                enabled=False
+            )
+        else:
+            # Restore edit button state based on alarm selection
+            has_alarm = self.audio_manager.selected_alarm_name is not None
+            self.set_button_state(
+                self.edit_selected_alarm_button,
+                active=has_alarm,
+                enabled=has_alarm
+            )
+    
+    def update_recording_button_states(self, is_recording: bool) -> None:
+        """
+        Update recording button states based on whether recording is active.
+        """
+        self.set_button_state(
+            self.start_recording_button, 
+            active=not is_recording, 
+            enabled=not is_recording,
+            text="Recording..." if is_recording else "Start Recording"
+        )
+        self.set_button_state(
+            self.stop_recording_button, 
+            active=is_recording, 
+            enabled=is_recording
+        )
+    
+    def cancel_select_alarm(self, instance) -> None:
+        """
+        Reset the selected alarm and navigate back to the NewTask screen.
+        """
+        self.unschedule_audio_check()
         
         self.audio_manager.selected_alarm_name = None
         self.audio_manager.selected_alarm_path = None
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
 
-    def update_selected_alarm_text(self):
-        """Update the selected alarm text and save button state"""
+    def update_selected_alarm_text(self) -> None:
+        """
+        Update the selected alarm text display only.
+        """
         if self.recording_on:
             self.selected_alarm.set_text("Recording...")
-            self.play_selected_alarm_button.set_inactive_state()
-            self.play_selected_alarm_button.set_disabled(True)
-            self.stop_selected_alarm_button.set_disabled(True)
-            self.save_button.set_inactive_state()  # Can't save while recording
-            self.save_button.set_disabled(True)
-
         elif self.audio_manager.selected_alarm_name is None:
             self.selected_alarm.set_text("No alarm selected")
-            self.play_selected_alarm_button.set_inactive_state()
-            self.play_selected_alarm_button.set_disabled(True)
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
-            self.save_button.set_inactive_state()  # No alarm selected = inactive save button
-            self.save_button.set_disabled(True)
-
         else:
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
-            self.play_selected_alarm_button.set_active_state()
-            self.play_selected_alarm_button.set_disabled(False)
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
-            self.save_button.set_active_state()  # Alarm selected = active save button
-            self.save_button.set_disabled(False)
-            
-    def start_recording_alarm(self, instance):
-        """Start recording an alarm"""
-        was_playing = self.audio_manager.is_playing()
+    
+    def update_button_states_based_on_alarm(self) -> None:
+        """
+        Update button states based on alarm selection and recording state.
+        """
+        if self.recording_on:
+            # Disable play, stop, edit and save buttons during recording
+            self.set_button_state(self.play_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.edit_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.save_button, active=False, enabled=False)
+        elif self.audio_manager.selected_alarm_name is None:
+            # Disable play, stop, edit and save buttons when no alarm is selected
+            self.set_button_state(self.play_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.edit_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.save_button, active=False, enabled=False)
+        else:
+            # Enable play, stop, edit and save buttons when alarm is selected
+            self.set_button_state(self.play_selected_alarm_button, active=True, enabled=True)
+            self.set_button_state(self.stop_selected_alarm_button, active=False, enabled=False)
+            self.set_button_state(self.edit_selected_alarm_button, active=True, enabled=True)
+            self.set_button_state(self.save_button, active=True, enabled=True)
+    
+    def update_screen_state(self) -> None:
+        """
+        Checks for audio state (playing/recording) and updates UI accordingly.
+        """
+        self.update_selected_alarm_text()
+        self.update_button_states_based_on_alarm()
         
-        # We need to unschedule the check that would otherwise
-        # automatically re-enable the play button
-        from kivy.clock import Clock
-        Clock.unschedule(self.check_audio_finished)
+    def start_recording_alarm(self, instance) -> None:
+        """Start recording an alarm"""
+        was_playing: bool = self.audio_manager.is_playing()
+        
+        # Prevent play_button from being re-enabled
+        self.unschedule_audio_check()
         
         if self.audio_manager.start_recording_audio():
-            # Update UI
             self.recording_on = True
-            self.start_recording_button.set_text("Recording...")
-            self.start_recording_button.set_inactive_state()
-            self.start_recording_button.set_disabled(True)
-            
-            self.stop_recording_button.set_active_state()
-            self.stop_recording_button.set_disabled(False)
-            
-            # Always disable play/stop buttons during recording
-            # regardless of what happened before
-            self.play_selected_alarm_button.set_inactive_state()
-            self.play_selected_alarm_button.set_disabled(True)
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
-            
-            self.update_selected_alarm_text()
-        else:
-            # Show error popup
-            popup = Popup(title="Recording Error",
-                         content=Label(text="Could not start recording"),
-                         size_hint=(0.8, 0.4))
-            popup.open()
-            
-            # If recording failed but we stopped playback, restore buttons to non-recording state
-            if was_playing:
-                self.play_selected_alarm_button.set_active_state()
-                self.play_selected_alarm_button.set_disabled(False)
+            self.update_recording_button_states(True)
+            self.update_screen_state()
 
-    def stop_recording_alarm(self, instance):
+        else:
+            self.show_error_popup("Recording Error", "Could not start recording")
+            
+            # Restore states if recording failed
+            if was_playing:
+                self.set_button_state(self.play_selected_alarm_button, active=True, enabled=True)
+
+    def stop_recording_alarm(self, instance) -> None:
         """Stop recording an alarm"""
         if self.audio_manager.stop_recording_audio():
-            # Update UI
             self.recording_on = False
-            self.start_recording_button.set_text("Start Recording")
-            self.start_recording_button.set_active_state()
-            self.start_recording_button.set_disabled(False)
-            
-            self.stop_recording_button.set_inactive_state()
-            self.stop_recording_button.set_disabled(True)
-            
-            self.update_selected_alarm_text()
-        else:
-            # Show error popup
-            popup = Popup(title="Recording Error",
-                        content=Label(text="Could not stop recording"),
-                        size_hint=(0.8, 0.4))
-            popup.open()
+            self.update_recording_button_states(False)
+            self.update_screen_state()
 
-    def play_selected_alarm(self, instance):
+        else:
+            self.show_error_popup("Recording Error", "Could not stop recording")
+
+    def play_selected_alarm(self, instance) -> None:
         """Play the selected alarm"""
         if not self.audio_manager.selected_alarm_path:
-            popup = Popup(title="Playback Error",
-                        content=Label(text="No alarm selected"),
-                        size_hint=(0.8, 0.4))
-            popup.open()
+            self.show_error_popup("Playback Error", "No alarm selected")
             return
         
         if self.audio_manager.start_playing_audio():
-            # Update button states
-            self.play_selected_alarm_button.set_inactive_state()
-            self.play_selected_alarm_button.set_disabled(True)
+            self.update_playback_button_states(True)
             
-            self.stop_selected_alarm_button.set_active_state()
-            self.stop_selected_alarm_button.set_disabled(False)
-            
-            # Schedule a check to update buttons when audio finishes
-            from kivy.clock import Clock
+            # Update buttons states when audio finishes
             Clock.schedule_interval(self.check_audio_finished, 0.3)
         else:
-            # Show error popup
-            popup = Popup(
-                    title="Playback Error",
-                    content=Label(
-                        text="Could not play the selected alarm",
-                        size_hint_y=None,
-                        text_size=(None, None),
-                        halign="left",
-                        valign="top"
-                    ),
-                    size_hint=(0.8, 0.4)
-                )
-            popup.content.bind(size=popup.content.setter('text_size'))
-            popup.open()
+            self.show_error_popup("Playback Error", "Could not play the selected alarm")
 
-    def stop_selected_alarm(self, instance):
+    def stop_selected_alarm(self, instance) -> None:
         """Stop the currently playing alarm"""
-        success = self.audio_manager.stop_playing_audio()
+        success: bool = self.audio_manager.stop_playing_audio()
         
         if success:
-            # Update button states
-            self.play_selected_alarm_button.set_active_state()
-            self.play_selected_alarm_button.set_disabled(False)
-            
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
-            
-            # Unschedule the check
-            from kivy.clock import Clock
-            Clock.unschedule(self.check_audio_finished)
+            self.update_playback_button_states(False)
+            # Remove scheduled check
+            self.unschedule_audio_check()
+        
         else:
-            # Show error popup
-            popup = Popup(
-                    title="Playback Error",
-                    content=Label(text="Could not stop the alarm playback"),
-                    size_hint=(0.8, 0.4)
-                )
-            popup.open()
+            self.show_error_popup("Playback Error", "Could not stop the alarm playback")
 
-    def check_audio_finished(self, dt):
+    def check_audio_finished(self, dt: float) -> bool:
         """Check if audio has finished playing and update buttons accordingly"""
         if not self.audio_manager.is_playing():
-            # Audio finished playing, update button states
-            self.play_selected_alarm_button.set_active_state()
-            self.play_selected_alarm_button.set_disabled(False)
-            
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
-            
-            # Unschedule this check
-            from kivy.clock import Clock
-            Clock.unschedule(self.check_audio_finished)
+            self.update_playback_button_states(False)
+            # Remove scheduled check
+            self.unschedule_audio_check()
             return False
         return True
 
-    def edit_selected_alarm_name(self, instance):
+    def edit_selected_alarm_name(self, instance) -> None:
         """Edit the name of the selected alarm"""
-        # Implement this based on your requirements
         pass
 
-    def toggle_vibration(self, instance):
+    def toggle_vibration(self, instance) -> None:
         """Toggle vibration on the selected alarm"""
         self.vibration_on = not self.vibration_on
-        if self.vibration_on:
-            self.vibration_button.set_text("Vibrating on")
-            self.vibration_button.set_active_state() 
-        else:
-            self.vibration_button.set_text("Vibration off")
-            self.vibration_button.set_inactive_state()
+        self.set_button_state(
+            self.vibration_button,
+            active=self.vibration_on,
+            text="Vibrating on" if self.vibration_on else "Vibration off"
+        )
 
-    def select_alarm(self, instance):
+    def select_alarm(self, instance) -> None:
         """Select the alarm and return to previous screen"""
-        # Unschedule any check
-        from kivy.clock import Clock
-        Clock.unschedule(self.check_audio_finished)
+        # Remove scheduled checks
+        self.unschedule_audio_check()
         
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
 
-    def on_pre_enter(self):
+    def on_pre_enter(self) -> None:
         """Called when the screen is entered"""
         super().on_pre_enter()
-        self.update_selected_alarm_text()  # This will also update the save button
         
-        # Make sure buttons are in the correct state
-        if self.audio_manager.is_playing():
-            # If audio is already playing when entering the screen
-            self.play_selected_alarm_button.set_inactive_state()
-            self.play_selected_alarm_button.set_disabled(True)
-            self.stop_selected_alarm_button.set_active_state()
-            self.stop_selected_alarm_button.set_disabled(False)
-            
-            # Schedule check for when audio finishes
-            from kivy.clock import Clock
-            Clock.schedule_interval(self.check_audio_finished, 0.5)
-        else:
-            # Normal state - play enabled, stop disabled
-            self.stop_selected_alarm_button.set_inactive_state()
-            self.stop_selected_alarm_button.set_disabled(True)
+        self.update_screen_state()
+        self.set_button_state(
+            self.stop_selected_alarm_button, 
+            active=False, 
+            enabled=False
+        )
 
-    def on_leave(self):
+    def on_leave(self) -> None:
         """Called when the screen is left"""
         super().on_leave()
-        # Make sure we stop any playing audio and unschedule checks
-        self.audio_manager.stop_playing_audio(log=False)
-        from kivy.clock import Clock
-        Clock.unschedule(self.check_audio_finished)
+        # Stop any playing audio and remove scheduled checks
+        self.audio_manager.stop_playing_audio()
+        self.unschedule_audio_check()
  
