@@ -17,12 +17,16 @@ class TasksByDate(BoxLayout):
     - A TaskHeader
     - A TaskGroupContainer [vertical]
       |-- TaskContainer(s) [vertical]
-          |-- A TimeLabelContainer [horizontal]
+          |-- A TimeContainer [horizontal]
           |    |-- A TimeLabel [ Label (HH:MM) ]
-          |    |-- An EditTaskButton [ Button (Edit) ]
-          |    |-- A DeleteTaskButton [ Button (Delete) ]
+          |    |-- A TaskIconContainer [horizontal]
+          |    |    |-- A TaskIcon [ sound icon ]
+          |    |    |-- A TaskIcon [ vibrate icon ]
+          |    |-- A EditTaskButtonContainer [horizontal]
+          |    |    |-- An EditTaskButton [ edit button ]
+          |    |    |-- A DeleteTaskButton [ delete button ]
           |
-          |--A TaskLabel
+          |--A TaskLabel [Task message]
     """
     def __init__(self, date_str, tasks, task_manager, parent_screen=None, **kwargs):
         super().__init__(
@@ -49,11 +53,10 @@ class TasksByDate(BoxLayout):
         task_container = TaskContainer()
         time_container = TimeContainer()
 
-        # Time & Icons
-        time_label_container = TimeLabelContainer()
         # Time
         time_label = TimeLabel(text=task.get_time_str())
-        time_label_container.add_widget(time_label)
+        time_container.add_widget(time_label)
+
         # Icons
         task_icon_container = TaskIconContainer()
         sound_icon = TaskIcon(source=PATH.SOUND_IMG)
@@ -62,8 +65,7 @@ class TasksByDate(BoxLayout):
         task_icon_container.add_widget(sound_icon)
         task_icon_container.add_widget(vibrate_icon)
         # Add to container
-        time_label_container.add_widget(task_icon_container)
-        time_container.add_widget(time_label_container)
+        time_container.add_widget(task_icon_container)
 
         # Edit Delete Container
         edit_delete_container = EditTaskButtonContainer()
@@ -83,10 +85,6 @@ class TasksByDate(BoxLayout):
             self.parent_screen.register_edit_delete_button(edit_button)
             self.parent_screen.register_edit_delete_button(delete_button)
         
-        
-        
-        
-        
         task_label = TaskLabel(text=task.message)
         
         def update_text_size(instance, value):
@@ -95,7 +93,7 @@ class TasksByDate(BoxLayout):
             
             def adjust_height(dt):
                 instance.height = instance.texture_size[1]
-                task_container.height = time_label_container.height + instance.height
+                task_container.height = time_container.height + instance.height
             
             Clock.schedule_once(adjust_height, 0)
         
@@ -110,15 +108,19 @@ class TaskGroupContainer(BoxLayout):
     """
     A TaskGroupContainer is used to group all Tasks for a specific date,
     and place a background behind them.
-    
+
     TaskGroupContainer structure:
     - TaskContainer(s) [vertical]
-      |-- A TimeLabelContainer [horizontal]
-      |    |-- A TimeLabel [ Label (HH:MM) ]
-      |    |-- An EditTaskButton [ Button (Edit) ]
-      |    |-- A DeleteTaskButton [ Button (Delete) ]
+      |-- A TimeContainer [horizontal]
+      |    |-- A TimeLabel [ HH:MM ]
+      |    |-- A TaskIconContainer [sound, vibrate]
+      |    |    |-- A TaskIcon [sound icon]
+      |    |    |-- A TaskIcon [vibrate icon]
+      |    |-- A EditTaskButtonContainer [edit, delete]
+      |    |    |-- An EditTaskButton [edit button]
+      |    |    |-- A DeleteTaskButton [delete button]
       |
-      |--A TaskLabel
+      |--A TaskLabel [Task message]
     """
     def __init__(self, **kwargs):
         super().__init__(
@@ -150,11 +152,15 @@ class TaskContainer(BoxLayout):
      and a TaskLabel.
     
     TaskContainer structure:
-    - A TimeLabelContainer [vertical]
-      |-- A TimeLabel [ Label (HH:MM) ]
-      |-- An EditTaskButton [ Button (Edit) ]
-      |-- A DeleteTaskButton [ Button (Delete) ]
-    - A TaskLabel [ Label (Task message) ]
+    - A TimeContainer [vertical]
+      |-- A TimeLabel [ HH:MM ]
+      |-- A TaskIconContainer [sound, vibrate]
+      |    |-- A TaskIcon [sound icon]
+      |    |-- A TaskIcon [vibrate icon]
+      |-- A EditTaskButtonContainer [edit, delete]
+      |    |-- An EditTaskButton [edit button]
+      |    |-- A DeleteTaskButton [delete button]
+    - A TaskLabel [Task message]
     """
     def __init__(self, **kwargs):
         super().__init__(
@@ -195,30 +201,11 @@ class TimeContainer(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(
             orientation="horizontal",
-            **kwargs,
-            # padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
-        )
-
-
-class TimeLabelContainer(BoxLayout):
-    """
-    TimeLabelContainer contains a TimeLabel, EditTaskButton, and DeleteTaskButton.
-
-    TimeLabelContainer structure [horizontal]:
-    - A TimeLabel [ Label (HH:MM) ]
-    - An EditTaskButton [ Button (Edit) ]
-    - A DeleteTaskButton [ Button (Delete) ]
-    """
-    def __init__(self, **kwargs):
-        super().__init__(
-            orientation="horizontal",
-            size_hint=(0.8, None),
+            size_hint=(1, None),
             height=FONT.DEFAULT,
-            spacing=SPACE.SPACE_XS,
             padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
-            **kwargs
+            **kwargs,
         )
-        self.bind(minimum_height=self.setter("height"))
 
 
 class TimeLabel(Label):
@@ -229,73 +216,64 @@ class TimeLabel(Label):
     def __init__(self, text: str, **kwargs):
         super().__init__(
             text=text,
-            size_hint=(1, None),
+            size_hint=(None, None),
             height=FONT.DEFAULT,
             halign="left",
-            # padding=[0, 0, SPACE.SPACE_XS, 0],
+            padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             font_size=FONT.DEFAULT,
             bold=True,
             color=COL.TEXT,
             **kwargs
         )
-        self.bind(size=self.setter("text_size"))
-
-        with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos,
-                size=self.size,
-                radius=[STYLE.RADIUS_S]
-            )   
-        self.bind(pos=self._update_bg, size=self._update_bg)
-
-    def _update_bg(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+        self.texture_update()
+        self.width = self.texture_size[0]
+        self.bind(text=self._update_width)
     
-    def set_size_hint_x(self, value: float):
-        self.size_hint_x = value
+    def _update_width(self, instance, value):
+        """Update width when text changes"""
+        self.texture_update()
+        self.width = self.texture_size[0]
 
 
 class TaskIconContainer(BoxLayout):
     """
-    A TaskIconContainer is a container for a TaskIcon.
+    A TaskIconContainer is a container for TaskIcons with width based on content
     """
     def __init__(self, **kwargs):
         super().__init__(
             orientation="horizontal",
-            size_hint=(1, None),
-            padding=[0, 0, 0, SPACE.SPACE_XS],
+            size_hint=(None, None),
             height=FONT.DEFAULT,
-            # spacing=SPACE.SPACE_S,
+            spacing=SPACE.SPACE_S,
+            padding=[0, 0, SPACE.SPACE_XS, 0],
             **kwargs
         )
-
-        with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos,
-                size=self.size,
-                radius=[STYLE.RADIUS_S]
-            )   
-        self.bind(pos=self._update_bg, size=self._update_bg)
-
-    def _update_bg(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+        self.bind(children=self._update_width)
+        self.width = 0
+    
+    def _update_width(self, *args):
+        """Update width based on children"""
+        total_width = sum(c.width for c in self.children) + len(self.children) * self.spacing
+        if self.padding:
+            total_width += self.padding[0] + self.padding[2]
+        self.width = max(total_width, FONT.DEFAULT)
+    
+    def add_widget(self, widget, *args, **kwargs):
+        """Override to update width when widgets are added"""
+        super().add_widget(widget, *args, **kwargs)
+        self._update_width()
 
 
 class TaskIcon(Image):
     """
-    A TaskIcon is a widget for displaying alarm info  icons in the TimeLabelContainer
+    A TaskIcon is a widget for displaying alarm info icons
     """
     def __init__(self, source="", **kwargs):
         super().__init__(
             source=source,
-            size_hint=(1, 1),
-            # pos_hint={"center_y": 0.5},
-            # width=FONT.DEFAULT,
-            # height=FONT.DEFAULT,
+            size_hint=(None, None),
+            size=(FONT.DEFAULT*0.8, FONT.DEFAULT*0.8),
+            pos_hint={"center_y": 0.5},
             opacity=1,
             **kwargs
         )
@@ -319,7 +297,6 @@ class EditTaskButtonContainer(BoxLayout):
             size_hint=(1, None),
             height=FONT.DEFAULT,
             spacing=SPACE.SPACE_S,
-            padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs
         )
 

@@ -6,7 +6,7 @@ from src.widgets.buttons import CustomConfirmButton
 
 from src.utils.platform import device_is_android
 
-from src.settings import DIR, PATH, SCREEN, STATE
+from src.settings import DIR, PATH, SCREEN, STATE, SPACE
 
 
 class StartScreen(Screen):
@@ -47,6 +47,7 @@ class StartScreen(Screen):
         self.scroll_container.container.add_widget(self.header_partition)
 
         self.current_task_partition = Partition()
+        self.current_task_partition.spacing = 0
         
         self.day_header = TaskHeader(text=self.task_date)
         self.current_task_partition.add_widget(self.day_header)
@@ -71,17 +72,15 @@ class StartScreen(Screen):
         These contain the next tasks that are expiring, grouped by date.
         """
         from src.screens.home.home_widgets import (TaskContainer, TaskLabel,
-                                                   TimeLabel, TimeLabelContainer)
+                                                   TimeLabel)
         
         for task in self.task_data:
             task_container = TaskContainer()
-            time_container = TimeLabelContainer()
 
             time = task["timestamp"].strftime("%H:%M")
             start_time_label = TimeLabel(text=time)
-
-            time_container.add_widget(start_time_label)
-            task_container.add_widget(time_container)
+            start_time_label.padding = [SPACE.FIELD_PADDING_X, 0, 0, 0]
+            task_container.add_widget(start_time_label)
 
             task_message = TaskLabel(text=task["message"])
             
@@ -90,7 +89,7 @@ class StartScreen(Screen):
                 instance.text_size = (width, None)                
                 instance.texture_update()
                 instance.height = instance.texture_size[1]
-                task_container.height = time_container.height + instance.height
+                task_container.height = start_time_label.height + instance.height
             
             task_message.bind(size=update_text_size)
             
