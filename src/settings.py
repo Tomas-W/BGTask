@@ -112,6 +112,8 @@ class Fonts:
     TOP_BAR_SYMBOL = sp(35)
     BOTTOM_BAR = sp(35)
 
+    TEST = sp(50)
+
     HEADER = sp(25)
     BUTTON = sp(22)
     BUTTON_FIELD = sp(18)

@@ -10,9 +10,10 @@ from kivy.core.window import Window
 from kivy.utils import platform
 
 if platform != PLATFORM.ANDROID:
-    Window.size = (390, 790)
-    Window.left = -450
-    Window.top = 350
+    Window.size = (360, 736)
+    Window.dpi = 100
+    Window.left = -386
+    Window.top = 316
 
 
 # StartScreen
@@ -31,6 +32,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Delete alarm button on NewTask screen
 # TODO: After saving task, reset task details
 # TODO: Remove selected_task_alarm after saving
+# TODO: Prevent Tasks at same time
 
 
 # SelectDateScreen
@@ -81,6 +83,7 @@ class TaskApp(App):
             SCREEN.START: StartScreen(name=SCREEN.START)
         }
         self.build_time = time.time()
+        self.win_x, self.win_y = Window.size
         self.screen_manager.add_widget(self.screens[SCREEN.START])
         
         return self.screen_manager

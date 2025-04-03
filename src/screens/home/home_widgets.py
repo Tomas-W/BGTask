@@ -35,7 +35,9 @@ class TasksByDate(BoxLayout):
         )
         self.task_manager = task_manager
         self.parent_screen = parent_screen
-        
+        self.tasks = tasks  # Store reference to tasks
+        self.all_expired = False  # Track if all tasks are expired
+        self.date_str = date_str
         day_header = TaskHeader(text=date_str)
         self.add_widget(day_header)
         
@@ -43,6 +45,11 @@ class TasksByDate(BoxLayout):
         for task in tasks:
             self.add_task_item(task)
         self.add_widget(self.tasks_container)
+        
+        # Set background color to FIELD_INACTIVE if all tasks are expired
+        if tasks and all(task.expired for task in tasks):
+            self.tasks_container.set_expired(True)
+            self.all_expired = True  # Mark this container as having all expired tasks
         
         self.tasks_container.bind(height=self._update_height)
     
@@ -136,7 +143,7 @@ class TaskGroupContainer(BoxLayout):
         self.bind(minimum_height=self.setter("height"))
         
         with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
+            self.bg_color = Color(*COL.FIELD_ACTIVE)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos,
                 size=self.size,
@@ -147,6 +154,13 @@ class TaskGroupContainer(BoxLayout):
     def _update_bg(self, instance, value):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
+        
+    def set_expired(self, expired=True):
+        """Set the container's background color based on expired state"""
+        if expired:
+            self.bg_color.rgba = COL.FIELD_INACTIVE
+        else:
+            self.bg_color.rgba = COL.FIELD_ACTIVE
 
 
 class TaskContainer(BoxLayout):

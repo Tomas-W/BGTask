@@ -34,6 +34,22 @@ class TaskManager(EventDispatcher):
         # Vibration
         self.vibrate: bool = False
     
+    def set_expired_tasks(self):
+        """Set the expired tasks."""
+        now = datetime.now()
+        for task in self.tasks:
+            if task.timestamp < now and not task.expired:
+                task.expired = True
+        self._save_tasks()
+    
+    def has_task_expired(self):
+        """Check any of the tasks expired."""
+        now = datetime.now()
+        for task in self.tasks:
+            if task.timestamp < now and not task.expired:
+                return True
+        return False
+    
     def on_tasks_changed(self, *args):
         """Default handler for on_tasks_changed event"""
         logger.debug("on_tasks_changed event finished")

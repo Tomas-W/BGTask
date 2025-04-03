@@ -2,6 +2,8 @@ import time
 
 from typing import TYPE_CHECKING
 
+from kivy.clock import Clock
+
 from src.screens.base.base_screen import BaseScreen
 
 from .home_widgets import TasksByDate
@@ -9,7 +11,7 @@ from src.widgets.containers import ScrollContainer
 
 from src.utils.logger import logger
 
-from src.settings import SCREEN
+from src.settings import SCREEN, SIZE, SPACE
 
 if TYPE_CHECKING:
     from src.widgets.buttons import EditTaskButton
@@ -123,13 +125,31 @@ class HomeScreen(BaseScreen):
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
-        if not self.tasks_loaded:
-            self.update_task_display()
-            self.tasks_loaded = True
-    
-    def on_enter(self) -> None:
-        super().on_enter()
         if not hasattr(self, "on_enter_time"):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time
-    
+        
+        if not self.tasks_loaded:
+            self.update_task_display()
+            self.tasks_loaded = True
+        
+        self.task_manager.set_expired_tasks()
+        self.update_task_display()
+        
+        # Scroll down and then to the first active task
+        self.scroll_container.scroll_view.scroll_y = 0.0
+        Clock.schedule_once(self.scroll_to_first_active_task, 0.1)
+
+    def scroll_to_first_active_task(self, dt):
+        """
+        Scrolls to show the first non-expired task at the top of the view.
+        Works consistently across different screen sizes.
+        """
+        if not self.tasks_by_dates:
+            return
+        
+        for task_group in self.tasks_by_dates:
+            if not task_group.all_expired:
+                self.scroll_container.scroll_view.scroll_to(task_group)
+                return
+        return

@@ -161,16 +161,17 @@ class NewTaskScreen(BaseScreen):
     
     def load_task_data(self, task) -> None:
         self.in_edit_task_mode = True
-        
         self.task_manager.selected_task_id = task.task_id
+        # Date
         self.task_manager.selected_date = task.timestamp.date()
         self.task_manager.selected_time = task.timestamp.time()
-
+        # Alarm
+        self.task_manager.vibrate = task.vibrate
+        self.audio_manager.selected_alarm_name = task.alarm_name
+        self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name)
+        # Message
         self.task_input_field.set_text(task.message)
         
-        self.audio_manager.selected_alarm_name = task.alarm_name
-        alarm_name = task.alarm_name if task.alarm_name else TEXT.NO_ALARM
-        self.alarm_display_field.set_text(alarm_name)
 
         self.update_datetime_display()
     
