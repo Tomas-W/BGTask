@@ -79,7 +79,6 @@ class StartScreen(Screen):
 
             time = task["timestamp"].strftime("%H:%M")
             start_time_label = TimeLabel(text=time)
-            start_time_label.padding = [SPACE.FIELD_PADDING_X, 0, 0, 0]
             task_container.add_widget(start_time_label)
 
             task_message = TaskLabel(text=task["message"])

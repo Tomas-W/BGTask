@@ -16,7 +16,7 @@ class TopBarButton(Button):
     def __init__(self, img_path, radius_side, **kwargs):
         super().__init__(
             size_hint=(None, None),
-            width=SIZE.TEST,
+            width=SIZE.TOP_BAR_BUTTON_WIDTH,
             height=SIZE.TOP_BAR_HEIGHT,
             background_color=COL.OPAQUE,
             color=COL.WHITE,

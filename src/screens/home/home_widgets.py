@@ -38,7 +38,21 @@ class TasksByDate(BoxLayout):
         self.tasks = tasks  # Store reference to tasks
         self.all_expired = False  # Track if all tasks are expired
         self.date_str = date_str
-        day_header = TaskHeader(text=date_str)
+
+        from datetime import datetime, timedelta
+        date_parts = self.date_str.split()
+        day = int(date_parts[1])
+        month = date_parts[2]
+        current_year = datetime.now().year
+        date = datetime.strptime(f"{day} {month} {current_year}", "%d %b %Y").date()
+        if date == datetime.now().date():
+            self.date_str = "Today"
+        elif date == datetime.now().date() - timedelta(days=1):
+            self.date_str = "Yesterday"
+        elif date == datetime.now().date() + timedelta(days=1):
+            self.date_str = "Tomorrow"
+
+        day_header = TaskHeader(text=self.date_str)
         self.add_widget(day_header)
         
         self.tasks_container = TaskGroupContainer()
@@ -137,7 +151,7 @@ class TaskGroupContainer(BoxLayout):
             orientation="vertical",
             size_hint_y=None,
             spacing=SPACE.SPACE_M,
-            padding=[0, SPACE.SPACE_M, 0, SPACE.SPACE_M],
+            padding=[SPACE.TASK_PADDING_X, SPACE.TASK_PADDING_Y],
             **kwargs
         )
         self.bind(minimum_height=self.setter("height"))
@@ -220,7 +234,7 @@ class TimeContainer(BoxLayout):
             orientation="horizontal",
             size_hint=(1, None),
             height=FONT.DEFAULT,
-            padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
+            # padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs,
         )
 
@@ -245,11 +259,32 @@ class TimeLabel(Label):
         self.texture_update()
         self.width = self.texture_size[0]
         self.bind(text=self._update_width)
+
+        with self.canvas.before:
+            self.bg_color = Color(*COL.OPAQUE)
+            self.bg_rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[STYLE.RADIUS_S]
+            )
+        self.bind(pos=self._update_bg, size=self._update_bg)
     
     def _update_width(self, instance, value):
         """Update width when text changes"""
         self.texture_update()
         self.width = self.texture_size[0]
+    
+    def _update_bg(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+    
+    def set_active(self, active=True):
+        """Set the background color based on active state"""
+        if active:
+            self.bg_color.rgba = COL.FIELD_ACTIVE
+        else:
+            self.bg_color.rgba = COL.OPAQUE
+
 
 
 class TaskIconContainer(BoxLayout):
@@ -367,7 +402,27 @@ class TaskLabel(Label):
             valign="top",
             font_size=FONT.DEFAULT,
             color=COL.TEXT,
-            padding=[SPACE.FIELD_PADDING_X, 0],
             **kwargs
         )
         self.bind(size=self.setter("text_size"))
+
+        with self.canvas.before:
+            self.bg_color = Color(*COL.OPAQUE)
+            self.bg_rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[STYLE.RADIUS_S]
+            )
+        self.bind(pos=self._update_bg, size=self._update_bg)
+
+    def _update_bg(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+    
+    def set_active(self, active=True):
+        """Set the background color based on active state"""
+        if active:
+            self.bg_color.rgba = COL.FIELD_ACTIVE
+        else:
+            self.bg_color.rgba = COL.OPAQUE
+

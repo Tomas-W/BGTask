@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
 from src.managers.tasks.task_manager_utils import Task
@@ -18,8 +19,10 @@ class TaskManager(EventDispatcher):
     Manages Tasks and their storage.
     """
     def __init__(self):
-        super().__init__()        
+        super().__init__()
         self.navigation_manager = App.get_running_app().navigation_manager
+
+        self.register_event_type("on_task_saved")
         self.register_event_type("on_tasks_changed")
         
         self.task_file = get_storage_path(PATH.TASK_FILE)
@@ -36,11 +39,16 @@ class TaskManager(EventDispatcher):
     
     def set_expired_tasks(self):
         """Set the expired tasks."""
+        changed = False
         now = datetime.now()
         for task in self.tasks:
             if task.timestamp < now and not task.expired:
                 task.expired = True
-        self._save_tasks()
+                changed = True
+        
+        if changed:
+            self._save_tasks()
+            self.dispatch("on_tasks_changed")
     
     def has_task_expired(self):
         """Check any of the tasks expired."""
@@ -49,6 +57,10 @@ class TaskManager(EventDispatcher):
             if task.timestamp < now and not task.expired:
                 return True
         return False
+    
+    def on_task_saved(self, task, *args):
+        """Default handler for on_task_saved event"""
+        logger.debug(f"on_task_saved event finished: {task}")
     
     def on_tasks_changed(self, *args):
         """Default handler for on_tasks_changed event"""
@@ -83,8 +95,10 @@ class TaskManager(EventDispatcher):
                     alarm_name=alarm_name, vibrate=vibrate)
         self.tasks.append(task)
         self._save_tasks()
-        # Notify listeners that tasks have changed
+        # Notify listeners
         self.dispatch("on_tasks_changed")
+        # Schedule task_saved event to run after 0.1 seconds
+        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
     
     def _save_tasks(self) -> None:
         """Save Tasks to task_file."""
@@ -132,6 +146,8 @@ class TaskManager(EventDispatcher):
         self._save_tasks()
         # Notify listeners
         self.dispatch("on_tasks_changed")
+        # Schedule task_saved event to run after 0.1 seconds
+        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
 
     def delete_task(self, task_id: str) -> None:
         """Delete a task by ID."""
@@ -143,8 +159,8 @@ class TaskManager(EventDispatcher):
         # Remove task and save task_file
         self.tasks.remove(task)
         logger.debug(f"Deleted task: {task_id}")
+
         self._save_tasks()
-        
         # Notify listeners that tasks have changed
         self.dispatch("on_tasks_changed")
 

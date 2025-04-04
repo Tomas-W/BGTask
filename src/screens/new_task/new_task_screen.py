@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
@@ -225,7 +226,7 @@ class NewTaskScreen(BaseScreen):
         
         self.clear_inputs()
         self.navigation_manager.navigate_to(SCREEN.HOME)
-    
+
     def go_to_select_date_screen(self, instance) -> None:
         """Navigate to select date screen and set up callback for return"""
         select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)

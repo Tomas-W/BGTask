@@ -2,6 +2,8 @@ from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 
+from kivy.logger import Logger as logger
+
 from src.settings import COL, SIZE, SPACE, FONT
 
 
@@ -110,45 +112,7 @@ class ScrollContainer(BoxLayout):
     def connect_bottom_bar(self, bar):
         """Connect the bottom bar to this scroll container"""
         self.bottom_bar = bar
-    
-    def clear_widgets(self):
-        """Clear the container widgets"""
-        self.container.clear_widgets()
-    
-    def add_widget_to_container(self, widget):
-        """Add widget to the container"""
-        self.container.add_widget(widget)
 
-    def scroll_to(self, x, y):
-        """
-        Scroll to a specific position in the scroll container
-        
-        Args:
-            x: The x position to scroll to
-            y: The y position to scroll to
-        """
-        # In Kivy ScrollView, scroll_y is 1 at the top and 0 at the bottom
-        # Convert the y-coordinate to scroll_y value
-        
-        # Get the maximum scroll distance
-        content_height = self.container.height
-        view_height = self.scroll_view.height
-        
-        # If content fits completely, no need to scroll
-        if content_height <= view_height:
-            return
-        
-        # Calculate the maximum scrollable distance
-        max_scroll = content_height - view_height
-        
-        # Calculate scroll_y (clamped between 0 and 1)
-        # We want to position the target y at the top of the view
-        # Invert the coordinate system (y increases downward, scroll_y increases upward)
-        scroll_y = 1.0 - (y / max_scroll)
-        scroll_y = max(0.0, min(1.0, scroll_y))
-        
-        # Set the scroll position
-        self.scroll_view.scroll_y = scroll_y
 
 class TopBarContainer(BoxLayout):
     """
@@ -185,15 +149,6 @@ class Partition(BoxLayout):
             **kwargs
         )
         self.bind(minimum_height=self.setter('height'))
-    
-    #     with self.canvas.before:
-    #         Color(*COL.RED)
-    #         self.bg_rect = Rectangle(pos=self.pos, size=self.size)
-    #         self.bind(pos=self._update, size=self._update)
-
-    # def _update(self, instance, value):
-    #     self.bg_rect.pos = instance.pos
-    #     self.bg_rect.size = instance.size
 
 
 class CustomButtonRow(BoxLayout):

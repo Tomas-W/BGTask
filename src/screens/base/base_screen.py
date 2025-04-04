@@ -1,5 +1,6 @@
 from typing import Callable
 
+from kivy.animation import Animation
 from kivy.uix.label import Label
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup

@@ -289,12 +289,12 @@ class SelectDateScreen(BaseScreen):
     def validate_hours(self, instance, value) -> None:
         """Allow any input during typing"""
         if len(value) > 2:
-            instance.set_text(instance.text[:2])
+            instance.text = instance.text[:2]
 
     def validate_minutes(self, instance, value) -> None:
         """Allow any input during typing"""
         if len(value) > 2:
-            instance.set_text(instance.text[:2])
+            instance.text = instance.text[:2]
 
     def on_pre_enter(self) -> None:
         """Called when the screen is entered"""

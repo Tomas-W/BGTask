@@ -16,6 +16,7 @@ class Directories:
 class Paths(Directories):
     BACK_IMG = os.path.join(Directories.IMG, "back_64.png")
     EDIT_IMG = os.path.join(Directories.IMG, "edit_64.png")
+    HISTORY_IMG = os.path.join(Directories.IMG, "history_64.png")
 
     OPTIONS_IMG = os.path.join(Directories.IMG, "options_64.png")
     OPTIONS_IMG_BLACK = os.path.join(Directories.IMG, "options_black_64.png")
@@ -64,15 +65,42 @@ class Colors:
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
 
 
-class Sizes:
-    TEST = dp(70)
-
+class Sizes2:
+    TEST = dp(20)
     DEFAULT = dp(20)
     DATE_TIME_LABEL = dp(20 * 1.5)
 
     TOP_BAR_HEIGHT = dp(60)
     TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
     BOTTOM_BAR_HEIGHT = dp(40)
+
+    TOP_BAR_BUTTON_WIDTH = dp(70)
+
+    POPUP_ICON = dp(16)
+
+    HEADER_HEIGHT = dp(25)
+    TASK_ITEM_HEIGHT = dp(40)
+    TIME_LABEL_HEIGHT = dp(20)
+
+    BUTTON_HEIGHT = dp(60)
+    SETTINGS_BUTTON_HEIGHT = dp(40)
+    
+    CUSTOM_ROW_HEIGHT = dp(40)
+    NO_TASKS_LABEL_HEIGHT = dp(100)
+    CALENDAR_HEADER_HEIGHT = dp(50)
+    CALENDAR_HEIGHT = dp(200)
+
+
+class Sizes:
+    TEST = dp(50)
+    DEFAULT = dp(20)
+    DATE_TIME_LABEL = dp(20 * 1.5)
+
+    TOP_BAR_HEIGHT = dp(60)
+    TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
+    BOTTOM_BAR_HEIGHT = dp(40)
+
+    TOP_BAR_BUTTON_WIDTH = dp(50)
 
     POPUP_ICON = dp(16)
 
@@ -97,6 +125,10 @@ class Spacing:
     SPACE_XL = dp(40)
     SPACE_XXL = dp(50)
     SPACE_MAX = dp(75)
+
+    TASK_PADDING_X = dp(25)
+    TASK_PADDING_Y = dp(20)
+
     FIELD_PADDING_X = dp(20)   # Padding between bg color and text
     FIELD_PADDING_Y = dp(10)   # Padding between bg color and text
     SCREEN_PADDING_X = dp(20)  # Padding between fields and screen edge
@@ -179,7 +211,9 @@ DIR = Directories()
 PATH = Paths()
 
 COL = Colors()
-SIZE = Sizes()
+
+
+
 SPACE = Spacing()
 FONT = Fonts()
 STYLE = Styles()
@@ -190,3 +224,9 @@ EXT = Extensions()
 SCREEN = Screens
 PLATFORM = Platforms
 STATE = States
+
+from kivy.utils import platform
+if platform == PLATFORM.ANDROID:
+    SIZE = Sizes2()
+else:
+    SIZE = Sizes()

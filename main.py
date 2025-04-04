@@ -16,19 +16,27 @@ if platform != PLATFORM.ANDROID:
     Window.top = 316
 
 
+# TaskManager
+# TODO: Expired check only today
+
+
 # StartScreen
 # TODO: Refactor StartScreen
 # TODO: When no tasks, edit message for screenshot
+# TODO: Smart loading widgets
 
 
 # HomeScreen
+# TODO: Smart rendering widgets
 # TODO: Hide edit/delete when not in edit mode in on_enter on HomeScreen
 # TODO: Create generic popup for errors
 # TODO: Only show tasks/edit/delete if visible
 # TODO: Save scroll value when going to new task screen
+# TODO: Floating Day label if many/long tasks
 
 
 # NewTaskScreen
+# TODO: 1 Task per timestamp
 # TODO: Delete alarm button on NewTask screen
 # TODO: After saving task, reset task details
 # TODO: Remove selected_task_alarm after saving
