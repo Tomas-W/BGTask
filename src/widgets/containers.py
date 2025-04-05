@@ -58,6 +58,7 @@ class ScrollContainer(BoxLayout):
     def __init__(self,
                 allow_scroll_y=True,
                 allow_scroll_x=True,
+                scroll_callback=None,
                 **kwargs
         ):
         self.container = MainContainer()
@@ -65,7 +66,10 @@ class ScrollContainer(BoxLayout):
             orientation="horizontal",
             **kwargs
         )
-        self.scroll_threshold_pixels = 200
+        self.main_self = None
+        self.scroll_threshold_pixels = 800
+        self.scroll_callback = scroll_callback
+        self.last_pixels_scrolled = 0  # Track the last scroll position
         
         with self.canvas.before:
             Color(*COL.BG)
@@ -74,14 +78,14 @@ class ScrollContainer(BoxLayout):
 
         self.scroll_view = ScrollView(
             do_scroll_x=allow_scroll_x,
-            do_scroll_y=allow_scroll_y
+            do_scroll_y=allow_scroll_y,
+            scroll_wheel_distance=80,
         )
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
         
         # Bottom bar reference - will be set by HomeScreen
         self.bottom_bar = None
-        self.scroll_threshold = 0.8
         
         self.scroll_view.bind(scroll_y=self._on_scroll)
     
@@ -100,11 +104,30 @@ class ScrollContainer(BoxLayout):
         max_scroll = scrollable_height - view_height
 
         pixels_scrolled = (1 - value) * max_scroll
+        
+        # Logic to determine direction - are we scrolling up or down
+        scrolling_down = pixels_scrolled > self.last_pixels_scrolled
+        scrolling_up = pixels_scrolled < self.last_pixels_scrolled
+        
+        # Store the current position for the next comparison
+        self.last_pixels_scrolled = pixels_scrolled
+        
+        # Show bottom bar when scrolled beyond threshold
         if pixels_scrolled > self.scroll_threshold_pixels and not self.bottom_bar.visible:
             self.bottom_bar.show()
+            if self.scroll_callback:
+                self.scroll_callback()
+
+        # Hide bottom bar when scrolled less than threshold
         elif pixels_scrolled <= self.scroll_threshold_pixels and self.bottom_bar.visible:
             self.bottom_bar.hide()
-    
+            if self.scroll_callback:
+                self.scroll_callback()
+        
+        # Additional logic: when scrolling quickly back up, hide immediately
+        elif scrolling_up and self.bottom_bar._show_event:
+            self.bottom_bar.hide()  # Cancel any pending show
+
     def scroll_to_top(self, *args):
         """Scroll to the top of the scroll view"""
         self.scroll_view.scroll_y = 1
@@ -112,6 +135,34 @@ class ScrollContainer(BoxLayout):
     def connect_bottom_bar(self, bar):
         """Connect the bottom bar to this scroll container"""
         self.bottom_bar = bar
+    
+    def scroll_by_distance(self, distance_dp):
+        """
+        Scroll by a specific distance in dp
+        
+        Args:
+            distance_dp: Distance to scroll in dp, positive to scroll up, negative to scroll down
+        """
+        # Get total scrollable height
+        content_height = self.container.height
+        view_height = self.scroll_view.height
+        scrollable_height = content_height - view_height
+        
+        if scrollable_height <= 0:
+            return  # Nothing to scroll
+        
+        # Convert distance to scroll_y change
+        # scroll_y ranges from 0 to 1, with 1 being at the top
+        scroll_y_change = distance_dp / scrollable_height
+        
+        # Apply direction - negative distance scrolls down (decreasing scroll_y)
+        new_scroll_y = self.scroll_view.scroll_y + scroll_y_change
+        
+        # Clamp between 0 and 1
+        new_scroll_y = max(0.0, min(1.0, new_scroll_y))
+        
+        # Apply scroll
+        self.scroll_view.scroll_y = new_scroll_y
 
 
 class TopBarContainer(BoxLayout):

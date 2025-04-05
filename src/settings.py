@@ -65,34 +65,8 @@ class Colors:
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
 
 
-class Sizes2:
-    TEST = dp(20)
-    DEFAULT = dp(20)
-    DATE_TIME_LABEL = dp(20 * 1.5)
-
-    TOP_BAR_HEIGHT = dp(60)
-    TOP_BAR_ICON = dp(TOP_BAR_HEIGHT * 0.4)
-    BOTTOM_BAR_HEIGHT = dp(40)
-
-    TOP_BAR_BUTTON_WIDTH = dp(70)
-
-    POPUP_ICON = dp(16)
-
-    HEADER_HEIGHT = dp(25)
-    TASK_ITEM_HEIGHT = dp(40)
-    TIME_LABEL_HEIGHT = dp(20)
-
-    BUTTON_HEIGHT = dp(60)
-    SETTINGS_BUTTON_HEIGHT = dp(40)
-    
-    CUSTOM_ROW_HEIGHT = dp(40)
-    NO_TASKS_LABEL_HEIGHT = dp(100)
-    CALENDAR_HEADER_HEIGHT = dp(50)
-    CALENDAR_HEIGHT = dp(200)
-
-
 class Sizes:
-    TEST = dp(50)
+    TEST = dp(40)
     DEFAULT = dp(20)
     DATE_TIME_LABEL = dp(20 * 1.5)
 
@@ -218,15 +192,9 @@ SPACE = Spacing()
 FONT = Fonts()
 STYLE = Styles()
 TEXT = Text()
-
+SIZE = Sizes()
 EXT = Extensions()
 
 SCREEN = Screens
 PLATFORM = Platforms
 STATE = States
-
-from kivy.utils import platform
-if platform == PLATFORM.ANDROID:
-    SIZE = Sizes2()
-else:
-    SIZE = Sizes()

@@ -1,4 +1,5 @@
 from kivy.animation import Animation, AnimationTransition
+from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.uix.button import Button
 
@@ -125,6 +126,8 @@ class BottomBar(Button):
             **kwargs
         )
         self.visible = False
+        self.show_delay = 0.2  # Delay in seconds before showing
+        self._show_event = None  # Reference to the scheduled show event
 
         with self.canvas.before:
             Color(*COL.BAR)
@@ -135,11 +138,8 @@ class BottomBar(Button):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
-    def show(self, *args):
-        """Animate the bottom bar into view with smooth sliding"""
-        if self.visible:
-            return
-            
+    def _perform_show(self, *args):
+        """Actually show the bottom bar after the delay"""
         self.visible = True
         anim = Animation(
             opacity=1, 
@@ -148,17 +148,33 @@ class BottomBar(Button):
             transition=AnimationTransition.out_quad
         )
         anim.start(self)
+        self._show_event = None
+    
+    def show(self, *args):
+        """Schedule showing the bottom bar with a delay"""
+        if self.visible or self._show_event:
+            return
+            
+        # Schedule the actual show with a delay
+        self._show_event = Clock.schedule_once(self._perform_show, self.show_delay)
     
     def hide(self, *args):
         """Animate the bottom bar out of view with smooth sliding"""
-        if not self.visible:
+        if not self.visible and not self._show_event:
             return
+        
+        # Cancel any pending show event
+        if self._show_event:
+            Clock.unschedule(self._show_event)
+            self._show_event = None
             
-        self.visible = False        
-        anim = Animation(
-            opacity=0, 
-            pos_hint={"center_x": 0.5, "y": -0.15}, 
-            duration=0.3,
-            transition=AnimationTransition.in_quad
-        )
-        anim.start(self)
+        # Only animate if actually visible
+        if self.visible:
+            self.visible = False        
+            anim = Animation(
+                opacity=0, 
+                pos_hint={"center_x": 0.5, "y": -0.15}, 
+                duration=0.3,
+                transition=AnimationTransition.in_quad
+            )
+            anim.start(self)

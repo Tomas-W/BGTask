@@ -1,6 +1,5 @@
 from typing import Callable
 
-from kivy.animation import Animation
 from kivy.uix.label import Label
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
@@ -10,6 +9,7 @@ from src.widgets.bars import TopBarClosed, TopBarExpanded, BottomBar
 from src.widgets.containers import BaseLayout
 
 from src.settings import SCREEN
+
 
 class BaseScreen(Screen):
     """Base screen class that implements common functionality for all screens."""
@@ -35,7 +35,7 @@ class BaseScreen(Screen):
         self.layout.add_widget(self.top_bar.top_bar_container)
     
     def add_bottom_bar(self):
-        """Add a bottom bar to the screen"""
+        """Add a bottom bar to the screen to scroll to the top"""
         # Bottom bar with ^ button
         self.bottom_bar = BottomBar(text="^")
         self.bottom_bar.bind(on_release=self.scroll_container.scroll_to_top)
@@ -52,16 +52,13 @@ class BaseScreen(Screen):
         if not on_enter:
             self.top_bar_is_expanded = not self.top_bar_is_expanded
         
-        # Update widgets based on state
-        if self.top_bar_is_expanded:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar_expanded.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
-        
-        else:
-            self.layout.clear_widgets()
-            self.layout.add_widget(self.top_bar.top_bar_container)
-            self.layout.add_widget(self.scroll_container)
+        # Switch the top bar
+        if self.top_bar_is_expanded and self.top_bar.top_bar_container in self.layout.children:
+            self.layout.remove_widget(self.top_bar.top_bar_container)
+            self.layout.add_widget(self.top_bar_expanded.top_bar_container, index=len(self.layout.children))
+        elif not self.top_bar_is_expanded and self.top_bar_expanded.top_bar_container in self.layout.children:
+            self.layout.remove_widget(self.top_bar_expanded.top_bar_container)
+            self.layout.add_widget(self.top_bar.top_bar_container, index=len(self.layout.children))
     
     def set_callback(self, callback: Callable) -> None:
         """Set the callback function to be called."""

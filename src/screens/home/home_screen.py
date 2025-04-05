@@ -6,12 +6,14 @@ from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
-from .home_widgets import TasksByDate
+from .home_widgets import TasksByDate, TaskContainer, TimeContainer, TimeLabel, TaskLabel
 from src.widgets.containers import ScrollContainer
+
+from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import SCREEN, SIZE
+from src.settings import SCREEN, SIZE, COL
 
 if TYPE_CHECKING:
     from src.widgets.buttons import EditTaskButton
@@ -28,7 +30,7 @@ class HomeScreen(BaseScreen):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        self.task_manager.bind(on_task_saved=self.find_task)
+        self.task_manager.bind(on_task_saved=self.scroll_to_new_task)
         self.task_manager.bind(on_tasks_changed=self.update_task_display)
 
         # Task attributes
@@ -37,8 +39,9 @@ class HomeScreen(BaseScreen):
         # Edit/delete attributes
         self.edit_delete_visible: bool = False
         self.edit_delete_buttons: list[EditTaskButton] = []
-        # Scroll to task attributes
+        # Scroll to Task attributes
         self.task_header_widget = None
+        self.time_label_widget = None
         self.task_message_widget = None
 
         # Top bar
@@ -49,8 +52,8 @@ class HomeScreen(BaseScreen):
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
 
         # Scroll container
-        self.scroll_container = ScrollContainer()
-        
+        self.scroll_container = ScrollContainer(scroll_callback=self.check_for_bottom_spacer)
+        self.scroll_container.main_self = self
         # Apply layout
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
@@ -58,6 +61,8 @@ class HomeScreen(BaseScreen):
         self.add_bottom_bar()
         # Apply layout
         self.add_widget(self.root_layout)
+
+        self.bottom_spacer = Spacer(height=SIZE.BOTTOM_BAR_HEIGHT, color=COL.BG)
 
     def navigate_to_new_task(self, *args) -> None:
         """
@@ -67,6 +72,15 @@ class HomeScreen(BaseScreen):
         if self.edit_delete_visible:
             self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+    
+    def check_for_bottom_spacer(self, *args) -> None:
+        """Check if the bottom spacer is in the layout"""
+        if self.bottom_bar.visible:
+            if not self.bottom_spacer in self.layout.children:
+                self.layout.add_widget(self.bottom_spacer)
+        else:
+            if self.bottom_spacer in self.layout.children:
+                self.layout.remove_widget(self.bottom_spacer)
     
     def update_task_display(self, *args) -> None:
         """
@@ -90,116 +104,126 @@ class HomeScreen(BaseScreen):
             self.scroll_container.container.add_widget(task_group)
             self.tasks_by_dates.append(task_group)
         
+        # Compensate for the BottomBar
+        self.check_for_bottom_spacer()
+        
         self.check_for_edit_delete()
         logger.debug(f"Updated task display")
     
     def scroll_to_first_active_task(self, dt):
         """
-        Scrolls to show the first non-expired task at the top of the view.
+        Scrolls up to show the first non-expired Task.
         Only used on first enter.
         """
+        # Start at the bottom
         self.scroll_container.scroll_view.scroll_y = 0.0
         if not self.tasks_by_dates:
             return
         
         for task_group in self.tasks_by_dates:
+            # Always scroll to Today
             if task_group.date_str == "Today":
                 Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(task_group, animate=False), 0.2)
                 break
 
+            # If no Today, scroll to the first non-expired Task
             if not task_group.all_expired:
                 Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(task_group, animate=False), 0.2)
                 break
         return
-    
-    def find_task(self, instance, task) -> None:
-        """
-        Scroll to a specific task that was saved and highlight its components.
-        """
-        from src.screens.home.home_widgets import (TaskLabel, TimeLabel,
-                                                   TaskHeader, TimeContainer)
-        self.scroll_container.scroll_view.scroll_y = 0.0
-        selected_task_group = None
-        # Search for the task in the task groups
-        for task_group in self.tasks_by_dates:
-            logger.error(f"task_group: {task_group}")
-            logger.error(f"typeof task_group: {type(task_group)}")
-            if task in task_group.tasks:
-                selected_task_group = task_group
-                break
-        
-        if not selected_task_group:
-            return
-        
-        # Find and store task header
-        # for child in selected_task_group.children:
-        #     if isinstance(child, TaskHeader):
-        #         self.task_header_widget = child
-        #         logger.error(f"Selected day: {self.task_header_widget.text}")
-        #         logger.error(f"typeof self.task_header_widget: {type(self.task_header_widget)}")
-        #         break
-        
-        self.task_header_widget = selected_task_group.children[1]
 
-        task_message_widget = None
-        selected_time = None
+    def get_task_group(self, task) -> TasksByDate:
+        """Get the TaskGroup that contains the task"""
+        for task_group in self.tasks_by_dates:
+            if task in task_group.tasks:
+                return task_group
+        return None
+    
+    def get_task_container(self, task_group, task) -> TaskContainer:
+        """Get the TaskContainer that contains the task"""
         task_time = task.get_time_str()
-        # Confirm time entry
-        # Find message container
-        for task_container in selected_task_group.tasks_container.children:
+        for task_container in task_group.tasks_container.children:
             for child in task_container.children:
 
                 if isinstance(child, TimeContainer):
                     for time_component in child.children:
-
+                        # Confirm time entry & save the Task's container
                         if isinstance(time_component, TimeLabel):
                             if time_component.text == task_time:
-                                selected_time = time_component.text
-                                logger.error(f"Selected time: {selected_time}")
-                                logger.error(f"typeof selected_time: {type(selected_time)}")
-                                container = task_container
-                                break
-        
-        # Find and store message
-        for child in container.children:
-            logger.error(f"Child: {child}")
-            if isinstance(child, TaskLabel):
-                task_message_widget = child
-                child.set_active(True)
-                logger.error(f"Selected message: {task_message_widget.text}")
-                logger.error(f"typeof task_message_widget: {type(task_message_widget)}")
-                break
-        
-        # Confirm task message and time entry
-        if task_message_widget and selected_time:
-            self.task_message_widget = task_message_widget
-    
-    def scroll_to_new_task(self):
-        """Scroll to the new/edited task"""
-        
+                                self.time_label_widget = time_component
+                                logger.error(f"Time label widget: {self.time_label_widget}")
+                                return task_container
+        return None
 
-        # Scroll down to task header
+    def get_task_message_widget(self, task_container) -> TaskLabel:
+        """Get the TaskLabel that contains the task message"""
+        for child in task_container.children:
+            if isinstance(child, TaskLabel):
+                self.task_message_widget = child
+                logger.error(f"Task message widget: {self.task_message_widget}")
+                return child
+        return None
+    
+    def find_task(self, instance, task) -> None:
+        """
+        Scroll to a specific Task that was saved and highlight its message.
+        """
+        selected_task_group = self.get_task_group(task)
+        if not selected_task_group:
+            return False
+        
+        # Save the Task header
+        self.task_header_widget = selected_task_group.children[1]
+
+        # Find message container
+        # Save time widget if found
+        task_container = self.get_task_container(selected_task_group, task)
+        logger.error(f"Task container: {task_container}")
+        if not task_container or not self.task_header_widget:
+            return False
+        
+        # Save the Task message
+        self.task_message_widget = self.get_task_message_widget(task_container)
+        if not self.task_message_widget:
+            return False
+            
+        return True
+
+    def clear_go_to_widget(self):
+        """Clear the go to widget attributes"""
+        self.task_header_widget = None
+        self.time_label_widget = None
+        self.task_message_widget = None
+    
+    def scroll_to_new_task(self, instance, task):
+        """Scroll to the new/edited task"""
+        # Set widget attributes
+        if not self.find_task(instance, task):
+            logger.error(f"No task found - cannot scroll to it")
+            return
+
+        # Start at the bottom
+        self.scroll_container.scroll_view.scroll_y = 0.0
+
+        # Scroll up to Task header
         if self.task_header_widget is not None:
             selected_task_header = self.task_header_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, padding=[0, SIZE.TEST], animate=False), 0.1)
-            self.task_header_widget = None
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.1)
 
-        # Scroll down to task message
+        # Scroll down to task message if not yet in screen
         if self.task_message_widget is not None:
             selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, padding=[0, SIZE.TEST], animate=False), 0.11)
-            self.task_message_widget = None
-    
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.25)
+            Clock.schedule_once(lambda dt: self.task_message_widget.set_active(True), 0.26)
+            Clock.schedule_once(lambda dt: self.task_message_widget.set_active(False), 3)
+            Clock.schedule_once(lambda dt: self.clear_go_to_widget(), 3.1)
+
     def on_enter(self) -> None:
         super().on_enter()
         if not self.tasks_loaded:
             self.scroll_to_first_active_task(None)
             self.tasks_loaded = True
             logger.warning(f"Going to first active task")
-        
-        else:        
-            # Scroll to new/edited task
-            self.scroll_to_new_task()
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
