@@ -6,7 +6,7 @@ from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
-from .home_widgets import TasksByDate, TaskContainer, TimeContainer, TimeLabel, TaskLabel
+from .home_widgets import TasksByDate, TaskContainer, TimeContainer, TimeLabel, TaskLabel, EditTaskButton, EditTaskButtonContainer
 from src.widgets.containers import ScrollContainer
 
 from src.widgets.misc import Spacer
@@ -43,6 +43,9 @@ class HomeScreen(BaseScreen):
         self.task_header_widget = None
         self.time_label_widget = None
         self.task_message_widget = None
+        
+        # Widget cache
+        self.widget_cache = {}  # Cache for TasksByDate widgets
 
         # Top bar
         top_left_callback = lambda instance: self.toggle_edit_delete(instance)
@@ -51,20 +54,17 @@ class HomeScreen(BaseScreen):
         # Top bar expanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
 
-        # Scroll container
-        self.scroll_container = ScrollContainer(scroll_callback=self.check_for_bottom_spacer)
-        self.scroll_container.main_self = self
-        # Apply layout
-        self.layout.add_widget(self.scroll_container)
-        self.root_layout.add_widget(self.layout)
-        # Add bottom bar
+        # Add bottom bar - but keep it hidden initially
         self.add_bottom_bar()
-        # Apply layout
+        
+        # Apply layout - already done in BaseScreen
         self.add_widget(self.root_layout)
 
-        self.bottom_spacer = Spacer(height=SIZE.BOTTOM_BAR_HEIGHT, color=COL.BG)
-
-    def navigate_to_new_task(self, *args) -> None:
+        # Flag to prevent bottom bar from showing on first scroll
+        # This is already added in BaseScreen but we keep it here for clarity
+        self.initial_scroll = True
+    
+    def navigate_to_new_task_screen(self, *args) -> None:
         """
         Navigate to the NewTaskScreen.
         If the edit/delete icons are visible, toggle them off first.
@@ -73,42 +73,88 @@ class HomeScreen(BaseScreen):
             self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
-    def check_for_bottom_spacer(self, *args) -> None:
-        """Check if the bottom spacer is in the layout"""
-        if self.bottom_bar.visible:
-            if not self.bottom_spacer in self.layout.children:
-                self.layout.add_widget(self.bottom_spacer)
-        else:
-            if self.bottom_spacer in self.layout.children:
-                self.layout.remove_widget(self.bottom_spacer)
-    
     def update_task_display(self, *args) -> None:
         """
-        Rebuild the Task widgets by clearing the existing widgets and
-         creating new ones.
+        Update the Task widgets, reusing cached widgets when possible
         """
-        # Clear widgets
+        # Clear container but don't discard widgets yet
         self.scroll_container.container.clear_widgets()
         self.edit_delete_buttons = []
+        
+        # When a task is updated, we should invalidate the cache for that date
+        # to ensure we rebuild the affected widgets
+        if hasattr(self, "invalidate_cache_for_date") and self.invalidate_cache_for_date:
+            # Remove any cache entries that contain the date we need to refresh
+            keys_to_remove = [k for k in self.widget_cache.keys() 
+                             if self.invalidate_cache_for_date in k.split(":")[0]]
+            for key in keys_to_remove:
+                del self.widget_cache[key]
+            self.invalidate_cache_for_date = None
+        
+        # Keep track of used widgets to identify which can be removed from cache
+        used_cache_keys = set()
         self.tasks_by_dates = []
-
-        # Create new widgets
+        
+        # Process task groups
         for group in self.task_manager.get_tasks_by_dates():
-            task_group = TasksByDate(
-                date_str=group["date"],
-                tasks=group["tasks"],
-                task_manager=self.task_manager,
-                parent_screen=self,
-                size_hint=(1, None)
-            )
+            date_str = group["date"]
+            tasks = group["tasks"]
+            
+            # Create cache key based on date and task IDs + content hash
+            # Include message content in cache key to detect changes
+            task_keys = [f"{task.task_id}:{hash(task.message)}:{task.timestamp.isoformat()}:{task.alarm_name}:{task.vibrate}" 
+                         for task in tasks]
+            task_keys.sort()  # Sort for consistency
+            cache_key = f"{date_str}:{','.join(task_keys)}"
+            
+            if cache_key in self.widget_cache:
+                # Reuse cached widget
+                task_group = self.widget_cache[cache_key]
+                # Update expired status if needed
+                if tasks and all(task.expired for task in tasks):
+                    task_group.tasks_container.set_expired(True)
+                    task_group.all_expired = True
+                else:
+                    task_group.tasks_container.set_expired(False)
+                    task_group.all_expired = False
+            else:
+                # Create new widget
+                task_group = TasksByDate(
+                    date_str=date_str,
+                    tasks=tasks,
+                    task_manager=self.task_manager,
+                    parent_screen=self,
+                    size_hint=(1, None)
+                )
+                # Add to cache
+                self.widget_cache[cache_key] = task_group
+                
+            # Add to container
             self.scroll_container.container.add_widget(task_group)
             self.tasks_by_dates.append(task_group)
+            used_cache_keys.add(cache_key)
+            
+            # Re-register edit/delete buttons
+            for task_container in task_group.tasks_container.children:
+                for child in task_container.children:
+                    if isinstance(child, TimeContainer):
+                        for component in child.children:
+                            if isinstance(component, EditTaskButtonContainer):
+                                for button in component.children:
+                                    if isinstance(button, EditTaskButton):
+                                        self.edit_delete_buttons.append(button)
         
-        # Compensate for the BottomBar
+        # Clean up unused cached widgets
+        keys_to_remove = [k for k in self.widget_cache.keys() if k not in used_cache_keys]
+        for key in keys_to_remove:
+            del self.widget_cache[key]
+        
+        # Compensate for the BottomBar - call inherited method
         self.check_for_bottom_spacer()
         
+        # Update edit/delete button visibility
         self.check_for_edit_delete()
-        logger.debug(f"Updated task display")
+        logger.debug(f"Updated task display with {len(used_cache_keys)} cached widgets")
     
     def scroll_to_first_active_task(self, dt):
         """
@@ -197,6 +243,9 @@ class HomeScreen(BaseScreen):
     
     def scroll_to_new_task(self, instance, task):
         """Scroll to the new/edited task"""
+        # Mark the date for this task to have its cache invalidated
+        self.invalidate_cache_for_date = task.get_date_str()
+        
         # Set widget attributes
         if not self.find_task(instance, task):
             logger.error(f"No task found - cannot scroll to it")
@@ -208,25 +257,30 @@ class HomeScreen(BaseScreen):
         # Scroll up to Task header
         if self.task_header_widget is not None:
             selected_task_header = self.task_header_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.1)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.15)
 
         # Scroll down to task message if not yet in screen
         if self.task_message_widget is not None:
             selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.25)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.30)
             Clock.schedule_once(lambda dt: self.task_message_widget.set_active(True), 0.26)
             Clock.schedule_once(lambda dt: self.task_message_widget.set_active(False), 3)
             Clock.schedule_once(lambda dt: self.clear_go_to_widget(), 3.1)
 
     def on_enter(self) -> None:
-        super().on_enter()
+        super().on_enter()  # This already handles bottom bar state check
+        
+        # Connect our initial_scroll flag to the scroll container
+        self.scroll_container.initial_scroll = self.initial_scroll
+        
         if not self.tasks_loaded:
             self.scroll_to_first_active_task(None)
             self.tasks_loaded = True
             logger.warning(f"Going to first active task")
     
     def on_pre_enter(self) -> None:
-        super().on_pre_enter()
+        super().on_pre_enter()  # This already handles bottom bar reset
+        
         if not hasattr(self, "on_enter_time"):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time

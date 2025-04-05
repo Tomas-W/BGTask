@@ -26,8 +26,6 @@ class SelectAlarmScreen(BaseScreen):
         # TopBar title
         self.top_bar.bar_title.set_text("Select Alarm")
 
-        # Scroll container
-        self.scroll_container = ScrollContainer(allow_scroll_y=False)
 
         # Alarm picker partition
         self.saved_alarms_partition = Partition()
@@ -100,9 +98,7 @@ class SelectAlarmScreen(BaseScreen):
         # Add to scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
 
-        # Add layouts
-        self.layout.add_widget(self.scroll_container)
-        self.root_layout.add_widget(self.layout)
+        # Add widget directly to display screen
         self.add_widget(self.root_layout)
     
     def unschedule_audio_check(self):

@@ -96,7 +96,7 @@ class ScrollContainer(BoxLayout):
     
     def _on_scroll(self, instance, value):
         """Handle scroll events to show/hide bottom bar"""
-        if not self.bottom_bar:
+        if not self.bottom_bar or hasattr(self.main_self, "initial_scroll") and self.main_self.initial_scroll:
             return
         
         scrollable_height = instance.children[0].height
@@ -114,26 +114,39 @@ class ScrollContainer(BoxLayout):
         
         # Show bottom bar when scrolled beyond threshold
         if pixels_scrolled > self.scroll_threshold_pixels and not self.bottom_bar.visible:
-            self.bottom_bar.show()
+            # Instead of animating directly, just update the visible flag
+            # The animation will be handled by the parent screen
+            self.bottom_bar.visible = True
+            
+            # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
                 self.scroll_callback()
 
         # Hide bottom bar when scrolled less than threshold
         elif pixels_scrolled <= self.scroll_threshold_pixels and self.bottom_bar.visible:
-            self.bottom_bar.hide()
+            # Instead of animating directly, just update the visible flag
+            # The animation will be handled by the parent screen
+            self.bottom_bar.visible = False
+            
+            # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
                 self.scroll_callback()
         
-        # Additional logic: when scrolling quickly back up, hide immediately
-        elif scrolling_up and self.bottom_bar._show_event:
-            self.bottom_bar.hide()  # Cancel any pending show
+        # Don't need special handling for _show_event anymore since we're
+        # using synchronized animation
 
     def scroll_to_top(self, *args):
         """Scroll to the top of the scroll view"""
         self.scroll_view.scroll_y = 1
     
     def connect_bottom_bar(self, bar):
-        """Connect the bottom bar to this scroll container"""
+        """
+        Connect the bottom bar to this scroll container
+        
+        This establishes a bidirectional relationship:
+        - ScrollContainer knows about the BottomBar for scroll events
+        - BottomBar knows about its parent screen for animation
+        """
         self.bottom_bar = bar
     
     def scroll_by_distance(self, distance_dp):

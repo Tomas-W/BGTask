@@ -32,8 +32,6 @@ class SelectDateScreen(BaseScreen):
         # TopBar title
         self.top_bar.bar_title.set_text("Select Date")
 
-        # Scroll container
-        self.scroll_container = ScrollContainer(allow_scroll_y=False)
 
         # Select month partition
         self.select_month_partition = Partition()
@@ -114,9 +112,7 @@ class SelectDateScreen(BaseScreen):
         self.confirmation_partition.add_widget(self.confirmation_row)
         self.scroll_container.container.add_widget(self.confirmation_partition)
 
-        # Apply layout
-        self.layout.add_widget(self.scroll_container)
-        self.root_layout.add_widget(self.layout)
+        # Add widget directly to display screen - layout already handled in BaseScreen
         self.add_widget(self.root_layout)
 
         # Add callback property

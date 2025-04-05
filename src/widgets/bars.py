@@ -126,8 +126,7 @@ class BottomBar(Button):
             **kwargs
         )
         self.visible = False
-        self.show_delay = 0.2  # Delay in seconds before showing
-        self._show_event = None  # Reference to the scheduled show event
+        self._show_event = None  # Keep this to track animation state
 
         with self.canvas.before:
             Color(*COL.BAR)
@@ -138,28 +137,27 @@ class BottomBar(Button):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
-    def _perform_show(self, *args):
-        """Actually show the bottom bar after the delay"""
-        self.visible = True
-        anim = Animation(
-            opacity=1, 
-            pos_hint={"center_x": 0.5, "y": 0}, 
-            duration=0.3,
-            transition=AnimationTransition.out_quad
-        )
-        anim.start(self)
-        self._show_event = None
-    
     def show(self, *args):
-        """Schedule showing the bottom bar with a delay"""
+        """
+        Mark the bottom bar for showing
+        Note: Actual animation is now controlled by the parent screen
+        """
         if self.visible or self._show_event:
             return
             
-        # Schedule the actual show with a delay
-        self._show_event = Clock.schedule_once(self._perform_show, self.show_delay)
+        # Mark as visible - animation will be handled by parent
+        self.visible = True
+        
+        # Notify parent screen to handle synchronized animation
+        # This is done by the parent screen checking the visible state
+        if hasattr(self, "parent_screen") and self.parent_screen:
+            self.parent_screen.check_for_bottom_spacer()
     
     def hide(self, *args):
-        """Animate the bottom bar out of view with smooth sliding"""
+        """
+        Mark the bottom bar for hiding
+        Note: Actual animation is now controlled by the parent screen
+        """
         if not self.visible and not self._show_event:
             return
         
@@ -168,13 +166,9 @@ class BottomBar(Button):
             Clock.unschedule(self._show_event)
             self._show_event = None
             
-        # Only animate if actually visible
-        if self.visible:
-            self.visible = False        
-            anim = Animation(
-                opacity=0, 
-                pos_hint={"center_x": 0.5, "y": -0.15}, 
-                duration=0.3,
-                transition=AnimationTransition.in_quad
-            )
-            anim.start(self)
+        # Mark as not visible - animation will be handled by parent
+        self.visible = False
+        
+        # Notify parent screen to handle synchronized animation
+        if hasattr(self, "parent_screen") and self.parent_screen:
+            self.parent_screen.check_for_bottom_spacer()

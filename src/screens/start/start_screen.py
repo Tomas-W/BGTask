@@ -40,6 +40,8 @@ class StartScreen(Screen):
         from src.widgets.labels import PartitionHeader
 
         self.scroll_container = ScrollContainer()
+        self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, 0, 
+                                                 SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL]
 
         self.header_partition = Partition()
         self.screen_header = PartitionHeader(text="<< swipe to continue >>")
@@ -172,7 +174,16 @@ class StartScreen(Screen):
         self._load_attributes()
     
     def on_pre_enter(self) -> None:
-        if self.start_screen_loaded:
+        if not self.start_screen_loaded:
+            self._build_page()
+            self.task_data = self._get_current_task_data()
+        
+            if self.task_data:
+                task_date = self.task_data[0]["timestamp"].date()
+                self.day_header.text = task_date.strftime("%A, %B %d, %Y")
+                self._load_current_tasks_widgets()
+        
+        else:
             self.reset_start_screen()
 
     def on_enter(self) -> None:
@@ -184,17 +195,13 @@ class StartScreen(Screen):
             self.on_enter_time = time.time()        
             from kivy.clock import Clock
             Clock.schedule_once(self.load_data_background, 0.1)
+            self.is_completed = True
         
     def load_data_background(self, dt: float) -> None:
-        self._build_page()
-        self.task_data = self._get_current_task_data()
-        
-        if self.task_data:
-            task_date = self.task_data[0]["timestamp"].date()
-            self.day_header.text = task_date.strftime("%A, %B %d, %Y")
-            self._load_current_tasks_widgets()
-        
-        self.is_completed = True
+        # self._build_page()
+        from kivy.app import App
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.1)
 
     def on_touch_down(self, touch) -> bool:
         # Store the initial touch position

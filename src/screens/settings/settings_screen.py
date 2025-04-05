@@ -14,12 +14,9 @@ class SettingsScreen(BaseScreen):
         # TopBar title
         self.top_bar.bar_title.set_text("Settings")
 
-        # Scroll container
-        self.scroll_container = ScrollContainer()
-
-        # Add layouts
-        self.layout.add_widget(self.scroll_container)
-        self.root_layout.add_widget(self.layout)
+        # Add bottom bar for scrolling to top
+        self.add_bottom_bar()
+        # Apply layout - already handled in BaseScreen
         self.add_widget(self.root_layout)
     
     def exit_app(self, instance) -> None:

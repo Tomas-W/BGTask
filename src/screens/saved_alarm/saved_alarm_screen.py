@@ -25,9 +25,6 @@ class SavedAlarmScreen(BaseScreen):
         # TopBar title
         self.top_bar.bar_title.set_text("Saved Alarms")
 
-        # Scroll container
-        self.scroll_container = ScrollContainer()
-
         # Alarm picker partition
         self.alarm_picker_partition = Partition()
         # Alarm picker buttons
@@ -52,12 +49,9 @@ class SavedAlarmScreen(BaseScreen):
         # Add to scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
 
-        # Add layouts
-        self.layout.add_widget(self.scroll_container)
-        self.root_layout.add_widget(self.layout)
         # Add bottom bar
         self.add_bottom_bar()
-        # Apply layout
+        # Apply layout - already done in BaseScreen
         self.add_widget(self.root_layout)
 
     def confirm_alarm_selection(self, instance) -> None:
