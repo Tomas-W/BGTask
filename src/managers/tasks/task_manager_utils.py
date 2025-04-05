@@ -18,13 +18,13 @@ class Task:
         self.vibrate = vibrate
         self.expired = expired
 
-        logger.debug(f"Created Task: {self.task_id}"
-                     f"\n\tTimestamp: {self.get_time_str()}"
-                     f"\n\tMessage: {self.message[:10]}.."
-                     f"\n\tAlarm Name: {self.alarm_name}"
-                     f"\n\tVibrate: {self.vibrate}"
-                     f"\n\tExpired: {self.expired}"
-                     )
+        # logger.debug(f"Created Task: {self.task_id}"
+        #              f"\n\tTimestamp: {self.get_time_str()}"
+        #              f"\n\tMessage: {self.message[:10]}.."
+        #              f"\n\tAlarm Name: {self.alarm_name}"
+        #              f"\n\tVibrate: {self.vibrate}"
+        #              f"\n\tExpired: {self.expired}"
+        #              )
     
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""

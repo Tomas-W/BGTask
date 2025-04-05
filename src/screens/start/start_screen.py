@@ -4,6 +4,10 @@ from kivy.uix.screenmanager import Screen
 from src.widgets.containers import BaseLayout
 from src.widgets.buttons import CustomConfirmButton
 
+from src.widgets.containers import ScrollContainer, Partition
+from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer, TaskContainer
+from src.widgets.labels import PartitionHeader, TimeLabel, TaskLabel
+
 from src.utils.platform import device_is_android
 
 from src.settings import DIR, PATH, SCREEN, STATE, SPACE
@@ -28,21 +32,14 @@ class StartScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        self.root_layout.add_widget(self.layout)
-        self.add_widget(self.root_layout)
-    
-    def _build_page(self):
-        """
-        Builds the page with the day header and the tasks container.
-        """
-        from src.widgets.containers import ScrollContainer, Partition
-        from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer
-        from src.widgets.labels import PartitionHeader
-
         self.scroll_container = ScrollContainer()
         self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, 0, 
                                                  SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL]
 
+        self.root_layout.add_widget(self.layout)
+        self.add_widget(self.root_layout)
+    
+    def _build_page(self) -> None:
         self.header_partition = Partition()
         self.screen_header = PartitionHeader(text="<< swipe to continue >>")
         self.header_partition.add_widget(self.screen_header)
@@ -73,9 +70,6 @@ class StartScreen(Screen):
         Loads the tasks widgets into the tasks container.
         These contain the next tasks that are expiring, grouped by date.
         """
-        from src.screens.home.home_widgets import (TaskContainer, TaskLabel,
-                                                   TimeLabel)
-        
         for task in self.task_data:
             task_container = TaskContainer()
 
@@ -133,21 +127,6 @@ class StartScreen(Screen):
         except Exception as e:
             raise e
     
-    def _load_attributes(self) -> None:
-        """
-        Loads the attributes of the screen.
-        """
-        from kivy.app import App
-        self.navigation_manager = App.get_running_app().navigation_manager
-        
-    def reset_start_screen(self, *args) -> None:
-        """
-        Reloads start screen data.
-        """
-        self.tasks_container.clear_widgets()
-        self.task_data = self._get_current_task_data()
-        self._load_current_tasks_widgets()
-
     @property
     def is_completed(self) -> bool:
         return self.start_screen_loaded
@@ -159,49 +138,37 @@ class StartScreen(Screen):
         Triggers loading the rest of the app in the background.
         """
         self.start_screen_loaded = value
-        self.on_is_completed_change()
-
-    def on_is_completed_change(self) -> None:
-        """
-        When the StartScreen finished loading, the rest of the app is loaded.
-        """
         from kivy.clock import Clock
         Clock.schedule_once(self.background_load_app_components, 0.01)
 
     def background_load_app_components(self, dt: float) -> None:
         from kivy.app import App
+        from kivy.clock import Clock
         App.get_running_app()._load_app_components()
-        self._load_attributes()
+        self.navigation_manager = App.get_running_app().navigation_manager
+        Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.01)
     
     def on_pre_enter(self) -> None:
-        if not self.start_screen_loaded:
-            self._build_page()
-            self.task_data = self._get_current_task_data()
-        
-            if self.task_data:
-                task_date = self.task_data[0]["timestamp"].date()
-                self.day_header.text = task_date.strftime("%A, %B %d, %Y")
-                self._load_current_tasks_widgets()
-        
-        else:
-            self.reset_start_screen()
+        """
+        When the screen is about to be shown, the data is loaded in and 
+         the widgets are built.
+        """
+        self._build_page()
+        self.task_data = self._get_current_task_data()
+        if self.task_data:
+            task_date = self.task_data[0]["timestamp"].date()
+            self.day_header.text = task_date.strftime("%A, %B %d, %Y")
+            self._load_current_tasks_widgets()
 
     def on_enter(self) -> None:
         """
-        When the screen is shown, the page is built and the data is loaded in.
+        When the screen is shown, the rest of the app is loaded in the background.
+        After loading the app, the HomeScreen is loaded.
         """
         if not self.start_screen_loaded:
             import time
             self.on_enter_time = time.time()        
-            from kivy.clock import Clock
-            Clock.schedule_once(self.load_data_background, 0.1)
             self.is_completed = True
-        
-    def load_data_background(self, dt: float) -> None:
-        # self._build_page()
-        from kivy.app import App
-        from kivy.clock import Clock
-        Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.1)
 
     def on_touch_down(self, touch) -> bool:
         # Store the initial touch position
@@ -215,7 +182,7 @@ class StartScreen(Screen):
         delta_y = touch.y - self.touch_start_y
 
         # Determine if the swipe is significant enough
-        if abs(delta_x) > 50 or abs(delta_y) > 50:  # Adjust threshold as needed
+        if abs(delta_x) > 20 or abs(delta_y) > 20:  # Adjust threshold as needed
             if abs(delta_x) > abs(delta_y):  # Horizontal swipe
                 if delta_x > 0:
                     self.on_swipe_right()
