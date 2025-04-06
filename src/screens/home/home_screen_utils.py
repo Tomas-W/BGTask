@@ -90,7 +90,7 @@ class HomeScreenUtils:
         
         # Update edit/delete button visibility
         self.check_for_edit_delete()
-        logger.debug(f"Updated task display with {len(used_cache_keys)} cached widgets")
+        logger.debug(f"Updated task display with {len(used_cache_keys)} cached widgets out of {len(self.widget_cache)}")
     
     def get_task_group(self, task) -> TasksByDate:
         """Get the TaskGroup that contains the task"""

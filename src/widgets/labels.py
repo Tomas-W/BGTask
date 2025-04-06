@@ -40,7 +40,6 @@ class ButtonFieldLabel(Label):
             font_size=FONT.BUTTON_FIELD,
             **kwargs
         )
-
         self.bind(size=self.setter("text_size"))
 
 
@@ -58,7 +57,6 @@ class SettingsFieldLabel(Label):
             font_size=FONT.BUTTON_FIELD,
             **kwargs
         )
-
         self.bind(size=self.setter("text_size"))
 
 
@@ -94,7 +92,6 @@ class TimeLabel(Label):
             font_size=FONT.DEFAULT,
             bold=True,
             color=COL.TEXT,
-            # padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs
         )
         self.bind(size=self.setter("text_size"))

@@ -32,8 +32,7 @@ class MainContainer(BoxLayout):
             orientation="vertical",
             size_hint_y=None,
             spacing=SPACE.SPACE_XL,
-            padding=[SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL, 
-                    SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL],
+            padding=[SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL],
             **kwargs
         )
         self.bind(minimum_height=self.setter("height"))
@@ -46,6 +45,82 @@ class MainContainer(BoxLayout):
     def _update(self, instance, value):
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
+
+
+class StartContainer(BoxLayout):
+    """
+    Start container is the base for the StartScreen that:
+    - Contains a MainContainer
+    - Has a background color
+    - Sets spacing between its children
+
+    """
+    def __init__(self, parent_screen, **kwargs):
+        self.container = MainContainer()
+        self.container.spacing = SPACE.SPACE_MAX
+        super().__init__(
+            orientation="vertical",
+            **kwargs
+        )
+        self.parent_screen = parent_screen
+
+        with self.canvas.before:
+            Color(*COL.BG)
+            self.bg_rect = Rectangle(pos=self.pos, size=self.size)
+            self.bind(pos=self._update_bg, size=self._update_bg)
+
+        self.scroll_view = ScrollView(
+            do_scroll_x=True,
+            do_scroll_y=True,
+            scroll_wheel_distance=60,
+        )
+        self.scroll_view.add_widget(self.container)
+        self.add_widget(self.scroll_view)
+        
+    def _update_bg(self, instance, value):
+        """Update the background"""
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
+    
+    def on_touch_down(self, touch):
+        # Store the initial touch position
+        self.touch_start_x = touch.x
+        self.touch_start_y = touch.y
+        return super().on_touch_down(touch)
+    
+    def on_touch_up(self, touch):
+        # Calculate the distance moved
+        delta_x = touch.x - self.touch_start_x
+        delta_y = touch.y - self.touch_start_y
+        
+        # Determine if the swipe is significant enough
+        if abs(delta_x) > 20 or abs(delta_y) > 20:  # Adjust threshold as needed
+            if abs(delta_x) > abs(delta_y):  # Horizontal swipe
+                if delta_x > 0:
+                    self.on_swipe_right()
+                else:
+                    self.on_swipe_left()
+            else:  # Vertical swipe
+                if delta_y > 0:
+                    self.on_swipe_up()
+                else:
+                    self.on_swipe_down()
+        
+        return super().on_touch_up(touch)
+    
+    def on_swipe_right(self):
+        if self.parent_screen:
+            self.parent_screen.navigate_to_home_screen("right")
+    
+    def on_swipe_left(self):
+        if self.parent_screen:
+            self.parent_screen.navigate_to_home_screen("left")
+    
+    def on_swipe_up(self):
+        pass
+    
+    def on_swipe_down(self):
+        pass
 
 
 class ScrollContainer(BoxLayout):

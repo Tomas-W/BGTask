@@ -1,16 +1,19 @@
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 
-from src.widgets.containers import BaseLayout
 from src.widgets.buttons import CustomConfirmButton
 
-from src.widgets.containers import ScrollContainer, Partition
-from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer, TaskContainer
-from src.widgets.labels import PartitionHeader, TimeLabel, TaskLabel
+from src.widgets.containers import StartContainer
+from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
+                                           TimeLabel, TaskLabel)
+from src.widgets.labels import PartitionHeader
 
 from src.utils.platform import device_is_android
 
-from src.settings import DIR, PATH, SCREEN, STATE, SPACE
+from src.settings import DIR, PATH, SCREEN, STATE
+
+import time as time_
+from src.utils.logger import logger
 
 
 class StartScreen(Screen):
@@ -24,60 +27,49 @@ class StartScreen(Screen):
         When the screen is shown, the page is built and the data is loaded in.
         """
         super().__init__(**kwargs)
+        start_time = time_.time()
         self.start_screen_loaded: bool = False
         self.home_screen_ready: bool = False
 
         self.task_data: list[dict] = []
         self.task_date: str = ""
 
-        self.root_layout = FloatLayout()
-        self.layout = BaseLayout()
-
-        self.scroll_container = ScrollContainer(
-            parent_screen=self,
-            scroll_callback=None,
-            allow_scroll_y=True,
-            allow_scroll_x=False
-        )
-        self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, 0, 
-                                                 SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL]
+        self.start_container = StartContainer(parent_screen=self)
         
         self.bottom_bar = None
 
-        self.root_layout.add_widget(self.layout)
-        self.add_widget(self.root_layout)
+        self.add_widget(self.start_container)
+        end_time = time_.time()
+        logger.error(f"Start screen init time: {end_time - start_time}")
     
     def _build_page(self) -> None:
-        self.header_partition = Partition()
+        start_time = time_.time()
         self.screen_header = PartitionHeader(text="<< swipe to continue >>")
-        self.header_partition.add_widget(self.screen_header)
-        self.scroll_container.container.add_widget(self.header_partition)
+        self.start_container.container.add_widget(self.screen_header)
 
-        self.current_task_partition = Partition()
-        self.current_task_partition.spacing = 0
-        
+        self.task_group = BoxLayout(orientation="vertical", size_hint_y=None)
+        self.task_group.bind(minimum_height=self.task_group.setter("height"))
+
         self.day_header = TaskHeader(text=self.task_date)
-        self.current_task_partition.add_widget(self.day_header)
+        self.task_group.add_widget(self.day_header)
 
         self.tasks_container = TaskGroupContainer()
-        self.current_task_partition.add_widget(self.tasks_container)
+        self.task_group.add_widget(self.tasks_container)
 
-        self.scroll_container.container.add_widget(self.current_task_partition)
-
-        self.screenshot_partition = Partition()
+        self.start_container.container.add_widget(self.task_group)
         self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
                                                      color_state=STATE.ACTIVE)
         self.screenshot_button.bind(on_release=self.take_screenshot)
-        self.screenshot_partition.add_widget(self.screenshot_button)
-        self.scroll_container.container.add_widget(self.screenshot_partition)
-
-        self.layout.add_widget(self.scroll_container)
+        self.start_container.container.add_widget(self.screenshot_button)
+        end_time = time_.time()
+        logger.error(f"_build_page time: {end_time - start_time}")
 
     def _load_current_tasks_widgets(self) -> None:
         """
         Loads the tasks widgets into the tasks container.
         These contain the next tasks that are expiring, grouped by date.
         """
+        start_time = time_.time()
         for task in self.task_data:
             task_container = TaskContainer()
 
@@ -98,13 +90,15 @@ class StartScreen(Screen):
             
             task_container.add_widget(task_message)
             self.tasks_container.add_widget(task_container)
-        from src.utils.logger import logger
+        end_time = time_.time()
+        logger.error(f"_load_current_tasks_widgets time: {end_time - start_time}")
 
     def _get_current_task_data(self) -> list[dict]:
         """
         Gets the current task data from the task file.
         It returns todays Task, or nearest future Task.
         """
+        start_time = time_.time()
         try:
             import json
             import os
@@ -131,6 +125,8 @@ class StartScreen(Screen):
             
             future_tasks.sort(key=lambda x: x["timestamp"])
             earliest_date = future_tasks[0]["date"]            
+            end_time = time_.time()
+            logger.error(f"_get_current_task_data time: {end_time - start_time}")
             return [task for task in future_tasks if task["date"] == earliest_date]
             
         except Exception as e:
@@ -165,12 +161,15 @@ class StartScreen(Screen):
         When the screen is about to be shown, the data is loaded in and 
          the widgets are built.
         """
-        self._build_page()
+        if not self.start_screen_loaded:
+            self._build_page()
+
         self.task_data = self._get_current_task_data()
         if self.task_data:
             task_date = self.task_data[0]["timestamp"].date()
             self.day_header.text = task_date.strftime("%A, %B %d, %Y")
             self._load_current_tasks_widgets()
+        
 
     def on_enter(self) -> None:
         """
@@ -181,12 +180,11 @@ class StartScreen(Screen):
             import time
             self.on_enter_time = time.time()        
             self.is_completed = True
-        print(" START SCREEN ENTERED START SCREEN ENTERED")
-        print(" START SCREEN ENTERED START SCREEN ENTERED")
-        print(" START SCREEN ENTERED START SCREEN ENTERED")
-        print(" START SCREEN ENTERED START SCREEN ENTERED")
-        print(" START SCREEN ENTERED START SCREEN ENTERED")
-    
+            finish_time = time.time()
+            from kivy.app import App
+            app = App.get_running_app()
+            logger.warning(f"TOTAL TIME TO FIRST FRAME: {finish_time - app.start_time}")
+
     def navigate_to_home_screen(self, slide_direction: str):
         if not self.home_screen_ready:
             from src.utils.logger import logger
@@ -195,45 +193,8 @@ class StartScreen(Screen):
         
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction)
 
-    def on_touch_down(self, touch) -> bool:
-        # Store the initial touch position
-        self.touch_start_x = touch.x
-        self.touch_start_y = touch.y
-        return super().on_touch_down(touch)
-
-    def on_touch_up(self, touch) -> bool:
-        # Calculate the distance moved
-        delta_x = touch.x - self.touch_start_x
-        delta_y = touch.y - self.touch_start_y
-
-        # Determine if the swipe is significant enough
-        if abs(delta_x) > 20 or abs(delta_y) > 20:  # Adjust threshold as needed
-            if abs(delta_x) > abs(delta_y):  # Horizontal swipe
-                if delta_x > 0:
-                    self.on_swipe_right()
-                else:
-                    self.on_swipe_left()
-            else:  # Vertical swipe
-                if delta_y > 0:
-                    self.on_swipe_up()
-                else:
-                    self.on_swipe_down()
-
-        return super().on_touch_up(touch)
-
-    def on_swipe_right(self) -> None:
-        self.navigate_to_home_screen("right")
-
-    def on_swipe_left(self) -> None:
-        self.navigate_to_home_screen("left")
-
-    def on_swipe_up(self) -> None:
-        pass
-
-    def on_swipe_down(self) -> None:
-        pass
-
     def take_screenshot(self, *args) -> None:
+        start_time = time_.time()
         try:
             import os
             print("Starting screenshot capture process...")
@@ -313,3 +274,5 @@ class StartScreen(Screen):
             import traceback
             traceback.print_exc()
             print(f"Error during screenshot/wallpaper process: {str(e)}")
+        end_time = time_.time()
+        logger.error(f"take_screenshot time: {end_time - start_time}")

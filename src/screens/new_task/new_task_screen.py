@@ -164,7 +164,7 @@ class NewTaskScreen(BaseScreen):
         # Alarm
         self.task_manager.vibrate = task.vibrate
         self.audio_manager.selected_alarm_name = task.alarm_name
-        self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name)
+        self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name) if task.alarm_name else None
         # Message
         self.task_input_field.set_text(task.message)
         
