@@ -32,9 +32,16 @@ class StartScreen(Screen):
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
 
-        self.scroll_container = ScrollContainer()
+        self.scroll_container = ScrollContainer(
+            parent_screen=self,
+            scroll_callback=None,
+            allow_scroll_y=True,
+            allow_scroll_x=False
+        )
         self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, 0, 
                                                  SPACE.SCREEN_PADDING_X, SPACE.SPACE_XXL]
+        
+        self.bottom_bar = None
 
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)

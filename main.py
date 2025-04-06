@@ -21,9 +21,13 @@ if platform != PLATFORM.ANDROID:
 
 
 # StartScreen
-# TODO: Refactor StartScreen
+# TODO: Refactor StartScreen / Layout / Widgets
 # TODO: When no tasks, edit message for screenshot
 # TODO: Smart loading widgets
+
+
+# BaseScreen
+# TODO: Fix synchronized_animate SIZE.BOTTOM_BAR_HEIGHT*1.05
 
 
 # HomeScreen

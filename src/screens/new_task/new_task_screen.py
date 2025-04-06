@@ -4,7 +4,7 @@ from datetime import datetime
 from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
-from src.widgets.containers import ScrollContainer, Partition, CustomButtonRow
+from src.widgets.containers import Partition, CustomButtonRow
 from src.widgets.fields import TextField, ButtonField
 
 from src.settings import SCREEN, STATE, TEXT, SPACE
@@ -83,9 +83,6 @@ class NewTaskScreen(BaseScreen):
         self.confirmation_partition.add_widget(self.button_row)
         # Add to Scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
-
-        # Add widget directly - layout already handled in BaseScreen
-        self.add_widget(self.root_layout)
         
         # Set save_button state based on user inputs
         self.task_input_field.text_input.bind(text=self.validate_form)

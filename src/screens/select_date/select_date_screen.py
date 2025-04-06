@@ -112,9 +112,6 @@ class SelectDateScreen(BaseScreen):
         self.confirmation_partition.add_widget(self.confirmation_row)
         self.scroll_container.container.add_widget(self.confirmation_partition)
 
-        # Add widget directly to display screen - layout already handled in BaseScreen
-        self.add_widget(self.root_layout)
-
         # Add callback property
         self.callback = None
     

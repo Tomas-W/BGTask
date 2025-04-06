@@ -16,8 +16,6 @@ class SettingsScreen(BaseScreen):
 
         # Add bottom bar for scrolling to top
         self.add_bottom_bar()
-        # Apply layout - already handled in BaseScreen
-        self.add_widget(self.root_layout)
     
     def exit_app(self, instance) -> None:
         """Exit the application"""

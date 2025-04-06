@@ -51,8 +51,6 @@ class SavedAlarmScreen(BaseScreen):
 
         # Add bottom bar
         self.add_bottom_bar()
-        # Apply layout - already done in BaseScreen
-        self.add_widget(self.root_layout)
 
     def confirm_alarm_selection(self, instance) -> None:
         """Confirm the alarm selection."""

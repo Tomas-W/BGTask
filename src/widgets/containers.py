@@ -56,9 +56,10 @@ class ScrollContainer(BoxLayout):
     - Handles scrolling
     """
     def __init__(self,
-                allow_scroll_y=True,
-                allow_scroll_x=True,
-                scroll_callback=None,
+                parent_screen,
+                scroll_callback,
+                allow_scroll_y,
+                allow_scroll_x,
                 **kwargs
         ):
         self.container = MainContainer()
@@ -66,9 +67,10 @@ class ScrollContainer(BoxLayout):
             orientation="horizontal",
             **kwargs
         )
-        self.main_self = None
-        self.scroll_threshold_pixels = 800
+        self.parent_screen = parent_screen
         self.scroll_callback = scroll_callback
+
+        self.scroll_threshold_pixels = 800
         self.last_pixels_scrolled = 0  # Track the last scroll position
         
         with self.canvas.before:
@@ -84,9 +86,6 @@ class ScrollContainer(BoxLayout):
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
         
-        # Bottom bar reference - will be set by HomeScreen
-        self.bottom_bar = None
-        
         self.scroll_view.bind(scroll_y=self._on_scroll)
     
     def _update_bg(self, instance, value):
@@ -96,9 +95,15 @@ class ScrollContainer(BoxLayout):
     
     def _on_scroll(self, instance, value):
         """Handle scroll events to show/hide bottom bar"""
-        if not self.bottom_bar or hasattr(self.main_self, "initial_scroll") and self.main_self.initial_scroll:
+        if not self.parent_screen.bottom_bar:
+            logger.error("Bottom bar not found")
             return
         
+        if self.parent_screen.initial_scroll:
+            logger.error(f"Initial scroll not finished: {self.parent_screen.initial_scroll=}")
+            return
+        
+        logger.error(f"Scrolling: {value=}")
         scrollable_height = instance.children[0].height
         view_height = instance.height
         max_scroll = scrollable_height - view_height
@@ -109,20 +114,20 @@ class ScrollContainer(BoxLayout):
         self.last_pixels_scrolled = pixels_scrolled
         
         # Show bottom bar when scrolled beyond threshold
-        if pixels_scrolled > self.scroll_threshold_pixels and not self.bottom_bar.visible:
+        if pixels_scrolled > self.scroll_threshold_pixels and not self.parent_screen.bottom_bar.visible:
             # Instead of animating directly, just update the visible flag
             # The animation will be handled by the parent screen
-            self.bottom_bar.visible = True
+            self.parent_screen.bottom_bar.visible = True
             
             # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
                 self.scroll_callback()
 
         # Hide bottom bar when scrolled less than threshold
-        elif pixels_scrolled <= self.scroll_threshold_pixels and self.bottom_bar.visible:
+        elif pixels_scrolled <= self.scroll_threshold_pixels and self.parent_screen.bottom_bar.visible:
             # Instead of animating directly, just update the visible flag
             # The animation will be handled by the parent screen
-            self.bottom_bar.visible = False
+            self.parent_screen.bottom_bar.visible = False
             
             # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
@@ -140,16 +145,6 @@ class ScrollContainer(BoxLayout):
         
         # Force scroll position to top
         self.scroll_view.scroll_y = 1
-
-    def connect_bottom_bar(self, bar):
-        """
-        Connect the bottom bar to this scroll container
-        
-        This establishes a bidirectional relationship:
-        - ScrollContainer knows about the BottomBar for scroll events
-        - BottomBar knows about its parent screen for animation
-        """
-        self.bottom_bar = bar
 
 
 class TopBarContainer(BoxLayout):

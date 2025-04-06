@@ -97,9 +97,6 @@ class SelectAlarmScreen(BaseScreen):
         self.confirmation_partition.add_widget(self.button_row)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
-
-        # Add widget directly to display screen
-        self.add_widget(self.root_layout)
     
     def unschedule_audio_check(self):
         """Unschedule the audio finished check."""
