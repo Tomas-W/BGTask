@@ -1,4 +1,3 @@
-import sys
 import time
 start_time = time.time()
 
@@ -55,6 +54,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: PLay - Stop - Rename
 # TODO: Rework audio preview
 # TODO: Fix alarm name taken filename
+# TODO: Cache alarm buttons
 
 
 # SavedAlarmScreen
@@ -95,7 +95,6 @@ class TaskApp(App):
             SCREEN.START: StartScreen(name=SCREEN.START)
         }
         self.build_time = time.time()
-        self.win_x, self.win_y = Window.size
         self.screen_manager.add_widget(self.screens[SCREEN.START])
         
         return self.screen_manager
@@ -111,21 +110,32 @@ class TaskApp(App):
         self._log_times()
     
     def _init_managers(self):
-        from src.managers.audio.audio_manager import AudioManager
         from src.managers.navigation_manager import NavigationManager
         from src.managers.tasks.task_manager import TaskManager
-
-        self.audio_manager = AudioManager()       
         self.navigation_manager = NavigationManager(
             screen_manager=self.screen_manager,
             start_screen=SCREEN.HOME
         )
         self.task_manager = TaskManager() 
+
+        def init_audio_manager(dt):
+            from src.managers.audio.audio_manager import AudioManager
+            self.audio_manager = AudioManager()
+
+        def connect_audio_screens(dt):
+            self.screens[SCREEN.SELECT_ALARM].audio_manager = self.audio_manager
+            self.screens[SCREEN.SAVED_ALARMS].audio_manager = self.audio_manager
+            self.screens[SCREEN.NEW_TASK].audio_manager = self.audio_manager
+
+        
+        from kivy.clock import Clock
+        Clock.schedule_once(init_audio_manager, 0)
+        Clock.schedule_once(connect_audio_screens, 0.3)  # Toming linked with
     
     def _init_screens(self):
         from src.screens.home.home_screen import HomeScreen
-        from src.screens.new_task.new_task_screen import NewTaskScreen
         from src.screens.select_date.select_date_screen import SelectDateScreen
+        from src.screens.new_task.new_task_screen import NewTaskScreen
         from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
         from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
         from src.screens.settings.settings_screen import SettingsScreen
@@ -133,29 +143,40 @@ class TaskApp(App):
         self.screens[SCREEN.HOME] = HomeScreen(name=SCREEN.HOME,
                                                navigation_manager=self.navigation_manager,
                                                task_manager=self.task_manager)
-
-        self.screens[SCREEN.NEW_TASK] = NewTaskScreen(name=SCREEN.NEW_TASK,
-                                                       navigation_manager=self.navigation_manager,
-                                                       task_manager=self.task_manager,
-                                                       audio_manager=self.audio_manager)
+        
         self.screens[SCREEN.SELECT_DATE] = SelectDateScreen(name=SCREEN.SELECT_DATE,
                                                              navigation_manager=self.navigation_manager,
                                                              task_manager=self.task_manager)
+        
         self.screens[SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=SCREEN.SELECT_ALARM,
-                                                               navigation_manager=self.navigation_manager,
-                                                               task_manager=self.task_manager,
-                                                               audio_manager=self.audio_manager)
+                                                            navigation_manager=self.navigation_manager,
+                                                            task_manager=self.task_manager,
+                                                            audio_manager=None)
+        
         self.screens[SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=SCREEN.SAVED_ALARMS,
-                                                               navigation_manager=self.navigation_manager,
-                                                               task_manager=self.task_manager,
-                                                               audio_manager=self.audio_manager)
+                                                            navigation_manager=self.navigation_manager,
+                                                            task_manager=self.task_manager,
+                                                            audio_manager=None)
+
+        self.screens[SCREEN.NEW_TASK] = NewTaskScreen(name=SCREEN.NEW_TASK,
+                                                    navigation_manager=self.navigation_manager,
+                                                    task_manager=self.task_manager,
+                                                    audio_manager=None)
+        
         self.screens[SCREEN.SETTINGS] = SettingsScreen(name=SCREEN.SETTINGS,
-                                                       navigation_manager=self.navigation_manager,
-                                                       task_manager=self.task_manager)
+                                                    navigation_manager=self.navigation_manager,
+                                                    task_manager=self.task_manager)
 
         for screen_name, screen in self.screens.items():
             if screen_name != SCREEN.START:
                 self.screen_manager.add_widget(screen)
+        
+        # Set Screen attributes
+        from kivy.clock import Clock
+        start_screen = self.get_screen(SCREEN.START)
+        Clock.schedule_once(lambda *args: setattr(start_screen, "home_screen_ready", True), 0)
+        home_screen = self.get_screen(SCREEN.HOME)
+        Clock.schedule_once(lambda *args: setattr(home_screen, "new_task_screen_ready", True), 0.3)
     
     def _init_logger(self):
         from src.utils.logger import logger

@@ -28,7 +28,7 @@ class SavedAlarmScreen(BaseScreen):
         # Alarm picker partition
         self.alarm_picker_partition = Partition()
         # Alarm picker buttons
-        self.create_alarm_buttons()
+        
         # Add to scroll container
         self.scroll_container.container.add_widget(self.alarm_picker_partition)
 

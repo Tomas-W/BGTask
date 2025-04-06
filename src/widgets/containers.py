@@ -96,14 +96,11 @@ class ScrollContainer(BoxLayout):
     def _on_scroll(self, instance, value):
         """Handle scroll events to show/hide bottom bar"""
         if not self.parent_screen.bottom_bar:
-            logger.error("Bottom bar not found")
             return
         
         if self.parent_screen.initial_scroll:
-            logger.error(f"Initial scroll not finished: {self.parent_screen.initial_scroll=}")
             return
         
-        logger.error(f"Scrolling: {value=}")
         scrollable_height = instance.children[0].height
         view_height = instance.height
         max_scroll = scrollable_height - view_height

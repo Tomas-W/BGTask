@@ -25,6 +25,7 @@ class StartScreen(Screen):
         """
         super().__init__(**kwargs)
         self.start_screen_loaded: bool = False
+        self.home_screen_ready: bool = False
 
         self.task_data: list[dict] = []
         self.task_date: str = ""
@@ -97,6 +98,7 @@ class StartScreen(Screen):
             
             task_container.add_widget(task_message)
             self.tasks_container.add_widget(task_container)
+        from src.utils.logger import logger
 
     def _get_current_task_data(self) -> list[dict]:
         """
@@ -146,15 +148,18 @@ class StartScreen(Screen):
         """
         self.start_screen_loaded = value
         from kivy.clock import Clock
-        Clock.schedule_once(self.background_load_app_components, 0.01)
+        Clock.schedule_once(self.background_load_app_components, 0.1)
 
     def background_load_app_components(self, dt: float) -> None:
-        from kivy.app import App
         from kivy.clock import Clock
-        App.get_running_app()._load_app_components()
-        self.navigation_manager = App.get_running_app().navigation_manager
-        Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.01)
-    
+        def load(dt):
+            from kivy.app import App
+            App.get_running_app()._load_app_components()
+            self.navigation_manager = App.get_running_app().navigation_manager
+            Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.3)
+        
+        Clock.schedule_once(load, 0.1)
+
     def on_pre_enter(self) -> None:
         """
         When the screen is about to be shown, the data is loaded in and 
@@ -176,6 +181,19 @@ class StartScreen(Screen):
             import time
             self.on_enter_time = time.time()        
             self.is_completed = True
+        print(" START SCREEN ENTERED START SCREEN ENTERED")
+        print(" START SCREEN ENTERED START SCREEN ENTERED")
+        print(" START SCREEN ENTERED START SCREEN ENTERED")
+        print(" START SCREEN ENTERED START SCREEN ENTERED")
+        print(" START SCREEN ENTERED START SCREEN ENTERED")
+    
+    def navigate_to_home_screen(self, slide_direction: str):
+        if not self.home_screen_ready:
+            from src.utils.logger import logger
+            logger.error("Home screen not ready - cannot navigate to it")
+            return
+        
+        self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction)
 
     def on_touch_down(self, touch) -> bool:
         # Store the initial touch position
@@ -204,10 +222,10 @@ class StartScreen(Screen):
         return super().on_touch_up(touch)
 
     def on_swipe_right(self) -> None:
-        self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="right")
+        self.navigate_to_home_screen("right")
 
     def on_swipe_left(self) -> None:
-        self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction="left")
+        self.navigate_to_home_screen("left")
 
     def on_swipe_up(self) -> None:
         pass

@@ -31,6 +31,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.task_manager.bind(on_task_saved=self.scroll_to_new_task)
         self.task_manager.bind(on_tasks_changed=self.update_task_display)
 
+        # Can navigate to NewTaskScreen
+        self.new_task_screen_ready: bool = False
         # Task attributes
         self.tasks_loaded: bool = False
         self.show_hints: bool = True
@@ -60,6 +62,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         Navigate to the NewTaskScreen.
         If the edit/delete icons are visible, toggle them off first.
         """
+        if not self.new_task_screen_ready:
+            logger.error("NewTaskScreen not ready - cannot navigate to it")
+            return
+        
         if self.edit_delete_visible:
             self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
@@ -110,7 +116,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             return False
             
         return True
-    
+
     def scroll_to_new_task(self, instance, task):
         """Scroll to the new/edited task"""
         # Mark the date for this task to have its cache invalidated
