@@ -103,10 +103,11 @@ class Spacing:
     TASK_PADDING_X = dp(25)
     TASK_PADDING_Y = dp(20)
 
-    FIELD_PADDING_X = dp(20)   # Padding between bg color and text
-    FIELD_PADDING_Y = dp(10)   # Padding between bg color and text
-    SCREEN_PADDING_X = dp(20)  # Padding between fields and screen edge
-    DAY_SPACING_Y = dp(20)     # Spacing between day groups
+    FIELD_PADDING_X = dp(20)       # Padding between bg color and text
+    FIELD_PADDING_Y = dp(10)       # Padding between bg color and text
+    SCREEN_PADDING_X = dp(20)      # Padding between fields and screen edge
+    SCREENSHOT_PADDING_X = dp(30)  # Padding between fields and screen edge
+    DAY_SPACING_Y = dp(20)         # Spacing between day groups
 
 
 class Fonts:

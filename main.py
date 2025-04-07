@@ -222,6 +222,52 @@ class TaskApp(App):
     def _init_logger(self):
         from src.utils.logger import logger
         self.logger = logger
+    
+    def on_pause(self):
+        """
+        App is paused by the OS (e.g., user switches to another app).
+        Backup the database to ensure data is persisted.
+        """
+        if hasattr(self, 'task_manager'):
+            # Update the JSON file for StartScreen to ensure it has the latest data
+            if hasattr(self.task_manager, '_update_json_task_file'):
+                self.task_manager._update_json_task_file()
+                
+            # Backup the database if available
+            if hasattr(self.task_manager, 'db_manager'):
+                self.task_manager.db_manager.backup_database()
+                
+        return True  # Return True to allow resuming the app
+    
+    def on_resume(self):
+        """
+        App is resumed from a paused state.
+        Check for any expired tasks that might have occurred while paused.
+        """
+        if hasattr(self, 'task_manager'):
+            self.task_manager.set_expired_tasks()
+    
+    def on_stop(self):
+        """
+        App is about to be closed.
+        Clean up resources and ensure database connections are properly closed.
+        """
+        # Make sure all data is committed
+        if hasattr(self, 'task_manager'):
+            try:
+                # Update the JSON file to ensure StartScreen has the latest data on next launch
+                if hasattr(self.task_manager, '_update_json_task_file'):
+                    self.task_manager._update_json_task_file()
+                
+                # Backup and close the database if available
+                if hasattr(self.task_manager, 'db_manager'):
+                    # Backup database before closing
+                    self.task_manager.db_manager.backup_database()
+                    # Close the database connection
+                    self.task_manager.db_manager.close()
+                    self.logger.info("Database backed up and closed properly")
+            except Exception as e:
+                self.logger.error(f"Error closing database: {e}")
 
 
 if __name__ == "__main__":

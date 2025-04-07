@@ -5,11 +5,11 @@ package.domain = org.bgtask
 
 source.dir = .
 
-source.include_exts = py,png,json,wav
-source.exclude_exts = gitignore,md
+source.include_exts = py,png,json,wav,db
+source.exclude_exts = gitignore,md,db-shm,db-wal
 source.exclude_dirs = bin,.venv,__pycache__,.buildozer,.buildozer.venv
 
-requirements = kivy,pillow,android.storage,jnius,plyer,loguru
+requirements = kivy,pillow,android.storage,jnius,plyer,loguru,sqlite3
 
 source.assets = assets/
 

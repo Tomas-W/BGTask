@@ -1,16 +1,16 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-
+from kivy.uix.floatlayout import FloatLayout
 from src.widgets.buttons import CustomConfirmButton
 
-from src.widgets.containers import StartContainer
+from src.widgets.containers import StartContainer, BaseLayout
 from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
                                            TimeLabel, TaskLabel)
 from src.widgets.labels import PartitionHeader
 
 from src.utils.platform import device_is_android
 
-from src.settings import DIR, PATH, SCREEN, STATE
+from src.settings import DIR, PATH, SCREEN, STATE, SPACE
 
 import time as time_
 from src.utils.logger import logger
@@ -34,11 +34,19 @@ class StartScreen(Screen):
         self.task_data: list[dict] = []
         self.task_date: str = ""
 
+        self.root_layout = FloatLayout()
+
+        self.layout = BaseLayout()
+
         self.start_container = StartContainer(parent_screen=self)
-        
+
+        self.layout.add_widget(self.start_container)
+        self.root_layout.add_widget(self.layout)
+
+        self.add_widget(self.root_layout)
+
         self.bottom_bar = None
 
-        self.add_widget(self.start_container)
         end_time = time_.time()
         logger.error(f"Start screen init time: {end_time - start_time}")
     
@@ -70,6 +78,7 @@ class StartScreen(Screen):
         These contain the next tasks that are expiring, grouped by date.
         """
         start_time = time_.time()
+        self.tasks_container.clear_widgets()
         for task in self.task_data:
             task_container = TaskContainer()
 
@@ -96,41 +105,57 @@ class StartScreen(Screen):
     def _get_current_task_data(self) -> list[dict]:
         """
         Gets the current task data from the task file.
-        It returns todays Task, or nearest future Task.
+        The task file is maintained by TaskManager to contain only today's tasks
+        or the nearest future tasks, so we can just load it directly.
+        
+        Dates are formatted to show "Today, Month DD" or "Tomorrow, Month DD" when applicable.
         """
         start_time = time_.time()
         try:
             import json
             import os
-            from datetime import datetime
+            from datetime import datetime, timedelta
+            
+            # Just load the task data directly from the file
             if os.path.exists(PATH.TASK_FILE):
                 with open(PATH.TASK_FILE, "r") as f:
                     task_data = json.load(f)
             else:
-                task_data = []
+                return []
             
+            if not task_data:
+                return []
+            
+            # Process the tasks to convert timestamps to datetime objects
             today = datetime.now().date()
-            future_tasks = []
+            tomorrow = today + timedelta(days=1)
+            
             for task in task_data:
                 task_timestamp = datetime.fromisoformat(task["timestamp"])
                 task_date = task_timestamp.date()
+                task["timestamp"] = task_timestamp
+                task["date"] = task_date
                 
-                if today <= task_date:
-                    task["timestamp"] = task_timestamp
-                    task["date"] = task_date
-                    future_tasks.append(task)
+                # Format the month and day part
+                month_day = task_date.strftime("%B %d")
+                
+                # Add a formatted_date field for display
+                if task_date == today:
+                    task["formatted_date"] = f"Today, {month_day}"
+                elif task_date == tomorrow:
+                    task["formatted_date"] = f"Tomorrow, {month_day}"
+                else:
+                    task["formatted_date"] = task_date.strftime("%A, %B %d, %Y")
             
-            if not future_tasks:
-                return []
-            
-            future_tasks.sort(key=lambda x: x["timestamp"])
-            earliest_date = future_tasks[0]["date"]            
+            # The task file is already sorted and filtered by TaskManager
+            # to contain only the relevant tasks
             end_time = time_.time()
             logger.error(f"_get_current_task_data time: {end_time - start_time}")
-            return [task for task in future_tasks if task["date"] == earliest_date]
+            return task_data
             
         except Exception as e:
-            raise e
+            logger.error(f"Error getting current task data: {e}")
+            return []
     
     @property
     def is_completed(self) -> bool:
@@ -166,8 +191,9 @@ class StartScreen(Screen):
 
         self.task_data = self._get_current_task_data()
         if self.task_data:
-            task_date = self.task_data[0]["timestamp"].date()
-            self.day_header.text = task_date.strftime("%A, %B %d, %Y")
+            # Use the formatted_date that includes "Today" or "Tomorrow" when applicable
+            self._get_current_task_data()
+            self.day_header.text = self.task_data[0]["formatted_date"]
             self._load_current_tasks_widgets()
         
 
@@ -211,27 +237,20 @@ class StartScreen(Screen):
                     print(f"Error requesting permissions: {str(e)}")
             
             # Hide widgets from screenshot
-            if hasattr(self, "header_partition"):
-                header_visible = self.header_partition.opacity > 0
-                self.header_partition.opacity = 0
-            else:
-                header_visible = False
-            
+            self.screen_header.opacity = 0
             self.screenshot_button.opacity = 0
-                        
-            # Redraw
-            self.root_layout.do_layout()
-            
+                    
             # Take screenshot
             texture = self.root_layout.export_as_image()
             print(f"Screenshot captured as texture type: {type(texture)}")
             
             # Restore visibility
-            if hasattr(self, "header_partition") and header_visible:
-                self.header_partition.opacity = 1
+
+            self.screen_header.opacity = 1
             self.screenshot_button.opacity = 1
             
             if device_is_android():
+                start_time = time_.time()
                 from android.storage import app_storage_path  # type: ignore
                 screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")
             else:
@@ -242,9 +261,10 @@ class StartScreen(Screen):
             # Save the texture
             texture.save(screenshot_path)
             print(f"Screenshot saved to {screenshot_path}")
-            
+            logger.error(f"take_screenshot time: {time_.time() - start_time}")
             # Now set the wallpaper on Android using the bitmap approach
             if device_is_android():
+                start_time = time_.time()
                 from jnius import autoclass  # type: ignore
                 print("Setting wallpaper on Android using bitmap approach...")
                 # Get the current activity and context
@@ -265,6 +285,7 @@ class StartScreen(Screen):
                     manager = WallpaperManager.getInstance(context)
                     manager.setBitmap(bitmap)
                     print("Wallpaper set successfully using bitmap!")
+                    logger.error(f"set_wallpaper time: {time_.time() - start_time}")
                 else:
                     print("Failed to create bitmap from file")
             else:

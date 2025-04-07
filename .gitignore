@@ -19,5 +19,9 @@ bin/
 *.mp3
 *.m4a
 
+# db
+*.db
+*.db-shm
+*.db-wal
 
 playground.py
