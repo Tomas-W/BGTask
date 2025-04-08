@@ -10,7 +10,7 @@ from .home_widgets import EditTaskButton
 from .home_screen_utils import HomeScreenUtils
 from src.utils.logger import logger
 
-from src.settings import SCREEN, SIZE
+from src.settings import SCREEN
 
 if TYPE_CHECKING:
     from src.widgets.buttons import EditTaskButton
@@ -69,28 +69,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         if self.edit_delete_visible:
             self.toggle_edit_delete()
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
- 
-    def scroll_to_first_active_task(self, dt):
-        """
-        Scrolls up to show the first non-expired Task.
-        Only used on first enter.
-        """
-        # Start at the bottom
-        self.scroll_container.scroll_view.scroll_y = 0.0
-        if not self.tasks_by_dates:
-            return
-        
-        for task_group in self.tasks_by_dates:
-            # Always scroll to Today
-            if task_group.date_str == "Today":
-                Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(task_group, padding=[0, SIZE.BOTTOM_BAR_HEIGHT, 0, 0], animate=False), 0.2)
-                break
-
-            # If no Today, scroll to the first non-expired Task
-            if not task_group.all_expired:
-                Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(task_group, padding=[0, SIZE.BOTTOM_BAR_HEIGHT, 0, 0], animate=False), 0.2)
-                break
-        return
 
     def find_task(self, instance, task) -> None:
         """
@@ -106,7 +84,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # Find message container
         # Save time widget if found
         task_container = self.get_task_container(selected_task_group, task)
-        logger.error(f"Task container: {task_container}")
         if not task_container or not self.task_header_widget:
             return False
         
@@ -133,24 +110,23 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # Scroll up to Task header
         if self.task_header_widget is not None:
             selected_task_header = self.task_header_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.15)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.1)
 
         # Scroll down to task message if not yet in screen
         if self.task_message_widget is not None:
             selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.30)
-            Clock.schedule_once(lambda dt: self.task_message_widget.set_active(True), 0.26)
-            Clock.schedule_once(lambda dt: self.task_message_widget.set_active(False), 3)
-            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 3.1)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.15)
+            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.4)
+            Clock.schedule_once(lambda dt: selected_task.set_active(False), 3.5)
+            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 3.6)
 
     def on_enter(self) -> None:
-        super().on_enter()  # This already handles bottom bar state check
-        
+        super().on_enter()
         # Connect our initial_scroll flag to the scroll container
         self.scroll_container.initial_scroll = self.initial_scroll
         
         if not self.tasks_loaded:
-            self.scroll_to_first_active_task(None)
+            self.scroll_container.scroll_view.scroll_y = 1.0
             self.tasks_loaded = True
             logger.warning(f"Going to first active task")
     
@@ -163,7 +139,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
         if not self.tasks_loaded:
             self.update_task_display()
-            self.scroll_container.scroll_view.scroll_y = 1.0
         
         self.task_manager.set_expired_tasks()
     

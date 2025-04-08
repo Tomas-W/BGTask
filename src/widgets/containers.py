@@ -94,7 +94,7 @@ class StartContainer(BoxLayout):
         delta_y = touch.y - self.touch_start_y
         
         # Determine if the swipe is significant enough
-        if abs(delta_x) > 20 or abs(delta_y) > 20:  # Adjust threshold as needed
+        if abs(delta_x) > 10 or abs(delta_y) > 10:  # Adjust threshold as needed
             if abs(delta_x) > abs(delta_y):  # Horizontal swipe
                 if delta_x > 0:
                     self.on_swipe_right()

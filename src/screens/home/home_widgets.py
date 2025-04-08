@@ -46,11 +46,11 @@ class TasksByDate(BoxLayout):
         current_year = datetime.now().year
         date = datetime.strptime(f"{day} {month} {current_year}", "%d %b %Y").date()
         if date == datetime.now().date():
-            self.date_str = "Today"
+            self.date_str = f"Today, {date.strftime('%B %d')}"
         elif date == datetime.now().date() - timedelta(days=1):
-            self.date_str = "Yesterday"
+            self.date_str = f"Yesterday, {date.strftime('%B %d')}"
         elif date == datetime.now().date() + timedelta(days=1):
-            self.date_str = "Tomorrow"
+            self.date_str = f"Tomorrow, {date.strftime('%B %d')}"
 
         day_header = TaskHeader(text=self.date_str)
         self.add_widget(day_header)

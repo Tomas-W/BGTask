@@ -27,6 +27,8 @@ class NewTaskScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
+        self.task_manager.bind(on_task_edit=self.load_task_data)
+
         # Edit/delete attributes
         self.in_edit_task_mode: bool = False
 
@@ -155,7 +157,7 @@ class NewTaskScreen(BaseScreen):
         else:
             self.alarm_display_field.set_text(TEXT.NO_ALARM)
     
-    def load_task_data(self, task) -> None:
+    def load_task_data(self, instance, task, *args) -> None:
         self.in_edit_task_mode = True
         self.task_manager.selected_task_id = task.task_id
         # Date

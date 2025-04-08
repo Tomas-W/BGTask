@@ -1,3 +1,5 @@
+import time
+
 from src.utils.logger import logger
 from .home_widgets import (TasksByDate, TimeContainer, EditTaskButton,
                            EditTaskButtonContainer, TaskContainer, TaskLabel,
@@ -13,6 +15,7 @@ class HomeScreenUtils:
         """
         Update the Task widgets, reusing cached widgets when possible
         """
+        start_time = time.time()
         # Clear container but don't discard widgets yet
         self.scroll_container.container.clear_widgets()
         self.edit_delete_buttons = []
@@ -91,7 +94,11 @@ class HomeScreenUtils:
         # Update edit/delete button visibility
         self.check_for_edit_delete()
         logger.debug(f"Updated task display with {len(used_cache_keys)} cached widgets out of {len(self.widget_cache)}")
+        self.tasks_loaded = True
+        end_time = time.time()
+        logger.error(f"HomeScreenUtils update_task_display time: {end_time - start_time}")
     
+
     def get_task_group(self, task) -> TasksByDate:
         """Get the TaskGroup that contains the task"""
         for task_group in self.tasks_by_dates:
@@ -111,7 +118,6 @@ class HomeScreenUtils:
                         if isinstance(time_component, TimeLabel):
                             if time_component.text == task_time:
                                 self.time_label_widget = time_component
-                                logger.error(f"Time label widget: {self.time_label_widget}")
                                 return task_container
         return None
 
@@ -120,7 +126,6 @@ class HomeScreenUtils:
         for child in task_container.children:
             if isinstance(child, TaskLabel):
                 self.task_message_widget = child
-                logger.error(f"Task message widget: {self.task_message_widget}")
                 return child
         return None
     

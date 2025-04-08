@@ -231,7 +231,7 @@ class TaskApp(App):
         if hasattr(self, 'task_manager'):
             # Update the JSON file for StartScreen to ensure it has the latest data
             if hasattr(self.task_manager, '_update_json_task_file'):
-                self.task_manager._update_json_task_file()
+                self.task_manager._update_first_task_file()
                 
             # Backup the database if available
             if hasattr(self.task_manager, 'db_manager'):
@@ -257,7 +257,7 @@ class TaskApp(App):
             try:
                 # Update the JSON file to ensure StartScreen has the latest data on next launch
                 if hasattr(self.task_manager, '_update_json_task_file'):
-                    self.task_manager._update_json_task_file()
+                    self.task_manager._update_first_task_file()
                 
                 # Backup and close the database if available
                 if hasattr(self.task_manager, 'db_manager'):

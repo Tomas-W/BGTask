@@ -1,3 +1,8 @@
+import json
+import os
+
+from datetime import datetime, timedelta
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
@@ -10,7 +15,7 @@ from src.widgets.labels import PartitionHeader
 
 from src.utils.platform import device_is_android
 
-from src.settings import DIR, PATH, SCREEN, STATE, SPACE
+from src.settings import DIR, PATH, SCREEN, STATE
 
 import time as time_
 from src.utils.logger import logger
@@ -31,7 +36,7 @@ class StartScreen(Screen):
         self.start_screen_loaded: bool = False
         self.home_screen_ready: bool = False
 
-        self.task_data: list[dict] = []
+        self.first_task_data: list[dict] = []
         self.task_date: str = ""
 
         self.root_layout = FloatLayout()
@@ -79,7 +84,7 @@ class StartScreen(Screen):
         """
         start_time = time_.time()
         self.tasks_container.clear_widgets()
-        for task in self.task_data:
+        for task in self.first_task_data:
             task_container = TaskContainer()
 
             time = task["timestamp"].strftime("%H:%M")
@@ -104,42 +109,32 @@ class StartScreen(Screen):
 
     def _get_current_task_data(self) -> list[dict]:
         """
-        Gets the current task data from the task file.
-        The task file is maintained by TaskManager to contain only today's tasks
-        or the nearest future tasks, so we can just load it directly.
-        
+        Gets the current task data from the first_task file.
         Dates are formatted to show "Today, Month DD" or "Tomorrow, Month DD" when applicable.
         """
-        start_time = time_.time()
         try:
-            import json
-            import os
-            from datetime import datetime, timedelta
+            if hasattr(self, "task_manager"):
+                self.first_task_data = self.task_manager.first_task
             
-            # Just load the task data directly from the file
-            if os.path.exists(PATH.TASK_FILE):
-                with open(PATH.TASK_FILE, "r") as f:
+            elif os.path.exists(PATH.FIRST_TASK):
+                with open(PATH.FIRST_TASK, "r") as f:
                     task_data = json.load(f)
+                    
             else:
                 return []
             
             if not task_data:
                 return []
             
-            # Process the tasks to convert timestamps to datetime objects
             today = datetime.now().date()
-            tomorrow = today + timedelta(days=1)
-            
+            tomorrow = today + timedelta(days=1)            
             for task in task_data:
                 task_timestamp = datetime.fromisoformat(task["timestamp"])
                 task_date = task_timestamp.date()
                 task["timestamp"] = task_timestamp
                 task["date"] = task_date
                 
-                # Format the month and day part
                 month_day = task_date.strftime("%B %d")
-                
-                # Add a formatted_date field for display
                 if task_date == today:
                     task["formatted_date"] = f"Today, {month_day}"
                 elif task_date == tomorrow:
@@ -147,10 +142,6 @@ class StartScreen(Screen):
                 else:
                     task["formatted_date"] = task_date.strftime("%A, %B %d, %Y")
             
-            # The task file is already sorted and filtered by TaskManager
-            # to contain only the relevant tasks
-            end_time = time_.time()
-            logger.error(f"_get_current_task_data time: {end_time - start_time}")
             return task_data
             
         except Exception as e:
@@ -177,7 +168,8 @@ class StartScreen(Screen):
             from kivy.app import App
             App.get_running_app()._load_app_components()
             self.navigation_manager = App.get_running_app().navigation_manager
-            Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.3)
+            Clock.schedule_once(lambda dt: App.get_running_app().get_screen(SCREEN.HOME).update_task_display(), 0.2)
+            self.task_manager = App.get_running_app().task_manager
         
         Clock.schedule_once(load, 0.1)
 
@@ -188,15 +180,12 @@ class StartScreen(Screen):
         """
         if not self.start_screen_loaded:
             self._build_page()
-
-        self.task_data = self._get_current_task_data()
-        if self.task_data:
-            # Use the formatted_date that includes "Today" or "Tomorrow" when applicable
-            self._get_current_task_data()
-            self.day_header.text = self.task_data[0]["formatted_date"]
-            self._load_current_tasks_widgets()
         
-
+        self.first_task_data = self._get_current_task_data()
+        if self.first_task_data:
+            self.day_header.text = self.first_task_data[0]["formatted_date"]
+            self._load_current_tasks_widgets()
+    
     def on_enter(self) -> None:
         """
         When the screen is shown, the rest of the app is loaded in the background.
