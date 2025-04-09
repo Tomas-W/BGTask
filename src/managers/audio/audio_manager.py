@@ -3,13 +3,12 @@ import os
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
-from src.utils.platform import (device_is_android, device_is_windows,
+from src.utils.misc import (device_is_android, device_is_windows,
                                 get_storage_path, validate_dir)
 
 from src.settings import EXT, DIR
 
-# Load AudioPlayer based on platform
-from src.utils.platform import device_is_android, device_is_windows
+
 if device_is_android():
     from src.managers.audio.android_audio import AndroidAudioPlayer
     is_android = True

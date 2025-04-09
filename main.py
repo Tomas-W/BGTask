@@ -241,15 +241,6 @@ class TaskApp(App):
         """
         if hasattr(self, 'task_manager'):
             self.task_manager.set_expired_tasks()
-    
-    def on_stop(self):
-        """
-        App is about to be closed.
-        Clean up resources and ensure database connections are properly closed.
-        """
-        # Make sure all data is committed
-        if hasattr(self, 'task_manager'):
-            self.task_manager.save_all_tasks()
 
 
 if __name__ == "__main__":

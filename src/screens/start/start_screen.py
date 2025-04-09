@@ -14,7 +14,7 @@ from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupC
 from src.widgets.labels import PartitionHeader
 from src.managers.tasks.task_manager_utils import Task
 
-from src.utils.platform import device_is_android, get_storage_path
+from src.utils.misc import device_is_android, get_storage_path
 
 from src.settings import DIR, PATH, SCREEN, STATE
 

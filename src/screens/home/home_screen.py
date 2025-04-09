@@ -9,7 +9,7 @@ from src.screens.base.base_screen import BaseScreen
 from .home_widgets import EditTaskButton
 from .home_screen_utils import HomeScreenUtils
 from src.utils.logger import logger
-
+from src.utils.misc import is_widget_visible
 from src.settings import SCREEN
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
     def find_task(self, instance, task) -> None:
         """
-        Scroll to a specific Task that was saved and highlight its message.
+        Scroll to a specific Task that was created or edited and highlight its message.
         """
         selected_task_group = self.get_task_group(task)
         if not selected_task_group:
@@ -96,7 +96,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
     def scroll_to_new_task(self, instance, task):
         """Scroll to the new/edited task"""
-        # Mark the date for this task to have its cache invalidated
+        # Mark to invalidate this Widgets cache
         self.invalidate_cache_for_date = task.get_date_str()
         
         # Set widget attributes
@@ -104,6 +104,18 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             logger.error(f"No task found - cannot scroll to it")
             return
 
+        # If both the header and message are already visible, just highlight the message
+        if (self.task_header_widget is not None and 
+            self.task_message_widget is not None and
+            is_widget_visible(self.task_message_widget, self.scroll_container.scroll_view)):
+            # Task is already visible, just highlight it
+            selected_task = self.task_message_widget
+            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.1)
+            Clock.schedule_once(lambda dt: selected_task.set_active(False), 3.2)
+            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 3.3)
+            return
+
+        # If not visible, proceed with original scrolling logic
         # Start at the bottom
         self.scroll_container.scroll_view.scroll_y = 0.0
 
@@ -139,7 +151,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.on_enter_time = on_enter_time
         
         self.task_manager.set_expired_tasks()
-        
+
         if not self.tasks_loaded:
             self.update_task_display()
     
