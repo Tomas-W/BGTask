@@ -25,5 +25,7 @@ android.ndk = 25b
 
 android.optimize_python = True
 android.precompile_python = True
+android.use_legacy_android_support = 0
+android.allow_backup = 0
 
 android.archs = arm64-v8a

@@ -336,6 +336,8 @@ class EditTaskButton(Button):
         )
         self.type = type
         self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
+        self.last_bound_args = None  # Will store the task_id
+        
         with self.canvas.before:
             Color(*self.bg_color)
             self.bg_rect = RoundedRectangle(
@@ -344,6 +346,18 @@ class EditTaskButton(Button):
                 radius=[STYLE.RADIUS_S]
             )
         self.bind(pos=self._update_bg, size=self._update_bg)
+    
+    def bind(self, **kwargs):
+        """Override bind to capture task_id for remove_edit_buttons_for_group"""
+        if 'on_release' in kwargs and callable(kwargs['on_release']):
+            # Extract task_id from lambda function (if present)
+            # This assumes the lambda contains a task_id parameter
+            func_str = str(kwargs['on_release'])
+            if 'task_id=' in func_str:
+                # Store the task_id for later use
+                self.last_bound_args = [func_str.split('task_id=')[1].split(')')[0]]
+        
+        return super().bind(**kwargs)
 
     def _update_bg(self, instance, value):
         self.bg_rect.pos = instance.pos

@@ -1,12 +1,13 @@
 import time
-start_time = time.time()
+start_kivy_time = time.time()
 
 from kivy.app import App
+from kivy.clock import Clock
 
 from kivy.core.window import Window
 from kivy.utils import platform
 
-from src.settings import SCREEN, PLATFORM
+from src.settings import SCREEN, PLATFORM, LOADED
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -14,6 +15,10 @@ if platform != PLATFORM.ANDROID:
     Window.left = -386
     Window.top = 316
 
+total_kivy_time = time.time() - start_kivy_time
+print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
+print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
+print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 # TaskManager
 # TODO: Expired check only today
@@ -84,22 +89,20 @@ class TaskApp(App):
         As soon as the start screen is shown, the rest of the app is loaded in the background.
         """
         self.title = "Task Manager"
-        global start_time
-        self.start_time = start_time
-        
-        # Only create what's needed for the start screen
+        self.start_kivy_time = start_kivy_time
+        self.total_kivy_time = total_kivy_time
+
         from kivy.uix.screenmanager import ScreenManager, SlideTransition
         self.screen_manager = ScreenManager(transition=SlideTransition())
         
         # StartScreen
-        start_time = time.time()
+        create_start_screen_time = time.time()
         from src.screens.start.start_screen import StartScreen
         self.screens = {
             SCREEN.START: StartScreen(name=SCREEN.START)
         }
         self.screen_manager.add_widget(self.screens[SCREEN.START])
-        end_time = time.time()
-        self.start_screen_time = end_time - start_time
+        self.start_screen_time = time.time() - create_start_screen_time
         
         return self.screen_manager
     
@@ -108,118 +111,112 @@ class TaskApp(App):
     
     def _load_app_components(self):
         self._init_logger()
-        self.logger.error(f"StartScreen time: {self.start_screen_time}")
+        self.logger.error(f"Loading StartScreen time: {self.start_screen_time:.4f}")
         self._init_managers()
         self._init_screens()
     
     def _init_managers(self):
+        # NavigationManager
         start_time = time.time()
         from src.managers.navigation_manager import NavigationManager
         self.navigation_manager = NavigationManager(
             screen_manager=self.screen_manager,
             start_screen=SCREEN.HOME
         )
-        end_time = time.time()
-        self.logger.error(f"Init NavigationManager time: {end_time - start_time}")
+        LOADED.NAVIGATION_MANAGER = True
+        self.logger.error(f"Loading NavigationManager time: {time.time() - start_time:.4f}")
 
+        # TaskManager
         start_time = time.time()
         from src.managers.tasks.task_manager import TaskManager
         self.task_manager = TaskManager() 
-        end_time = time.time()
-        self.logger.error(f"Init TaskManager time: {end_time - start_time}")
+        LOADED.TASK_MANAGER = True
+        self.logger.error(f"Loading TaskManager time: {time.time() - start_time:.4f}")
 
-        def init_audio_manager(dt):
-            start_time = time.time()
-            self.logger.warning(f"Init AudioManager STARTING AT {start_time}")
-            from src.managers.audio.audio_manager import AudioManager
-            self.audio_manager = AudioManager()
-            end_time = time.time()
-            self.logger.warning(f"Init AudioManager time: {end_time - start_time}")
+        # AudioManager
+        start_time = time.time()
+        from src.managers.audio.audio_manager import AudioManager
+        self.audio_manager = AudioManager()
+        LOADED.AUDIO_MANAGER = True
+        self.logger.error(f"Loading AudioManager time: {time.time() - start_time:.4f}")
 
-        def connect_audio_screens(dt):
-            self.screens[SCREEN.SELECT_ALARM].audio_manager = self.audio_manager
-            self.screens[SCREEN.SAVED_ALARMS].audio_manager = self.audio_manager
-            self.screens[SCREEN.NEW_TASK].audio_manager = self.audio_manager
-
-        
-        from kivy.clock import Clock
-        # Timings are 'linked'
-        Clock.schedule_once(init_audio_manager, 0)
-        Clock.schedule_once(connect_audio_screens, 0.3)
-    
     def _init_screens(self):
-    # HomeScreen
+        # HomeScreen
         start_time = time.time()
         from src.screens.home.home_screen import HomeScreen
         self.screens[SCREEN.HOME] = HomeScreen(name=SCREEN.HOME,
                                                navigation_manager=self.navigation_manager,
                                                task_manager=self.task_manager)
-        end_time = time.time()
-        self.logger.error(f"Init HomeScreen time: {end_time - start_time}")
+        LOADED.HOME = True
+        self.logger.error(f"Loading HomeScreen time: {time.time() - start_time:.4f}")
 
-    # NewTaskScreen
+        # NewTaskScreen
         start_time = time.time()
         from src.screens.new_task.new_task_screen import NewTaskScreen
         self.screens[SCREEN.NEW_TASK] = NewTaskScreen(name=SCREEN.NEW_TASK,
                                                     navigation_manager=self.navigation_manager,
                                                     task_manager=self.task_manager,
                                                     audio_manager=None)
-        end_time = time.time()
-        self.logger.error(f"Init NewTaskScreen time: {end_time - start_time}")
+        LOADED.NEW_TASK = True
+        self.logger.error(f"Loading NewTaskScreen time: {time.time() - start_time:.4f}")
 
-    # SelectDateScreen
+        # SettingsScreen
+        start_time = time.time()
+        from src.screens.settings.settings_screen import SettingsScreen
+        self.screens[SCREEN.SETTINGS] = SettingsScreen(name=SCREEN.SETTINGS,
+                                                    navigation_manager=self.navigation_manager,
+                                                    task_manager=self.task_manager)
+        LOADED.SETTINGS = True
+        self.logger.error(f"Loading SettingsScreen time: {time.time() - start_time:.4f}")
+
+        # Add screens to screen manager
+        for screen_name, screen in self.screens.items():
+            if screen_name != SCREEN.START:
+                self.screen_manager.add_widget(screen)
+        
+        Clock.schedule_once(lambda dt: self.get_screen(SCREEN.HOME).update_task_display(), 0.1)
+        self.logger.debug(f"CALLING INIT OTHER SCREENS")
+        self._init_other_screens(dt=None)
+    
+    def _init_other_screens(self, dt):
+        # SelectDateScreen
         start_time = time.time()
         from src.screens.select_date.select_date_screen import SelectDateScreen
         self.screens[SCREEN.SELECT_DATE] = SelectDateScreen(name=SCREEN.SELECT_DATE,
-                                                             navigation_manager=self.navigation_manager,
-                                                             task_manager=self.task_manager)
-        end_time = time.time()
-        self.logger.error(f"Init SelectDateScreen time: {end_time - start_time}")
+                                                            navigation_manager=self.navigation_manager,
+                                                            task_manager=self.task_manager)
+        self.screen_manager.add_widget(self.screens[SCREEN.SELECT_DATE])
+        LOADED.SELECT_DATE = True
+        self.logger.error(f"Loading SelectDateScreen time: {time.time() - start_time:.4f}")
 
-    # SelectAlarmScreen
+        # SelectAlarmScreen
         start_time = time.time()
         from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
         self.screens[SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=SCREEN.SELECT_ALARM,
                                                             navigation_manager=self.navigation_manager,
                                                             task_manager=self.task_manager,
                                                             audio_manager=None)
-        end_time = time.time()
-        self.logger.error(f"Init SelectAlarmScreen time: {end_time - start_time}")
+        self.screen_manager.add_widget(self.screens[SCREEN.SELECT_ALARM])
+        LOADED.SELECT_ALARM = True
+        self.logger.error(f"Loading SelectAlarmScreen time: {time.time() - start_time:.4f}")
 
-    # SavedAlarmScreen
+        # SavedAlarmScreen
         start_time = time.time()
         from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
         self.screens[SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=SCREEN.SAVED_ALARMS,
                                                             navigation_manager=self.navigation_manager,
                                                             task_manager=self.task_manager,
                                                             audio_manager=None)
-        end_time = time.time()
-        self.logger.error(f"Init SavedAlarmScreen time: {end_time - start_time}")
+        self.screen_manager.add_widget(self.screens[SCREEN.SAVED_ALARMS])
+        LOADED.SAVED_ALARMS = True
+        self.logger.error(f"Loading SavedAlarmScreen time: {time.time() - start_time:.4f}")
 
-    # SettingsScreen
-        start_time = time.time()
-        from src.screens.settings.settings_screen import SettingsScreen
-        self.screens[SCREEN.SETTINGS] = SettingsScreen(name=SCREEN.SETTINGS,
-                                                    navigation_manager=self.navigation_manager,
-                                                    task_manager=self.task_manager)
-        end_time = time.time()
-        self.logger.error(f"Init SettingsScreen time: {end_time - start_time}")
-
-    # Add screens to screen manager
-        for screen_name, screen in self.screens.items():
-            if screen_name != SCREEN.START:
-                self.screen_manager.add_widget(screen)
-        
-    # Set Screen attributes
-        from kivy.clock import Clock
-        start_screen = self.get_screen(SCREEN.START)
-        Clock.schedule_once(lambda *args: setattr(start_screen, "home_screen_ready", True), 0)
-        home_screen = self.get_screen(SCREEN.HOME)
-        Clock.schedule_once(lambda *args: setattr(home_screen, "new_task_screen_ready", True), 0.3)
-
-        finish_time = time.time()
-        self.logger.warning(f"TOTAL TIME TO LOAD APP MINUS AUDIO MANAGER: {finish_time - self.start_time}")
-        self.logger.warning(f"FINISHED INITIALIZING APP AT {finish_time}")
+        self.connect_audio_screens()
+    
+    def connect_audio_screens(self):
+        self.screens[SCREEN.SELECT_ALARM].audio_manager = self.audio_manager
+        self.screens[SCREEN.SAVED_ALARMS].audio_manager = self.audio_manager
+        self.screens[SCREEN.NEW_TASK].audio_manager = self.audio_manager
     
     def _init_logger(self):
         from src.utils.logger import logger

@@ -9,16 +9,6 @@ from src.utils.misc import (device_is_android, device_is_windows,
 from src.settings import EXT, DIR
 
 
-if device_is_android():
-    from src.managers.audio.android_audio import AndroidAudioPlayer
-    is_android = True
-elif device_is_windows():
-    from src.managers.audio.windows_audio import WindowsAudioPlayer
-    is_android = False
-else:
-    raise ImportError("No AudioPlayer could be loaded")
-
-
 class AudioManager(AudioManagerUtils):
     """
     Manages playing and recording audio through the application.
@@ -26,15 +16,17 @@ class AudioManager(AudioManagerUtils):
     All audio players have the same interface.
     """
     def __init__(self):
-        self.is_android: bool = is_android
-        self.is_windows: bool = not is_android
+        self.is_android: bool = device_is_android()
+        self.is_windows: bool = device_is_windows()
         
-        # Set audio player
+        # Set audio player - lazy import platform-specific modules
         if self.is_android:
+            from src.managers.audio.android_audio import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
             logger.debug("Using Android audio player")
 
         elif self.is_windows:
+            from src.managers.audio.windows_audio import WindowsAudioPlayer
             self.audio_player = WindowsAudioPlayer()
             logger.debug("Using Windows audio player")
 

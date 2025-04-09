@@ -1,4 +1,5 @@
 try:
+    # Import jnius but don't auto-import Java classes yet
     from jnius import autoclass  # type: ignore
 except ImportError:
     pass
@@ -14,13 +15,23 @@ class AndroidAudioPlayer:
         self.recording = False
         self.current_path = None
         
+        # Cache for Java classes
+        self._java_classes = {}
+        
+    def _get_java_class(self, class_name):
+        """Lazy load Java classes only when needed"""
+        if class_name not in self._java_classes:
+            self._java_classes[class_name] = autoclass(class_name)
+        return self._java_classes[class_name]
+        
     def setup_recording(self, path: str) -> bool:
         """Configure the recorder for a new recording session"""
         try:
-            MediaRecorder = autoclass("android.media.MediaRecorder")
-            AudioSource = autoclass("android.media.MediaRecorder$AudioSource")
-            OutputFormat = autoclass("android.media.MediaRecorder$OutputFormat")
-            AudioEncoder = autoclass("android.media.MediaRecorder$AudioEncoder")
+            # Lazy load Java classes only when needed
+            MediaRecorder = self._get_java_class("android.media.MediaRecorder")
+            AudioSource = self._get_java_class("android.media.MediaRecorder$AudioSource")
+            OutputFormat = self._get_java_class("android.media.MediaRecorder$OutputFormat")
+            AudioEncoder = self._get_java_class("android.media.MediaRecorder$AudioEncoder")
             
             # Reset any existing recorder
             if self.recorder:
@@ -91,7 +102,7 @@ class AndroidAudioPlayer:
         try:
             self.stop()
             
-            MediaPlayer = autoclass("android.media.MediaPlayer")
+            MediaPlayer = self._get_java_class("android.media.MediaPlayer")
             self.media_player = MediaPlayer()
             self.media_player.setDataSource(path)
             self.media_player.prepare()

@@ -9,8 +9,7 @@ from src.screens.base.base_screen import BaseScreen
 from .home_widgets import EditTaskButton
 from .home_screen_utils import HomeScreenUtils
 from src.utils.logger import logger
-from src.utils.misc import is_widget_visible
-from src.settings import SCREEN
+from src.settings import SCREEN, LOADED
 
 if TYPE_CHECKING:
     from src.widgets.buttons import EditTaskButton
@@ -29,10 +28,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
         self.task_manager.bind(on_task_saved=self.scroll_to_new_task)
-        self.task_manager.bind(on_tasks_changed=self.update_task_display)
+        self.task_manager.bind(on_tasks_changed=self.handle_tasks_changed)
 
-        # Can navigate to NewTaskScreen
-        self.new_task_screen_ready: bool = False
         # Task attributes
         self.tasks_loaded: bool = False
         self.show_hints: bool = True
@@ -49,7 +46,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # TopBar
         top_left_callback = lambda instance: self.toggle_edit_delete(instance)
-        top_bar_callback = lambda instance: self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+        top_bar_callback = self.navigate_to_new_task_screen
         self.top_bar.make_home_bar(top_left_callback=top_left_callback, top_bar_callback=top_bar_callback)
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
@@ -62,7 +59,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         Navigate to the NewTaskScreen.
         If the edit/delete icons are visible, toggle them off first.
         """
-        if not self.new_task_screen_ready:
+        if not LOADED.NEW_TASK:
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         
@@ -131,7 +128,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
     
     def on_pre_enter(self) -> None:
-        super().on_pre_enter()  # This already handles bottom bar reset
+        super().on_pre_enter()
         
         if not hasattr(self, "on_enter_time"):
             on_enter_time = time.time()
@@ -167,3 +164,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         for button in self.edit_delete_buttons:
             button.set_opacity(0)
             button.set_disabled(True)
+
+    def handle_tasks_changed(self, instance, **kwargs):
+        """Handle the on_tasks_changed event with potential modified_task parameter"""
+        modified_task = kwargs.get("modified_task")
+        self.update_task_display(modified_task=modified_task)

@@ -142,8 +142,8 @@ class TaskManager(EventDispatcher):
         self.tasks_by_date[date_key].append(task)
         self.save_tasks_to_json()
 
-        # Notify UI to update
-        self.dispatch("on_tasks_changed")
+        # Notify UI to update with specific task
+        self.dispatch("on_tasks_changed", modified_task=task)
         # Notify to scroll to Task
         Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
     
@@ -196,7 +196,8 @@ class TaskManager(EventDispatcher):
         self.save_tasks_to_json()
 
         logger.debug(f"Updated task: {task_id}")
-        self.dispatch("on_tasks_changed")
+        # Notify UI to update with specific task
+        self.dispatch("on_tasks_changed", modified_task=task)
         # Notify to scroll to Task
         Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
 
@@ -219,22 +220,28 @@ class TaskManager(EventDispatcher):
         self.save_tasks_to_json()
 
         logger.debug(f"Deleted task: {task_id}")
-        # Notify to update task display
-        self.dispatch("on_tasks_changed")
+        # Notify to update task display with specific task
+        self.dispatch("on_tasks_changed", modified_task=task)
 
     def set_expired_tasks(self):
         """Set Task to be expired if its timestamp is in the past."""
         now = datetime.now()
-        changed = False
+        modified_tasks = []
         
         for date_key, tasks in self.tasks_by_date.items():
             for task in tasks:
                 if task.timestamp < now and not task.expired:
                     task.expired = True
-                    changed = True
+                    modified_tasks.append(task)
         
-        if changed:
-            self.dispatch("on_tasks_changed")
+        if modified_tasks:
+            # If many tasks changed, do a full rebuild
+            if len(modified_tasks) > 3:
+                self.dispatch("on_tasks_changed")
+            else:
+                # Otherwise, update each task individually
+                for task in modified_tasks:
+                    self.dispatch("on_tasks_changed", modified_task=task)
             self.save_tasks_to_json()
     
     def get_task_by_id(self, task_id: str) -> Task:
@@ -251,7 +258,7 @@ class TaskManager(EventDispatcher):
         """Default handler for on_task_saved event"""
         logger.debug(f"on_task_saved event finished: {task}")
     
-    def on_tasks_changed(self, *args):
+    def on_tasks_changed(self, *args, **kwargs):
         """Default handler for on_tasks_changed event"""
         logger.debug("on_tasks_changed event finished")
     

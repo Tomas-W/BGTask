@@ -257,7 +257,7 @@ class SelectAlarmScreen(BaseScreen):
             self.update_playback_button_states(True)
             
             # Update buttons states when audio finishes
-            Clock.schedule_interval(self.check_audio_finished, 0.3)
+            Clock.schedule_interval(self.check_audio_finished, 0.2)
         else:
             self.show_error_popup("Playback Error", "Could not play the selected alarm")
 

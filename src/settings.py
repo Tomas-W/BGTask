@@ -152,6 +152,19 @@ class Extensions:
     WAV = ".wav"
 
 
+class Loaded:
+    START = False
+    HOME = False
+    NEW_TASK = False
+    SELECT_DATE = False
+    SELECT_ALARM = False
+    SAVED_ALARMS = False
+    SETTINGS = False
+
+    NAVIGATION_MANAGER = False
+    TASK_MANAGER = False
+    AUDIO_MANAGER = False
+
 class StrEnum(str, enum.Enum):
     """String Enum that can be compared directly with strings."""
     pass
@@ -195,6 +208,7 @@ TEXT = Text()
 SIZE = Sizes()
 EXT = Extensions()
 
+LOADED = Loaded()
 SCREEN = Screens
 PLATFORM = Platforms
 STATE = States
