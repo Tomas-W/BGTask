@@ -2,10 +2,11 @@ import time
 start_time = time.time()
 
 from kivy.app import App
-from src.settings import SCREEN, PLATFORM
 
 from kivy.core.window import Window
 from kivy.utils import platform
+
+from src.settings import SCREEN, PLATFORM
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -229,15 +230,9 @@ class TaskApp(App):
         Backup the database to ensure data is persisted.
         """
         if hasattr(self, 'task_manager'):
-            # Update the JSON file for StartScreen to ensure it has the latest data
-            if hasattr(self.task_manager, '_update_json_task_file'):
-                self.task_manager._update_first_task_file()
+            self.task_manager.save_all_tasks()
                 
-            # Backup the database if available
-            if hasattr(self.task_manager, 'db_manager'):
-                self.task_manager.db_manager.backup_database()
-                
-        return True  # Return True to allow resuming the app
+        return True
     
     def on_resume(self):
         """
@@ -254,20 +249,7 @@ class TaskApp(App):
         """
         # Make sure all data is committed
         if hasattr(self, 'task_manager'):
-            try:
-                # Update the JSON file to ensure StartScreen has the latest data on next launch
-                if hasattr(self.task_manager, '_update_json_task_file'):
-                    self.task_manager._update_first_task_file()
-                
-                # Backup and close the database if available
-                if hasattr(self.task_manager, 'db_manager'):
-                    # Backup database before closing
-                    self.task_manager.db_manager.backup_database()
-                    # Close the database connection
-                    self.task_manager.db_manager.close()
-                    self.logger.info("Database backed up and closed properly")
-            except Exception as e:
-                self.logger.error(f"Error closing database: {e}")
+            self.task_manager.save_all_tasks()
 
 
 if __name__ == "__main__":

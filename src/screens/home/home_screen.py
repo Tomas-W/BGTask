@@ -129,6 +129,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.scroll_container.scroll_view.scroll_y = 1.0
             self.tasks_loaded = True
             logger.warning(f"Going to first active task")
+        
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()  # This already handles bottom bar reset
@@ -137,10 +138,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time
         
+        self.task_manager.set_expired_tasks()
+        
         if not self.tasks_loaded:
             self.update_task_display()
-        
-        self.task_manager.set_expired_tasks()
     
     def check_for_edit_delete(self) -> None:
         """

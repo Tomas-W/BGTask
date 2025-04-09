@@ -12,8 +12,9 @@ from src.widgets.containers import StartContainer, BaseLayout
 from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
                                            TimeLabel, TaskLabel)
 from src.widgets.labels import PartitionHeader
+from src.managers.tasks.task_manager_utils import Task
 
-from src.utils.platform import device_is_android
+from src.utils.platform import device_is_android, get_storage_path
 
 from src.settings import DIR, PATH, SCREEN, STATE
 
@@ -87,7 +88,8 @@ class StartScreen(Screen):
         for task in self.first_task_data:
             task_container = TaskContainer()
 
-            time = task["timestamp"].strftime("%H:%M")
+            from src.managers.tasks.task_manager_utils import Task
+            time = Task.to_time_str(task["timestamp"])
             start_time_label = TimeLabel(text=time)
             task_container.add_widget(start_time_label)
 
@@ -104,43 +106,114 @@ class StartScreen(Screen):
             
             task_container.add_widget(task_message)
             self.tasks_container.add_widget(task_container)
+
         end_time = time_.time()
         logger.error(f"_load_current_tasks_widgets time: {end_time - start_time}")
+    
+    def get_header_text(self, task_date: datetime) -> str:
+        """
+        Returns the header text for the start screen.
+        """
+        today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        month_day = task_date.strftime("%B %d")
+        if task_date == today:
+            formatted_date = f"Today, {month_day}"
+        elif task_date == tomorrow:
+            formatted_date = f"Tomorrow, {month_day}"
+        else:
+            formatted_date = task_date.strftime("%A, %B %d, %Y")
+        
+        return formatted_date
 
     def _get_current_task_data(self) -> list[dict]:
         """
-        Gets the current task data from the first_task file.
-        Dates are formatted to show "Today, Month DD" or "Tomorrow, Month DD" when applicable.
+        Gets the current task data to display on the StartScreen.
+        Priority order:
+        1. Today's tasks
+        2. The earliest future tasks if no today's tasks exist
+        3. Empty list if no future tasks exist
         """
         try:
+            today = datetime.now().date()
+            today_key = today.isoformat()
+            
             if hasattr(self, "task_manager"):
-                self.first_task_data = self.task_manager.first_task
+                task_data = []
+                
+                # Get all date keys and sort them chronologically
+                date_keys = sorted(self.task_manager.tasks_by_date.keys())
+                
+                if not date_keys:
+                    return []
+                
+                # Find today or the earliest future date
+                target_date_key = None
+                
+                # First check for today's tasks
+                if today_key in date_keys and self.task_manager.tasks_by_date[today_key]:
+                    target_date_key = today_key
+                else:
+                    # Find the earliest future date
+                    future_dates = [dk for dk in date_keys if dk >= today_key]
+                    if future_dates:
+                        target_date_key = min(future_dates)
+                
+                # If we found a suitable date, get its tasks
+                if target_date_key:
+                    tasks = self.task_manager.tasks_by_date[target_date_key]
+                    task_data = [task.to_dict() for task in sorted(tasks, key=lambda t: t.timestamp)]
             
-            elif os.path.exists(PATH.FIRST_TASK):
-                with open(PATH.FIRST_TASK, "r") as f:
-                    task_data = json.load(f)
-                    
             else:
-                return []
-            
+                # No task manager available, try to read from file
+                task_file_path = get_storage_path(PATH.TASK_FILE)
+                task_data = []
+                
+                if os.path.exists(task_file_path):
+                    with open(task_file_path, "r") as f:
+                        data = json.load(f)
+                        
+                        # Handle date-grouped format
+                        if isinstance(data, dict):
+                            # Get all date keys and sort them chronologically
+                            date_keys = sorted(data.keys())
+                            
+                            if not date_keys:
+                                return []
+                            
+                            # Find today or the earliest future date
+                            target_date_key = None
+                            
+                            # First check for today's tasks
+                            if today_key in date_keys and data[today_key]:
+                                target_date_key = today_key
+                            else:
+                                # Find the earliest future date
+                                future_dates = [dk for dk in date_keys if dk >= today_key]
+                                if future_dates:
+                                    target_date_key = min(future_dates)
+                            
+                            # If we found a suitable date, get its tasks
+                            if target_date_key:
+                                for task_json in data[target_date_key]:
+                                    task = Task.to_class(task_json)
+                                    task_data.append(task.to_dict())
+                
             if not task_data:
                 return []
             
-            today = datetime.now().date()
-            tomorrow = today + timedelta(days=1)            
+            # Process timestamps in task data
             for task in task_data:
-                task_timestamp = datetime.fromisoformat(task["timestamp"])
-                task_date = task_timestamp.date()
-                task["timestamp"] = task_timestamp
-                task["date"] = task_date
-                
-                month_day = task_date.strftime("%B %d")
-                if task_date == today:
-                    task["formatted_date"] = f"Today, {month_day}"
-                elif task_date == tomorrow:
-                    task["formatted_date"] = f"Tomorrow, {month_day}"
+                if isinstance(task["timestamp"], str):
+                    task_timestamp = datetime.fromisoformat(task["timestamp"])
+                    task["timestamp"] = task_timestamp
+                    task["date"] = task_timestamp.date()
                 else:
-                    task["formatted_date"] = task_date.strftime("%A, %B %d, %Y")
+                    task["date"] = task["timestamp"].date()
+            
+            # Sort tasks by time
+            task_data.sort(key=lambda t: t["timestamp"])
             
             return task_data
             
@@ -183,8 +256,15 @@ class StartScreen(Screen):
         
         self.first_task_data = self._get_current_task_data()
         if self.first_task_data:
-            self.day_header.text = self.first_task_data[0]["formatted_date"]
+            # Get the date from the first task to display in the header
+            first_date = self.first_task_data[0]["date"]
+            header_text = self.get_header_text(first_date)
+            self.day_header.text = header_text
             self._load_current_tasks_widgets()
+        else:
+            # No tasks to display
+            self.day_header.text = "No upcoming tasks"
+            self.tasks_container.clear_widgets()
     
     def on_enter(self) -> None:
         """

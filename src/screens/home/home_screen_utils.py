@@ -34,8 +34,8 @@ class HomeScreenUtils:
         used_cache_keys = set()
         self.tasks_by_dates = []
         
-        # Process task groups
-        for group in self.task_manager.get_tasks_by_dates():
+        # Process task groups from the sorted tasks provided by task_manager
+        for group in self.task_manager.get_sorted_tasks():
             date_str = group["date"]
             tasks = group["tasks"]
             
@@ -111,10 +111,8 @@ class HomeScreenUtils:
         task_time = task.get_time_str()
         for task_container in task_group.tasks_container.children:
             for child in task_container.children:
-
                 if isinstance(child, TimeContainer):
                     for time_component in child.children:
-                        # Confirm time entry & save the Task's container
                         if isinstance(time_component, TimeLabel):
                             if time_component.text == task_time:
                                 self.time_label_widget = time_component

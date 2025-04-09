@@ -28,8 +28,6 @@ class Paths(Directories):
     VIBRATE_IMG = os.path.join(Directories.IMG, "vibrate_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
-    FIRST_TASK = os.path.join(Directories.ASSETS, "first_task.json")
-
 
 
 class Colors:

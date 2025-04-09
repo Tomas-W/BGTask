@@ -20,25 +20,9 @@ def device_is_windows():
 def get_storage_path(directory):
     """Returns the app-specific storage path for the given directory."""
     if device_is_android():
-        try:
-            from android.storage import app_storage_path  # type: ignore
-            return os.path.join(app_storage_path(), directory)
-        
-        except ImportError:
-            logger.error("Android storage module not available.")
-            return os.path.join(os.path.expanduser("~"), directory)
+        return os.path.join(os.environ['ANDROID_PRIVATE'], directory)
     else:
         return os.path.join(directory)
-
-
-def get_alarms_dir():
-    """Get the directory path where the alarms are stored."""
-    return get_storage_path(DIR.ALARMS)
-    
-
-def get_recordings_dir():
-    """Get the directory path where the recordings are stored."""
-    return get_storage_path(DIR.RECORDINGS)
 
 
 def validate_dir(dir_path):

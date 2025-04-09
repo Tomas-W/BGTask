@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from datetime import datetime
@@ -17,17 +18,32 @@ class Task:
         self.alarm_name = alarm_name
         self.vibrate = vibrate
         self.expired = expired
-
-        # logger.debug(f"Created Task: {self.task_id}"
-        #              f"\n\tTimestamp: {self.get_time_str()}"
-        #              f"\n\tMessage: {self.message[:10]}.."
-        #              f"\n\tAlarm Name: {self.alarm_name}"
-        #              f"\n\tVibrate: {self.vibrate}"
-        #              f"\n\tExpired: {self.expired}"
-        #              )
     
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
+        return {
+            "task_id": self.task_id,
+            "timestamp": self.timestamp if type(self.timestamp) == datetime else datetime.fromisoformat(self.timestamp),
+            "message": self.message,
+            "alarm_name": self.alarm_name,
+            "vibrate": self.vibrate,
+            "expired": self.expired
+        }
+    
+    @classmethod
+    def to_class(cls, data: dict) -> "Task":
+        """Convert dictionary to Task class."""
+        return Task(
+            task_id=data["task_id"],
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+            message=data["message"],
+            alarm_name=data["alarm_name"],
+            vibrate=data["vibrate"],
+            expired=data["expired"]
+        )
+
+    def to_json(self) -> dict:
+        """Convert Task to JSON dict."""
         return {
             "task_id": self.task_id,
             "timestamp": self.timestamp.isoformat(),
@@ -36,19 +52,17 @@ class Task:
             "vibrate": self.vibrate,
             "expired": self.expired
         }
+
+    @staticmethod
+    def to_date_str(timestamp: datetime) -> str:
+        """Get formatted date string [Day DD Month]."""
+        return timestamp.strftime("%A %d %b")
     
-    @classmethod
-    def from_dict(cls, data: dict) -> "Task":
-        """Create Task from dictionary."""
-        return cls(
-            task_id=data.get("task_id"),
-            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now().strftime("%H:%M"))),
-            message=data.get("message", "Error loading task data"),
-            alarm_name=data.get("alarm_name", None),
-            vibrate=data.get("vibrate", False),
-            expired=data.get("expired", False)
-        )
-    
+    @staticmethod
+    def to_time_str(timestamp: datetime) -> str:
+        """Get formatted time string [HH:MM]."""
+        return timestamp.strftime("%H:%M")
+
     def get_date_str(self) -> str:
         """Get formatted date string [Day DD Month]."""
         return self.timestamp.strftime("%A %d %b")
@@ -56,3 +70,17 @@ class Task:
     def get_time_str(self) -> str:
         """Get formatted time string [HH:MM]."""
         return self.timestamp.strftime("%H:%M")
+    
+    def get_date_key(self) -> str:
+        """
+        Get a standardized date string to use as a key for date grouping.
+        Format: YYYY-MM-DD
+        """
+        return self.timestamp.date().isoformat()
+    
+    @staticmethod
+    def date_from_key(date_key: str) -> datetime:
+        """
+        Convert a date key back to a datetime object.
+        """
+        return datetime.fromisoformat(date_key)

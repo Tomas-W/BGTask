@@ -3,10 +3,10 @@ import os
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
-from src.utils.platform import (device_is_android, device_is_windows, get_alarms_dir,
-                                get_recordings_dir, validate_dir)
+from src.utils.platform import (device_is_android, device_is_windows,
+                                get_storage_path, validate_dir)
 
-from src.settings import EXT
+from src.settings import EXT, DIR
 
 # Load AudioPlayer based on platform
 from src.utils.platform import device_is_android, device_is_windows
@@ -44,12 +44,12 @@ class AudioManager(AudioManagerUtils):
             raise RuntimeError("Platform not supported")
         
         # Recordings
-        self.recordings_dir: str = get_recordings_dir()
+        self.recordings_dir: str = get_storage_path(DIR.RECORDINGS)
         validate_dir(self.recordings_dir)
         self.is_recording: bool = False
 
         # Alarms
-        self.alarms_dir: str = get_alarms_dir()
+        self.alarms_dir: str = get_storage_path(DIR.ALARMS)
         validate_dir(self.alarms_dir)
         self.alarms: dict[str, str] = {}
         self.load_alarms()
