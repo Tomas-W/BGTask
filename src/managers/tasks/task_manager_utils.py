@@ -1,5 +1,6 @@
 import json
 import uuid
+from functools import lru_cache
 
 from datetime import datetime
 
@@ -21,9 +22,10 @@ class Task:
     
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
+        timestamp = self.timestamp if type(self.timestamp) == datetime else datetime.fromisoformat(self.timestamp)
         return {
             "task_id": self.task_id,
-            "timestamp": self.timestamp if type(self.timestamp) == datetime else datetime.fromisoformat(self.timestamp),
+            "timestamp": timestamp,
             "message": self.message,
             "alarm_name": self.alarm_name,
             "vibrate": self.vibrate,
@@ -54,6 +56,7 @@ class Task:
         }
 
     @staticmethod
+    @lru_cache(maxsize=32)
     def to_date_str(timestamp: datetime) -> str:
         """Get formatted date string [Day DD Month]."""
         return timestamp.strftime("%A %d %b")
@@ -63,24 +66,18 @@ class Task:
         """Get formatted time string [HH:MM]."""
         return timestamp.strftime("%H:%M")
 
+    @lru_cache(maxsize=32)
     def get_date_str(self) -> str:
         """Get formatted date string [Day DD Month]."""
-        return self.timestamp.strftime("%A %d %b")
+        return Task.to_date_str(self.timestamp)
     
     def get_time_str(self) -> str:
         """Get formatted time string [HH:MM]."""
-        return self.timestamp.strftime("%H:%M")
+        return Task.to_time_str(self.timestamp)
     
     def get_date_key(self) -> str:
         """
-        Get a standardized date string to use as a key for date grouping.
+        Used by TaskManager to group Tasks by date and save to JSON as key.
         Format: YYYY-MM-DD
         """
         return self.timestamp.date().isoformat()
-    
-    @staticmethod
-    def date_from_key(date_key: str) -> datetime:
-        """
-        Convert a date key back to a datetime object.
-        """
-        return datetime.fromisoformat(date_key)

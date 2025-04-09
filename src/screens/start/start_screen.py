@@ -1,5 +1,6 @@
 import json
 import os
+from functools import lru_cache
 
 from datetime import datetime, timedelta
 
@@ -14,7 +15,7 @@ from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupC
 from src.widgets.labels import PartitionHeader
 from src.managers.tasks.task_manager_utils import Task
 
-from src.utils.misc import device_is_android, get_storage_path
+from src.utils.misc import device_is_android, get_storage_path, get_task_header_text
 
 from src.settings import DIR, PATH, SCREEN, STATE
 
@@ -37,7 +38,7 @@ class StartScreen(Screen):
         self.start_screen_loaded: bool = False
         self.home_screen_ready: bool = False
 
-        self.first_task_data: list[dict] = []
+        self.current_task_data: list[dict] = []
         self.task_date: str = ""
 
         self.root_layout = FloatLayout()
@@ -85,7 +86,7 @@ class StartScreen(Screen):
         """
         start_time = time_.time()
         self.tasks_container.clear_widgets()
-        for task in self.first_task_data:
+        for task in self.current_task_data:
             task_container = TaskContainer()
 
             from src.managers.tasks.task_manager_utils import Task
@@ -109,23 +110,6 @@ class StartScreen(Screen):
 
         end_time = time_.time()
         logger.error(f"_load_current_tasks_widgets time: {end_time - start_time}")
-    
-    def get_header_text(self, task_date: datetime) -> str:
-        """
-        Returns the header text for the start screen.
-        """
-        today = datetime.now().date()
-        tomorrow = today + timedelta(days=1)
-
-        month_day = task_date.strftime("%B %d")
-        if task_date == today:
-            formatted_date = f"Today, {month_day}"
-        elif task_date == tomorrow:
-            formatted_date = f"Tomorrow, {month_day}"
-        else:
-            formatted_date = task_date.strftime("%A, %B %d, %Y")
-        
-        return formatted_date
 
     def _get_current_task_data(self) -> list[dict]:
         """
@@ -141,16 +125,13 @@ class StartScreen(Screen):
             
             if hasattr(self, "task_manager"):
                 task_data = []
-                
                 # Get all date keys and sort them chronologically
                 date_keys = sorted(self.task_manager.tasks_by_date.keys())
-                
                 if not date_keys:
                     return []
                 
                 # Find today or the earliest future date
-                target_date_key = None
-                
+                target_date_key = None                
                 # First check for today's tasks
                 if today_key in date_keys and self.task_manager.tasks_by_date[today_key]:
                     target_date_key = today_key
@@ -173,32 +154,27 @@ class StartScreen(Screen):
                 if os.path.exists(task_file_path):
                     with open(task_file_path, "r") as f:
                         data = json.load(f)
+                        # Get all date keys and sort them chronologically
+                        date_keys = sorted(data.keys())
+                        if not date_keys:
+                            return []
                         
-                        # Handle date-grouped format
-                        if isinstance(data, dict):
-                            # Get all date keys and sort them chronologically
-                            date_keys = sorted(data.keys())
-                            
-                            if not date_keys:
-                                return []
-                            
-                            # Find today or the earliest future date
-                            target_date_key = None
-                            
-                            # First check for today's tasks
-                            if today_key in date_keys and data[today_key]:
-                                target_date_key = today_key
-                            else:
-                                # Find the earliest future date
-                                future_dates = [dk for dk in date_keys if dk >= today_key]
-                                if future_dates:
-                                    target_date_key = min(future_dates)
-                            
-                            # If we found a suitable date, get its tasks
-                            if target_date_key:
-                                for task_json in data[target_date_key]:
-                                    task = Task.to_class(task_json)
-                                    task_data.append(task.to_dict())
+                        # Find today or the earliest future date
+                        target_date_key = None
+                        # First check for today's tasks
+                        if today_key in date_keys and data[today_key]:
+                            target_date_key = today_key
+                        else:
+                            # Find the earliest future date
+                            future_dates = [dk for dk in date_keys if dk >= today_key]
+                            if future_dates:
+                                target_date_key = min(future_dates)
+                        
+                        # If we found a suitable date, get its tasks
+                        if target_date_key:
+                            for task_json in data[target_date_key]:
+                                task = Task.to_class(task_json)
+                                task_data.append(task.to_dict())
                 
             if not task_data:
                 return []
@@ -254,11 +230,11 @@ class StartScreen(Screen):
         if not self.start_screen_loaded:
             self._build_page()
         
-        self.first_task_data = self._get_current_task_data()
-        if self.first_task_data:
+        self.current_task_data = self._get_current_task_data()
+        if self.current_task_data:
             # Get the date from the first task to display in the header
-            first_date = self.first_task_data[0]["date"]
-            header_text = self.get_header_text(first_date)
+            first_date = self.current_task_data[0]["date"]
+            header_text = get_task_header_text(first_date)
             self.day_header.text = header_text
             self._load_current_tasks_widgets()
         else:

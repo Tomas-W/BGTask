@@ -103,34 +103,21 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         if not self.find_task(instance, task):
             logger.error(f"No task found - cannot scroll to it")
             return
-
-        # If both the header and message are already visible, just highlight the message
-        if (self.task_header_widget is not None and 
-            self.task_message_widget is not None and
-            is_widget_visible(self.task_message_widget, self.scroll_container.scroll_view)):
-            # Task is already visible, just highlight it
-            selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.1)
-            Clock.schedule_once(lambda dt: selected_task.set_active(False), 3.2)
-            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 3.3)
-            return
-
-        # If not visible, proceed with original scrolling logic
-        # Start at the bottom
-        self.scroll_container.scroll_view.scroll_y = 0.0
+        
+        self.scroll_container.scroll_view.scroll_y = 1.0
 
         # Scroll up to Task header
         if self.task_header_widget is not None:
             selected_task_header = self.task_header_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.1)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.2)
 
         # Scroll down to task message if not yet in screen
         if self.task_message_widget is not None:
             selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.15)
-            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.4)
-            Clock.schedule_once(lambda dt: selected_task.set_active(False), 3.5)
-            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 3.6)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.25)
+            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.3)
+            Clock.schedule_once(lambda dt: selected_task.set_active(False), 4)
+            Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 4.1)
 
     def on_enter(self) -> None:
         super().on_enter()

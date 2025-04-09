@@ -1,9 +1,10 @@
-from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.image import Image
+from kivy.clock import Clock
+from src.utils.misc import get_task_header_text
 
 from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH
 
@@ -39,18 +40,8 @@ class TasksByDate(BoxLayout):
         self.all_expired = False  # Track if all tasks are expired
         self.date_str = date_str
 
-        from datetime import datetime, timedelta
-        date_parts = self.date_str.split()
-        day = int(date_parts[1])
-        month = date_parts[2]
-        current_year = datetime.now().year
-        date = datetime.strptime(f"{day} {month} {current_year}", "%d %b %Y").date()
-        if date == datetime.now().date():
-            self.date_str = f"Today, {date.strftime('%B %d')}"
-        elif date == datetime.now().date() - timedelta(days=1):
-            self.date_str = f"Yesterday, {date.strftime('%B %d')}"
-        elif date == datetime.now().date() + timedelta(days=1):
-            self.date_str = f"Tomorrow, {date.strftime('%B %d')}"
+        # Format date string using cached function
+        self.date_str = get_task_header_text(date_str)
 
         day_header = TaskHeader(text=self.date_str)
         self.add_widget(day_header)
@@ -166,8 +157,9 @@ class TaskGroupContainer(BoxLayout):
             self.bind(pos=self._update_bg, size=self._update_bg)
 
     def _update_bg(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+        self.bg_rect.pos = self.pos
+        self.bg_rect.size = self.size
+
         
     def set_expired(self, expired=True):
         """Set the container's background color based on expired state"""
@@ -234,7 +226,6 @@ class TimeContainer(BoxLayout):
             orientation="horizontal",
             size_hint=(1, None),
             height=FONT.DEFAULT,
-            # padding=[SPACE.FIELD_PADDING_X, 0, SPACE.FIELD_PADDING_X, 0],
             **kwargs,
         )
 
@@ -259,33 +250,11 @@ class TimeLabel(Label):
         self.texture_update()
         self.width = self.texture_size[0]
         self.bind(text=self._update_width)
-
-        with self.canvas.before:
-            self.bg_color = Color(*COL.OPAQUE)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos,
-                size=self.size,
-                radius=[STYLE.RADIUS_S]
-            )
-        self.bind(pos=self._update_bg, size=self._update_bg)
     
     def _update_width(self, instance, value):
         """Update width when text changes"""
         self.texture_update()
         self.width = self.texture_size[0]
-    
-    def _update_bg(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
-    
-    def set_active(self, active=True):
-        """Set the background color based on active state"""
-        if active:
-            self.bg_color.rgba = COL.FIELD_ACTIVE
-        else:
-            self.bg_color.rgba = COL.OPAQUE
-
-
 
 class TaskIconContainer(BoxLayout):
     """

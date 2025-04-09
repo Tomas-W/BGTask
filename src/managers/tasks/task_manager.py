@@ -1,6 +1,7 @@
 import json
 
 from datetime import datetime
+from functools import lru_cache
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -17,9 +18,7 @@ from src.settings import PATH, SCREEN
 
 class TaskManager(EventDispatcher):
     """
-    Manages Tasks and their storage using JSON files.
-    Maintains two files:
-    - tasks.json: Stores all Tasks grouped by date.
+    Manages Tasks and their storage using JSON.
     """
     def __init__(self):
         super().__init__()
@@ -47,7 +46,7 @@ class TaskManager(EventDispatcher):
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]]:
         """
-        Load Tasks from file, grouped by date.
+        Load all Tasks from file, grouped by date.
         """
         try:
             with open(self.task_file, "r") as f:
@@ -70,41 +69,12 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error initializing tasks: {e}")
             return {}
-
-    def _get_first_task_date(self) -> datetime:
-        """
-        Returns the date of the first active Task.
-        Priority:
-        1. Today's date if there are Tasks for today
-        2. The earliest future date with Tasks
-        3. Today's date if no Tasks exist
-        """
-        if not self.tasks_by_date:
-            return datetime.now().date()
-        
-        today = datetime.now().date()
-        today_key = today.isoformat()
-        
-        # Check today's Tasks
-        if today_key in self.tasks_by_date and self.tasks_by_date[today_key]:
-            return today
-        
-        # Sort all dates
-        sorted_date_keys = sorted(self.tasks_by_date.keys())
-        
-        # Find first future date
-        for date_key in sorted_date_keys:
-            date = datetime.fromisoformat(date_key).date()
-            if date >= today:
-                return date
-        
-        # Fallback to today
-        return today
     
     def get_sorted_tasks(self) -> list[dict]:
         """
-        Returns a list of Tasks sorted by date [earliest first].
-        Used by StartScreen to display all active Tasks.
+        Returns a list of all Tasks sorted by date [earliest first].
+        Used by HomeScreen's update_task_display to display all active Tasks.
+        Only called on Task add/edit/delete.
         """
         result = []
         
@@ -127,10 +97,15 @@ class TaskManager(EventDispatcher):
         
         # Sort the whole result by earliest date
         result.sort(key=lambda x: x["tasks"][0].timestamp if x["tasks"] else datetime.max)
+        
         return result
 
     def _save_tasks_to_json(self, modified_task: Task = None) -> bool:
-        """Saves all Tasks to the PATH.TASK_FILE file, grouped by date."""
+        """
+        Saves all Tasks to the PATH.TASK_FILE file, grouped by date.
+        Called by save_all_tasks with a delay.
+        Only called on Task add/edit/delet.
+        """
         try:
             tasks_json = {}
             
@@ -146,9 +121,16 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error saving tasks to file: {e}")
             return False
     
+    def save_tasks_to_json(self):
+        """
+        Save all Tasks to the PATH.TASK_FILE file, grouped by date.
+        Called by add_task, update_task, and delete_task with a delay.
+        """
+        Clock.schedule_once(self._save_tasks_to_json, 0.2)
+    
     def add_task(self, message: str, timestamp: datetime,
                  alarm_name: str, vibrate: bool) -> None:
-        """Add a new Task to storage and tasks list."""
+        """Add a new Task to file and memory."""
         task = Task(message=message, timestamp=timestamp,
                     alarm_name=alarm_name, vibrate=vibrate)
         
@@ -158,9 +140,7 @@ class TaskManager(EventDispatcher):
             self.tasks_by_date[date_key] = []
         
         self.tasks_by_date[date_key].append(task)
-
-        # Save to file
-        self._save_tasks_to_json()
+        self.save_tasks_to_json()
 
         # Notify UI to update
         self.dispatch("on_tasks_changed")
@@ -169,8 +149,8 @@ class TaskManager(EventDispatcher):
     
     def edit_task(self, task_id: str) -> None:
         """
-        Edit an existing task by ID.
-        Copy Task data to NewTaskScreen and navigate to it.
+        Copy Task data to NewTaskScreen and navigate to it,
+         so user can edit the Task.
         """
         task = self.get_task_by_id(task_id)
         if not task:
@@ -213,8 +193,7 @@ class TaskManager(EventDispatcher):
                 self.tasks_by_date[new_date_key] = []
             self.tasks_by_date[new_date_key].append(task)
 
-        # Save to file
-        self._save_tasks_to_json()
+        self.save_tasks_to_json()
 
         logger.debug(f"Updated task: {task_id}")
         self.dispatch("on_tasks_changed")
@@ -237,8 +216,7 @@ class TaskManager(EventDispatcher):
             if not self.tasks_by_date[date_key]:
                 del self.tasks_by_date[date_key]
         
-        # Save to file
-        self._save_tasks_to_json()
+        self.save_tasks_to_json()
 
         logger.debug(f"Deleted task: {task_id}")
         # Notify to update task display
@@ -249,7 +227,6 @@ class TaskManager(EventDispatcher):
         now = datetime.now()
         changed = False
         
-        # Check all tasks in all date groups
         for date_key, tasks in self.tasks_by_date.items():
             for task in tasks:
                 if task.timestamp < now and not task.expired:
@@ -258,6 +235,7 @@ class TaskManager(EventDispatcher):
         
         if changed:
             self.dispatch("on_tasks_changed")
+            self.save_tasks_to_json()
     
     def get_task_by_id(self, task_id: str) -> Task:
         """Get a Task by its ID."""

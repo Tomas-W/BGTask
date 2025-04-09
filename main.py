@@ -17,6 +17,7 @@ if platform != PLATFORM.ANDROID:
 
 # TaskManager
 # TODO: Expired check only today
+# TODO: Check every minute for expired tasks and update Task
 
 
 # StartScreen
@@ -230,7 +231,7 @@ class TaskApp(App):
         Backup the database to ensure data is persisted.
         """
         if hasattr(self, 'task_manager'):
-            self.task_manager.save_all_tasks()
+            self.task_manager.save_tasks_to_json()
                 
         return True
     
