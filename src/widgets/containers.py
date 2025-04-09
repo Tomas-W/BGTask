@@ -185,6 +185,10 @@ class ScrollContainer(BoxLayout):
         # Store the current position for the next comparison
         self.last_pixels_scrolled = pixels_scrolled
         
+        # Skip visibility changes during active touch events to prevent scroll jumping
+        if self.scroll_view._touch is not None:
+            return
+        
         # Show bottom bar when scrolled beyond threshold
         if pixels_scrolled > self.scroll_threshold_pixels and not self.parent_screen.bottom_bar.visible:
             # Instead of animating directly, just update the visible flag

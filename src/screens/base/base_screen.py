@@ -29,6 +29,7 @@ class BaseScreen(Screen):
         self.top_bar_is_expanded = False  # TopBar or TopBarExpanded
         self.initial_scroll = True        # Prevent BottomBar untill user scrolls
         self.animating_spacer = False     # If spacer is animating
+        self.pending_bar_check = None     # Timer for debounced bottom bar visibility
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -85,6 +86,11 @@ class BaseScreen(Screen):
     def reset_bottom_bar_state(self):
         """Hide the BottomBar and Spacer."""
         if self.bottom_bar is not None:
+            # Cancel any pending animations or checks
+            if self.pending_bar_check:
+                Clock.unschedule(self.pending_bar_check)
+                self.pending_bar_check = None
+            
             self.bottom_bar.opacity = 0
             self.bottom_bar.pos_hint = {"center_x": 0.5, "y": -0.15}
             self.bottom_bar.visible = False
@@ -99,6 +105,21 @@ class BaseScreen(Screen):
         This is called when the scroll position changes or when bar visibility state changes.
         Synchronizes spacer animation with bottom bar animation if conditions are met.
         """
+        # Prevent bottom bar from showing before users first scroll
+        if self.initial_scroll:
+            return
+        
+        # Cancel any pending check to avoid rapid changes when user keeps scrolling
+        if self.pending_bar_check:
+            Clock.unschedule(self.pending_bar_check)
+        
+        # Schedule a new check with a small delay to debounce rapid scrolling
+        self.pending_bar_check = Clock.schedule_once(self._do_check_bottom_bar_state, 0.1)
+
+    def _do_check_bottom_bar_state(self, *args) -> None:
+        """Actual implementation of the bottom bar check after debouncing"""
+        self.pending_bar_check = None
+        
         # Prevent bottom bar from showing before users first scroll
         if self.initial_scroll:
             return
