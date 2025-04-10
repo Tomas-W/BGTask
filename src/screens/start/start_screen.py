@@ -11,15 +11,19 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 from src.widgets.buttons import CustomConfirmButton
 
+from src.managers.device_manager import DM
+from src.managers.tasks.task_manager_utils import Task
+
+from .start_screen_utils import take_screenshot
+
 from src.widgets.containers import StartContainer, BaseLayout
 from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
                                            TimeContainer, TimeLabel, TaskLabel, TaskIcon)
 from src.widgets.labels import PartitionHeader
-from src.managers.tasks.task_manager_utils import Task
 
-from src.utils.misc import device_is_android, get_storage_path, get_task_header_text
+from src.utils.misc import get_task_header_text
 
-from src.settings import DIR, PATH, SCREEN, STATE, LOADED
+from src.settings import PATH, SCREEN, STATE, LOADED
 
 
 from src.utils.logger import logger
@@ -43,7 +47,7 @@ class StartScreen(Screen):
 
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
-        
+
         # Layout
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -70,7 +74,7 @@ class StartScreen(Screen):
         # Screenshot button
         self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
                                                      color_state=STATE.ACTIVE)
-        self.screenshot_button.bind(on_release=self.take_screenshot)
+        self.screenshot_button.bind(on_release=self._take_screenshot)
         # Add to container
         self.start_container.container.add_widget(self.screenshot_button)
 
@@ -83,6 +87,60 @@ class StartScreen(Screen):
 
         end_time = time_.time()
         logger.error(f"StartScreen __INIT__ TIME: {end_time - start_time:.4f}")
+    
+    def _init_current_task_data(self) -> list[dict]:
+        """Loads initial Task data from file when task_manager is not yet available."""
+        start_time = time_.time()
+
+        task_file_path = DM.get_storage_path(PATH.TASK_FILE)
+        if not os.path.exists(task_file_path):
+            logger.error("Task file does not exist.")
+            return []
+
+        with open(task_file_path, "r") as f:
+            data = json.load(f)
+            date_keys = sorted(data.keys())
+            if not date_keys:
+                return []
+        
+        task_data = []
+        today = datetime.now().date()
+        today_key = today.isoformat()
+
+        # Get todays Tasks
+        target_date_key = None
+        if today_key in date_keys and data[today_key]:
+            target_date_key = today_key
+        else:
+            # If no todays Tasks, get the earliest future date
+            future_dates = [dk for dk in date_keys if dk >= today_key]
+            target_date_key = min(future_dates)
+
+        # Create Task objects and add to list
+        for task_json in data[target_date_key]:
+            task = Task.to_class(task_json)
+            task_data.append(task.to_dict())
+
+        # Set the header text
+        if task_data:
+            task_date = Task.to_date_str(task_data[0]["timestamp"])
+            header_text = get_task_header_text(task_date)
+            self.day_header.text = header_text
+
+        logger.error(f"HomeScreen _INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
+        return task_data
+    
+    def _get_current_task_data(self) -> list[dict]:
+        """
+        Gets the current task data from the TaskManager to display on the StartScreen.
+        Uses sorted_active_tasks to get the earliest TaskGroup [current].
+        """
+        earliest_task_group = self.task_manager.sorted_active_tasks[0]
+        if earliest_task_group and "tasks" in earliest_task_group:
+            self.task_date = earliest_task_group["date"]
+            return [task.to_dict() for task in earliest_task_group["tasks"]]
+        
+        return []
     
     def _load_current_tasks_widgets(self) -> None:
         """
@@ -130,60 +188,6 @@ class StartScreen(Screen):
         
         end_time = time_.time()
         logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
-    
-    def _get_current_task_data(self) -> list[dict]:
-        """
-        Gets the current task data from the TaskManager to display on the StartScreen.
-        Uses sorted_active_tasks to get the earliest TaskGroup [current].
-        """
-        earliest_task_group = self.task_manager.sorted_active_tasks[0]
-        if earliest_task_group and "tasks" in earliest_task_group:
-            self.task_date = earliest_task_group["date"]
-            return [task.to_dict() for task in earliest_task_group["tasks"]]
-        
-        return []
-
-    def _init_current_task_data(self) -> list[dict]:
-        """Loads initial Task data from file when task_manager is not yet available."""
-        start_time = time_.time()
-
-        task_file_path = get_storage_path(PATH.TASK_FILE)
-        if not os.path.exists(task_file_path):
-            logger.error("Task file does not exist.")
-            return []
-
-        with open(task_file_path, "r") as f:
-            data = json.load(f)
-            date_keys = sorted(data.keys())
-            if not date_keys:
-                return []
-        
-        task_data = []
-        today = datetime.now().date()
-        today_key = today.isoformat()
-
-        # Get todays Tasks
-        target_date_key = None
-        if today_key in date_keys and data[today_key]:
-            target_date_key = today_key
-        else:
-            # If no todays Tasks, get the earliest future date
-            future_dates = [dk for dk in date_keys if dk >= today_key]
-            target_date_key = min(future_dates)
-
-        # Create Task objects and add to list
-        for task_json in data[target_date_key]:
-            task = Task.to_class(task_json)
-            task_data.append(task.to_dict())
-
-        # Set the header text
-        if task_data:
-            task_date = Task.to_date_str(task_data[0]["timestamp"])
-            header_text = get_task_header_text(task_date)
-            self.day_header.text = header_text
-
-        logger.error(f"HomeScreen _INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
-        return task_data
     
     @property
     def is_completed(self) -> bool:
@@ -250,69 +254,5 @@ class StartScreen(Screen):
         
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction)
 
-    def take_screenshot(self, *args) -> None:
-        start_time = time_.time()
-        try:
-            import os            
-            if device_is_android():
-                try:
-                    from android.permissions import request_permissions, Permission, check_permission  # type: ignore
-                    if not check_permission(Permission.SET_WALLPAPER):
-                        request_permissions([Permission.SET_WALLPAPER])
-
-                except Exception as e:
-                    logger.error(f"Error requesting permissions: {str(e)}")
-                    return
-            
-            # Hide widgets from screenshot
-            self.screen_header.opacity = 0
-            self.screenshot_button.opacity = 0
-            # Take screenshot
-            texture = self.root_layout.export_as_image()
-            # Restore visibility
-            self.screen_header.opacity = 1
-            self.screenshot_button.opacity = 1
-            
-            if device_is_android():
-                start_time = time_.time()
-                from android.storage import app_storage_path  # type: ignore
-                screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")
-            else:
-                screenshot_path = os.path.join(DIR.IMG, "bgtask_screenshot.png")
-                        
-            # Save texture
-            texture.save(screenshot_path)
-            logger.debug(f"take_screenshot time: {time_.time() - start_time:.4f}")
-            # Set wallpaper
-            if device_is_android():
-                start_time = time_.time()
-                from jnius import autoclass  # type: ignore
-                # Get current activity and context
-                PythonActivity = autoclass('org.kivy.android.PythonActivity')
-                currentActivity = PythonActivity.mActivity
-                context = currentActivity.getApplicationContext()
-                
-                # Decode
-                File = autoclass('java.io.File')
-                BitmapFactory = autoclass('android.graphics.BitmapFactory')
-                file = File(screenshot_path)
-                bitmap = BitmapFactory.decodeFile(file.getAbsolutePath())
-                
-                if bitmap:
-                    # Get WallpaperManager and set the bitmap
-                    WallpaperManager = autoclass('android.app.WallpaperManager')
-                    manager = WallpaperManager.getInstance(context)
-                    manager.setBitmap(bitmap)
-                    logger.debug(f"set_wallpaper time: {time_.time() - start_time:.4f}")
-                else:
-                    logger.error("Failed to create bitmap from file")
-            else:
-                logger.debug("Wallpaper functionality is only available on Android.")
-            
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            logger.error(f"Error during screenshot/wallpaper process: {str(e)}")
-
-        end_time = time_.time()
-        logger.error(f"take_screenshot time: {end_time - start_time:.4f}")
+    def _take_screenshot(self, instance) -> None:
+        take_screenshot(self.root_layout, self.screen_header, self.screenshot_button)

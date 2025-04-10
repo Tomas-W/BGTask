@@ -1,0 +1,138 @@
+import os
+
+from src.utils.logger import logger
+
+from src.settings import PLATFORM
+
+
+class DeviceManager:
+    """
+    Manages device-related operations.
+    """
+    def __init__(self):
+        self.is_android = self._device_is_android()
+        self.is_windows = not self.is_android
+
+        self.has_recording_permission: bool = self.check_recording_permission()
+        self.has_wallpaper_permission: bool = self.check_wallpaper_permission()
+
+    def _device_is_android(self):
+        """Returns whether the app is running on Android."""
+        from kivy.utils import platform
+        return platform == PLATFORM.ANDROID
+    
+    def get_storage_path(self, directory):
+        """Returns the app-specific storage path for the given directory."""
+        if self.is_android:
+            return os.path.join(os.environ['ANDROID_PRIVATE'], directory)
+        else:
+            return os.path.join(directory)
+    
+    def validate_dir(self, dir_path):
+        """Validate and create a directory if it doesn't exist."""
+        if not os.path.isdir(dir_path):
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                logger.debug(f"Created directory: {dir_path}")
+
+            except PermissionError:
+                logger.error(f"Permission denied: Cannot create directory {dir_path}. Check app permissions.")
+            except FileNotFoundError:
+                logger.error(f"Invalid path: {dir_path} does not exist.")
+            except OSError as e:
+                logger.error(f"OS error while creating {dir_path}: {e}")
+    
+    def validate_file(self, file_path):
+        """Validate and create a file if it doesn't exist."""
+        if not os.path.isfile(file_path):
+            try:
+                with open(file_path, "w") as f:
+                    pass
+
+            except PermissionError:
+                logger.error(f"Permission denied: Cannot create file {file_path}. Check app permissions.")
+            except FileNotFoundError:
+                logger.error(f"Invalid path: {file_path} does not exist.")
+            except OSError as e:
+                logger.error(f"OS error while creating {file_path}: {e}")
+            
+    def check_recording_permission(self) -> bool:
+        """Returns whether Android RECORD_AUDIO permission is granted."""
+        if not self.is_android:
+            return True
+        
+        try:
+            from android.permissions import check_permission, Permission  # type: ignore
+            return check_permission(Permission.RECORD_AUDIO)
+        
+        except Exception as e:
+            logger.error(f"Unexpected error while requesting permissions: {e}")
+            return False
+    
+    def request_android_recording_permissions(self) -> None:
+        """Displays a dialog to request Android RECORD_AUDIO permissions."""
+        if not self.is_android:
+            return
+        
+        logger.debug("Requesting Android recording permissions")
+        try:
+            from android.permissions import request_permissions, Permission  # type: ignore
+            request_permissions(
+                [Permission.RECORD_AUDIO],
+                self.recording_permission_callback
+            )
+
+        except Exception as e:
+            logger.error(f"Unexpected error while requesting permissions: {e}")
+    
+    def recording_permission_callback(self, permissions: list[str], results: list[bool]) -> None:
+        """
+        Sets has_recording_permission based on the results of the permission request.
+        """
+        if all(results):
+            logger.debug(f"Permissions {permissions} granted")
+            self.has_recording_permission = True
+        else:
+            logger.debug(f"Permissions {permissions} denied")
+            self.has_recording_permission = False
+    
+    def check_wallpaper_permission(self) -> bool:
+        """Returns whether Android SET_WALLPAPER permission is granted."""
+        if not self.is_android:
+            return True
+        
+        try:
+            from android.permissions import check_permission, Permission  # type: ignore
+            return check_permission(Permission.SET_WALLPAPER)
+        
+        except Exception as e:
+            logger.error(f"Unexpected error while requesting permissions: {e}")
+            return False
+    
+    def request_android_wallpaper_permissions(self) -> None:
+        """Displays a dialog to request Android SET_WALLPAPER permissions."""
+        if not self.is_android:
+            return
+        
+        logger.debug("Requesting Android wallpaper permissions")
+        try:
+            from android.permissions import request_permissions, Permission  # type: ignore
+            request_permissions(
+                [Permission.SET_WALLPAPER],
+                self.wallpaper_permission_callback
+            )
+
+        except Exception as e:
+            logger.error(f"Unexpected error while requesting permissions: {e}")
+    
+    def wallpaper_permission_callback(self, permissions: list[str], results: list[bool]) -> None:
+        """Sets has_wallpaper_permission based on the results of the permission request."""
+        if all(results):
+            logger.debug(f"Permissions {permissions} granted")
+            self.has_wallpaper_permission = True
+        else:
+            logger.debug(f"Permissions {permissions} denied")
+            self.has_wallpaper_permission = False
+
+
+DM = DeviceManager()

@@ -3,6 +3,8 @@ import time
 
 from datetime import datetime
 
+from src.managers.device_manager import DM
+
 from src.utils.logger import logger
 
 from src.settings import EXT
@@ -14,46 +16,6 @@ class AudioManagerUtils:
     """
     def __init__(self):
         pass
-    
-    def check_recording_permission(self) -> bool:
-        """Returns whether Android RECORD_AUDIO permission is granted."""
-        if not self.is_android:
-            return True
-        
-        try:
-            from android.permissions import check_permission, Permission  # type: ignore
-            return check_permission(Permission.RECORD_AUDIO)
-        
-        except Exception as e:
-            logger.error(f"Unexpected error while requesting permissions: {e}")
-            return False
-    
-    def request_android_recording_permissions(self) -> None:
-        """Displays a dialog to request Android RECORD_AUDIO permissions."""
-        if not self.is_android:
-            return
-        
-        logger.debug("Requesting Android recording permissions")
-        try:
-            from android.permissions import request_permissions, Permission  # type: ignore
-            request_permissions(
-                [Permission.RECORD_AUDIO],
-                self.recording_permission_callback
-            )
-
-        except Exception as e:
-            logger.error(f"Unexpected error while requesting permissions: {e}")
-    
-    def recording_permission_callback(self, permissions: list[str], results: list[bool]) -> None:
-        """
-        Sets has_recording_permission based on the results of the permission request.
-        """
-        if all(results):
-            logger.debug(f"Permissions {permissions} granted")
-            self.has_recording_permission = True
-        else:
-            logger.debug(f"Permissions {permissions} denied")
-            self.has_recording_permission = False
     
     def create_recording_path(self) -> tuple[str, str]:
         """
@@ -91,7 +53,7 @@ class AudioManagerUtils:
         for attempt in range(max_attempts):
             try:
                 # Windows delay
-                if self.is_windows and attempt > 0:
+                if DM.is_windows and attempt > 0:
                     time.sleep(0.1)
                 
                 # Verify contents

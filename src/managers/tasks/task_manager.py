@@ -7,10 +7,10 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
+from src.managers.device_manager import DM
 from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.logger import logger
-from src.utils.misc import get_storage_path, validate_file
 
 
 from src.settings import PATH
@@ -31,8 +31,8 @@ class TaskManager(EventDispatcher):
         self.register_event_type("on_tasks_expired_set_date_expired")
 
         # File path
-        self.task_file_path: str = get_storage_path(PATH.TASK_FILE)
-        validate_file(self.task_file_path)
+        self.task_file_path: str = DM.get_storage_path(PATH.TASK_FILE)
+        DM.validate_file(self.task_file_path)
 
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()

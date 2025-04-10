@@ -1,10 +1,9 @@
 import os
 
+from src.managers.device_manager import DM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
 from src.utils.logger import logger
-from src.utils.misc import (device_is_android, device_is_windows,
-                                get_storage_path, validate_dir)
 
 from src.settings import EXT, DIR
 
@@ -16,30 +15,27 @@ class AudioManager(AudioManagerUtils):
     All audio players have the same interface.
     """
     def __init__(self):
-        self.is_android: bool = device_is_android()
-        self.is_windows: bool = device_is_windows()
+        super().__init__()
         
-        # Set audio player - lazy import platform-specific modules
-        if self.is_android:
+        if DM.is_android:
             from src.managers.audio.android_audio import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
 
-        elif self.is_windows:
+        elif DM.is_windows:
             from src.managers.audio.windows_audio import WindowsAudioPlayer
             self.audio_player = WindowsAudioPlayer()
 
         else:
             logger.error("No audio player loaded")
-            raise RuntimeError("Platform not supported")
         
         # Recordings
-        self.recordings_dir: str = get_storage_path(DIR.RECORDINGS)
-        validate_dir(self.recordings_dir)
+        self.recordings_dir: str = DM.get_storage_path(DIR.RECORDINGS)
+        DM.validate_dir(self.recordings_dir)
         self.is_recording: bool = False
 
         # Alarms
-        self.alarms_dir: str = get_storage_path(DIR.ALARMS)
-        validate_dir(self.alarms_dir)
+        self.alarms_dir: str = DM.get_storage_path(DIR.ALARMS)
+        DM.validate_dir(self.alarms_dir)
         self.alarms: dict[str, str] = {}
         self.load_alarms()
         self.selected_alarm_name: str | None = None
@@ -47,7 +43,7 @@ class AudioManager(AudioManagerUtils):
         
         # States
         self.is_recording: bool = False
-        self.has_recording_permission: bool = self.check_recording_permission()
+        self.has_recording_permission: bool = DM.check_recording_permission()
     
     def load_alarms(self) -> None:
         """Load all audio files from alarms and recordings directories."""
@@ -86,8 +82,8 @@ class AudioManager(AudioManagerUtils):
             return False
         
         # Check recording permissions
-        if self.is_android and not self.has_recording_permission:
-            self.request_android_recording_permissions()
+        if DM.is_android and not self.has_recording_permission:
+            DM.request_android_recording_permissions()
             return False
         
         # Try setting up recording

@@ -29,6 +29,8 @@ class Paths(Directories):
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
 
+    SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
+
 
 class Colors:
     OPAQUE = (0, 0, 0, 0)
