@@ -47,8 +47,8 @@ class TaskManager(EventDispatcher):
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """
-        Load all Tasks from file, which are grouped by date.
-        Takes a JSON file and returns a dictionary of date keys and lists of Task objects.
+        Loads all Tasks from file, which are grouped by date.
+        Returns a dictionary of date keys and lists of Task objects.
         """
         try:
             with open(self.task_file_path, "r") as f:
@@ -69,7 +69,7 @@ class TaskManager(EventDispatcher):
     
     def sort_active_tasks(self) -> None:
         """
-        Returns a list of Tasks sorted by date [earliest first].
+        Takes the tasks_by_date dictionary and returns a list of Tasks sorted by date [earliest first].
         Only includes tasks from today or future dates [active].
         Used by HomeScreen's update_task_display to display all active Tasks.
         Only called on initial load and after Task add/edit/delete.
@@ -121,7 +121,7 @@ class TaskManager(EventDispatcher):
     
     def save_tasks_to_json(self) -> None:
         """
-        Save all Tasks to the PATH.TASK_FILE file, grouped by date.
+        Saves all Tasks to the PATH.TASK_FILE file, grouped by date.
         Called by add_task, update_task, and delete_task with a delay.
         """
         Clock.schedule_once(self._save_tasks_to_json, 0.2)
@@ -129,7 +129,7 @@ class TaskManager(EventDispatcher):
     def add_task(self, message: str, timestamp: datetime,
                  alarm_name: str, vibrate: bool) -> None:
         """
-        Updates tasks_by_date, saves the Task to file,
+        Adds Task to tasks_by_date, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
         task = Task(message=message, timestamp=timestamp,
@@ -152,7 +152,7 @@ class TaskManager(EventDispatcher):
     def update_task(self, task_id: str, message: str,
                     timestamp: datetime, alarm_name: str, vibrate: bool) -> None:
         """
-        Update an existing Task by its ID.
+        Updates existing Task by its ID.
         Updates tasks_by_date, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
@@ -241,15 +241,17 @@ class TaskManager(EventDispatcher):
     def set_expired_tasks(self) -> None:
         """
         Set Tasks to be expired if their timestamp is in the past.
-        Only checks active tasks (from today or future) that are already sorted.
-        Updates appearance directly without a full rebuild.
+        Checks first active Task group and sets each Tasks expired state.
+        If changes, save to memory and file.
+        If all Tasks in group are now expired, notify to update Task's appearance.
         """
-        logger.debug(f"Setting expired tasks")
         now = datetime.now()
         active_tasks = self.sorted_active_tasks[0]
+        logger.error(f"ACTIVE TASKS: {active_tasks}")
         if not active_tasks:
             return
         
+        # Check each Task for expired state
         changed = False
         for task in active_tasks["tasks"]:
             if task.timestamp < now and not task.expired:
@@ -263,13 +265,11 @@ class TaskManager(EventDispatcher):
                                       date=active_tasks["date"], 
                                       group=active_tasks,
                                       all_expired=True)
-                
-
+            
             self.save_tasks_to_json()
     
     def get_task_by_id(self, task_id: str) -> Task | None:
-        """Get a Task by its ID."""
-        # Search through all tasks by date
+        """Get a Task object by its ID."""
         for date_key, tasks in self.tasks_by_date.items():
             for task in tasks:
                 if task.task_id == task_id:

@@ -1,6 +1,6 @@
 from kivy.uix.label import Label
 
-from src.settings import COL, SIZE, SPACE, FONT
+from src.settings import COL, SIZE, FONT
 
 
 class PartitionHeader(Label):
@@ -58,59 +58,3 @@ class SettingsFieldLabel(Label):
             **kwargs
         )
         self.bind(size=self.setter("text_size"))
-
-
-class TaskHeader(Label):
-    """
-    TaskHeader displays the day of the week and the date
-    - Formatted as "Monday 22"
-    """
-    def __init__(self, text: str,**kwargs):
-        super().__init__(
-            text=text,
-            size_hint=(1, None),
-            height=SIZE.HEADER_HEIGHT,
-            halign="left",
-            font_size=FONT.HEADER,
-            bold=True,
-            color=COL.TEXT_GREY,
-            **kwargs
-        )
-        self.bind(size=self.setter("text_size"))
-
-
-class TimeLabel(Label):
-    """
-    TimeLabel displays the time of a task
-    """
-    def __init__(self, text: str, **kwargs):
-        super().__init__(
-            text=text,
-            size_hint=(1, None),
-            height=SIZE.TIME_LABEL_HEIGHT,
-            halign="left",
-            font_size=FONT.DEFAULT,
-            bold=True,
-            color=COL.TEXT,
-            **kwargs
-        )
-        self.bind(size=self.setter("text_size"))
-
-
-class TaskLabel(Label):
-    """
-    TaskLabel displays the contents of a task
-    """
-    def __init__(self, text: str, **kwargs):
-        super().__init__(
-            text=text,
-            size_hint=(1, None),
-            halign="left",
-            valign="top",
-            font_size=FONT.DEFAULT,
-            color=COL.TEXT,
-            padding=[SPACE.FIELD_PADDING_X, 0],
-            **kwargs
-        )
-        self.bind(size=self.setter("text_size"))
-

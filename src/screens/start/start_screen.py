@@ -86,13 +86,12 @@ class StartScreen(Screen):
     
     def _load_current_tasks_widgets(self) -> None:
         """
-        Loads the tasks widgets into the tasks container.
-        These contain the next tasks that are expiring, grouped by date.
+        Updates the Task widgets in the TaskGroupContainer.
+        These contain the next tasks that are expiring, within a single day.
         """
         start_time = time_.time()
-        # Clear any existing tasks before adding new ones
+        # Clear existing Tasks
         self.tasks_container.clear_widgets()
-        
         for task in self.current_task_data:
             # TaskContainer
             task_container = TaskContainer()
@@ -134,89 +133,57 @@ class StartScreen(Screen):
 
     def _get_current_task_data(self) -> list[dict]:
         """
-        Gets the current task data to display on the StartScreen.
-        Priority order:
-        1. Today's tasks
-        2. The earliest future tasks if no today's tasks exist
-        3. Empty list if no future tasks exist
+        Gets the current task data from the TaskManager to display on the StartScreen.
+        Uses sorted_active_tasks to get the earliest TaskGroup [current].
         """
-        start_time = time_.time()
-        try:
-            if hasattr(self, "task_manager"):
-                # Use the task_manager's sorted_active_tasks if available
-                if not hasattr(self.task_manager, "sorted_active_tasks") or not self.task_manager.sorted_active_tasks:
-                    self.task_manager.sort_active_tasks()
-                
-                if self.task_manager.sorted_active_tasks:
-                    # Get the first (earliest) task group
-                    earliest_task_group = self.task_manager.sorted_active_tasks[0]
-                    if earliest_task_group and "tasks" in earliest_task_group:
-                        # Store the date for the header
-                        self.task_date = earliest_task_group["date"]
-                        # Convert task objects to dictionaries
-                        return [task.to_dict() for task in earliest_task_group["tasks"]]
-                
-                # If no active tasks, return empty list
-                return []
-            else:
-                # No task manager available, try to read from file
-                today = datetime.now().date()
-                today_key = today.isoformat()
-                task_file_path = get_storage_path(PATH.TASK_FILE)
-                task_data = []
-                
-                if os.path.exists(task_file_path):
-                    with open(task_file_path, "r") as f:
-                        data = json.load(f)
-                        # Get all date keys and sort them chronologically
-                        date_keys = sorted(data.keys())
-                        if not date_keys:
-                            return []
-                        
-                        # Find today or the earliest future date
-                        target_date_key = None
-                        # First check for today's tasks
-                        if today_key in date_keys and data[today_key]:
-                            target_date_key = today_key
-                        else:
-                            # Find the earliest future date
-                            future_dates = [dk for dk in date_keys if dk >= today_key]
-                            if future_dates:
-                                target_date_key = min(future_dates)
-                        
-                        # If we found a suitable date, get its tasks
-                        if target_date_key:
-                            for task_json in data[target_date_key]:
-                                task = Task.to_class(task_json)
-                                task_data.append(task.to_dict())
-                
-            if not task_data:
-                return []
-            
-            # Process timestamps in task data
-            for task in task_data:
-                if isinstance(task["timestamp"], str):
-                    task_timestamp = datetime.fromisoformat(task["timestamp"])
-                    task["timestamp"] = task_timestamp
-                    task["date"] = task_timestamp.date()
-                else:
-                    task["date"] = task["timestamp"].date()
-            
-            # Sort tasks by time
-            task_data.sort(key=lambda t: t["timestamp"])
-            
-            # Store the date for the header if we have tasks
-            if task_data:
-                task_date = Task.to_date_str(task_data[0]["timestamp"])
-                header_text = get_task_header_text(task_date)
-                self.day_header.text = header_text
+        earliest_task_group = self.task_manager.sorted_active_tasks[0]
+        if earliest_task_group and "tasks" in earliest_task_group:
+            self.task_date = earliest_task_group["date"]
+            return [task.to_dict() for task in earliest_task_group["tasks"]]
+        
+        return []
 
-            logger.error(f"_GET_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
-            return task_data
-            
-        except Exception as e:
-            logger.error(f"Error getting current task data: {e}")
+    def _init_current_task_data(self) -> list[dict]:
+        """Loads initial Task data from file when task_manager is not yet available."""
+        start_time = time_.time()
+
+        task_file_path = get_storage_path(PATH.TASK_FILE)
+        if not os.path.exists(task_file_path):
+            logger.error("Task file does not exist.")
             return []
+
+        with open(task_file_path, "r") as f:
+            data = json.load(f)
+            date_keys = sorted(data.keys())
+            if not date_keys:
+                return []
+        
+        task_data = []
+        today = datetime.now().date()
+        today_key = today.isoformat()
+
+        # Get todays Tasks
+        target_date_key = None
+        if today_key in date_keys and data[today_key]:
+            target_date_key = today_key
+        else:
+            # If no todays Tasks, get the earliest future date
+            future_dates = [dk for dk in date_keys if dk >= today_key]
+            target_date_key = min(future_dates)
+
+        # Create Task objects and add to list
+        for task_json in data[target_date_key]:
+            task = Task.to_class(task_json)
+            task_data.append(task.to_dict())
+
+        # Set the header text
+        if task_data:
+            task_date = Task.to_date_str(task_data[0]["timestamp"])
+            header_text = get_task_header_text(task_date)
+            self.day_header.text = header_text
+
+        logger.error(f"_INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
+        return task_data
     
     @property
     def is_completed(self) -> bool:
@@ -247,7 +214,12 @@ class StartScreen(Screen):
         When the screen is about to be shown, the data is loaded in and 
          the widgets are built.
         """
-        self.current_task_data = self._get_current_task_data()
+        if hasattr(self, "task_manager"):
+            self.current_task_data = self._get_current_task_data()
+        else:
+            # On initial load, task_manager won't be available yet
+            self.current_task_data = self._init_current_task_data()
+            
         if self.current_task_data:
             self._load_current_tasks_widgets()
         else:

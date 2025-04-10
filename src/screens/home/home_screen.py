@@ -306,16 +306,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_label = None
             self.hide_floating_buttons()
 
-    def update_task_appearance(self, instance, date=None, group=None, all_expired=None):
+    def update_task_appearance(self, instance, date, group, all_expired):
         """
         Update task group appearance for expired tasks.
         This is more efficient than doing a full rebuild for expiration updates.
-        """
-        if not date or not group or not hasattr(self, "active_task_widgets"):
-            return
-            
-        logger.debug(f"Updating appearance for date: {date}")
-        
+        """   
         # Find the task group widget for this date
         for task_group in self.active_task_widgets:
             # The task_group.date_str is already formatted like "Today, April 10"

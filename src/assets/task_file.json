@@ -39,7 +39,7 @@
       "timestamp": "2025-04-11T17:40:49.055175",
       "message": "fd dfdf gdgf",
       "alarm_name": null,
-      "vibrate": false,
+      "vibrate": true,
       "expired": false
     },
     {
@@ -62,72 +62,24 @@
   "2025-04-10": [
     {
       "task_id": "46f489ed-ac69-4ee9-8c7b-1fa795584526",
-      "timestamp": "2025-04-10T17:55:54.396167",
+      "timestamp": "2025-04-10T11:11:54.396167",
       "message": "sdas asd",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "12570a49-7133-4bde-bc05-b1471bf4b2be",
-      "timestamp": "2025-04-10T17:56:14.308096",
-      "message": "s  sdsd sd",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "0c55f574-942c-40dd-84ca-51f341c3ae5f",
-      "timestamp": "2025-04-10T17:59:26.923345",
-      "message": "as da sd",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "6e1e4e76-3e9a-4a26-b467-3db3ade2a680",
-      "timestamp": "2025-04-10T18:05:42.179560",
-      "message": "bbbb",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "d7267e67-d52e-4980-8a8d-9f2490f96690",
-      "timestamp": "2025-04-10T19:22:25.885701",
-      "message": "sdfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "dfcedefa-3f22-460b-951d-6932995f1146",
-      "timestamp": "2025-04-10T16:34:21.175152",
-      "message": "zxvczx",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "1722ec0e-9588-4d10-b567-e887cb5d8273",
-      "timestamp": "2025-04-10T19:34:55.402524",
-      "message": "sdfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "expired": true
-    },
-    {
-      "task_id": "0cce1a37-2b25-49e1-98ab-72c71c2971eb",
-      "timestamp": "2025-04-10T19:36:35.057730",
-      "message": "sdfdf",
-      "alarm_name": null,
+      "alarm_name": "scanner",
       "vibrate": false,
       "expired": true
     },
     {
       "task_id": "74189169-077b-4877-bc7d-23196ff859fb",
-      "timestamp": "2025-04-10T19:53:13.355676",
+      "timestamp": "2025-04-10T21:00:13.355676",
       "message": "5353",
+      "alarm_name": "scanner",
+      "vibrate": true,
+      "expired": true
+    },
+    {
+      "task_id": "64060ec5-4653-43e7-9af1-a907fe4b6d14",
+      "timestamp": "2025-04-10T21:45:49.229612",
+      "message": "we fwe f",
       "alarm_name": null,
       "vibrate": false,
       "expired": true

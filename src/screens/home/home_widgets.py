@@ -13,7 +13,10 @@ from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH
 class TasksByDate(BoxLayout):
     """
     A TasksByDate is used to display all Tasks for a specific date.
-    It has a TaskHeader on top, and a TaskGroupContainer below, which as a background.
+    It has a TaskHeader on top, and a TaskGroupContainer below, which as a background
+     and contains TaskContainers.
+    Each TaskContainer contains a TimeContainer and a TaskLabel, and optionally
+     TaskIcons for sound and/or vibrate.
     
     TasksByDate structure:
     - A TaskHeader
@@ -32,10 +35,10 @@ class TasksByDate(BoxLayout):
             **kwargs
         )
         self.task_manager = task_manager
-        self.parent_screen = parent_screen
-        self.tasks = tasks  # Store reference to tasks
-        self.all_expired = False  # Track if all tasks are expired
-        self.date_str = date_str
+        self.parent_screen = parent_screen  # HomeScreen
+        self.tasks = tasks                  # List of Task objects
+        self.all_expired = False
+        self.date_str = date_str            # Formatted date string [Monday 24 Mar]
 
         # Format date string using cached function
         self.date_str = get_task_header_text(date_str)
@@ -211,7 +214,7 @@ class TimeLabel(Label):
             size_hint=(None, None),
             height=FONT.DEFAULT,
             halign="left",
-            padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
+            # padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             font_size=FONT.DEFAULT,
             bold=True,
             color=COL.TEXT,
@@ -226,27 +229,6 @@ class TimeLabel(Label):
         self.texture_update()
         self.width = self.texture_size[0]
 
-# class TaskIconContainer(BoxLayout):
-#     """
-#     A TaskIconContainer is a container for TaskIcons with fixed width for 2 icons
-#     """
-#     def __init__(self, **kwargs):
-#         super().__init__(
-#             orientation="horizontal",
-#             size_hint=(None, None),
-#             height=FONT.DEFAULT,
-#             spacing=SPACE.SPACE_S,
-#             padding=[0, 0, SPACE.SPACE_XS, 0],
-#             **kwargs
-#         )
-        
-#         # Calculate fixed width for 2 icons
-#         icon_width = FONT.DEFAULT * 0.8
-#         self.width = (icon_width * 2) + SPACE.SPACE_S + self.padding[0] + self.padding[2]
-    
-#     def add_widget(self, widget, *args, **kwargs):
-#         """Override to maintain fixed width when widgets are added"""
-#         super().add_widget(widget, *args, **kwargs)
 
 class TaskIcon(Image):
     """
@@ -269,78 +251,6 @@ class TaskIcon(Image):
     def set_source(self, source: str):
         """Update the image source"""
         self.source = source
-
-
-# class EditTaskButtonContainer(BoxLayout):
-#     """
-#     A EditTaskButtonContainer is a container for an EditTaskButton.
-#     """
-#     def __init__(self, **kwargs):
-#         super().__init__(
-#             orientation="horizontal",
-#             size_hint=(1, None),
-#             height=FONT.DEFAULT,
-#             spacing=SPACE.SPACE_S,
-#             **kwargs
-#         )
-
-
-# class EditTaskButton(Button):
-#     """
-#     An EditTaskButton is a button for editing or deleting a Task.
-#     - Has an opacity of 0 by default
-#     - Has a disabled=True to prevent it from being clickable by default.
-#     """
-#     def __init__(self, text: str, type: str, **kwargs):
-#         super().__init__(
-#             text=text,
-#             size_hint=(1, None),
-#             height=FONT.DEFAULT,
-#             font_size=FONT.SETTINGS_BUTTON,
-#             bold=False,
-#             color=COL.TEXT,
-#             background_color=COL.OPAQUE,
-#             opacity=0,
-#             disabled=True,
-#             **kwargs
-#         )
-#         self.type = type
-#         self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
-#         self.last_bound_args = None  # Will store the task_id
-        
-#         with self.canvas.before:
-#             Color(*self.bg_color)
-#             self.bg_rect = RoundedRectangle(
-#                 pos=self.pos,
-#                 size=self.size,
-#                 radius=[STYLE.RADIUS_S]
-#             )
-#         self.bind(pos=self._update_bg, size=self._update_bg)
-    
-#     def bind(self, **kwargs):
-#         """Override bind to capture task_id for remove_edit_buttons_for_group"""
-#         if 'on_release' in kwargs and callable(kwargs['on_release']):
-#             # Extract task_id from lambda function (if present)
-#             # This assumes the lambda contains a task_id parameter
-#             func_str = str(kwargs['on_release'])
-#             if 'task_id=' in func_str:
-#                 # Store the task_id for later use
-#                 self.last_bound_args = [func_str.split('task_id=')[1].split(')')[0]]
-        
-#         return super().bind(**kwargs)
-
-#     def _update_bg(self, instance, value):
-#         self.bg_rect.pos = instance.pos
-#         self.bg_rect.size = instance.size
-    
-#     def set_size_hint_x(self, value: float):
-#         self.size_hint_x = value
-    
-#     def set_opacity(self, opacity: int):
-#         self.opacity = int(opacity)
-    
-#     def set_disabled(self, disabled: bool):
-#         self.disabled = disabled
 
 
 class TaskLabel(Label):
