@@ -34,6 +34,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.task_manager.bind(
             on_tasks_changed_update_task_display=lambda instance,
              **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
+        self.task_manager.bind(
+            on_tasks_expired_update_appearance=self.update_task_appearance)
 
         # Task attributes
         self.tasks_loaded: bool = False
@@ -303,3 +305,26 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
+
+    def update_task_appearance(self, instance, date=None, group=None, all_expired=None):
+        """
+        Update task group appearance for expired tasks.
+        This is more efficient than doing a full rebuild for expiration updates.
+        """
+        if not date or not group or not hasattr(self, "active_task_widgets"):
+            return
+            
+        logger.debug(f"Updating appearance for date: {date}")
+        
+        # Find the task group widget for this date
+        for task_group in self.active_task_widgets:
+            # The task_group.date_str is already formatted like "Today, April 10"
+            # while the date from task_manager might be in raw format like "Thursday 10 Apr"
+            from src.utils.misc import get_task_header_text
+            if task_group.date_str == date or task_group.date_str == get_task_header_text(date):
+                # Update the appearance - this just changes the background color
+                if task_group.all_expired != all_expired:
+                    task_group.tasks_container.set_expired(all_expired)
+                    task_group.all_expired = all_expired
+                    logger.debug(f"Updated expired state for date {date} to {all_expired}")
+                break

@@ -90,7 +90,9 @@ class StartScreen(Screen):
         These contain the next tasks that are expiring, grouped by date.
         """
         start_time = time_.time()
-        # self.tasks_container.clear_widgets()
+        # Clear any existing tasks before adding new ones
+        self.tasks_container.clear_widgets()
+        
         for task in self.current_task_data:
             # TaskContainer
             task_container = TaskContainer()
@@ -112,10 +114,10 @@ class StartScreen(Screen):
             
             # TaskLabel
             task_message = TaskLabel(text=task["message"])
-            task_container.add_widget(task_message)
-
+            
             # Add to container
             task_container.add_widget(time_container)
+            task_container.add_widget(task_message)
             self.tasks_container.add_widget(task_container)
             
             def update_text_size(instance, value):
@@ -140,34 +142,26 @@ class StartScreen(Screen):
         """
         start_time = time_.time()
         try:
-            today = datetime.now().date()
-            today_key = today.isoformat()
-            
             if hasattr(self, "task_manager"):
-                task_data = []
-                # Get all date keys and sort them chronologically
-                date_keys = sorted(self.task_manager.tasks_by_date.keys())
-                if not date_keys:
-                    return []
+                # Use the task_manager's sorted_active_tasks if available
+                if not hasattr(self.task_manager, "sorted_active_tasks") or not self.task_manager.sorted_active_tasks:
+                    self.task_manager.sort_active_tasks()
                 
-                # Find today or the earliest future date
-                target_date_key = None                
-                # First check for today's tasks
-                if today_key in date_keys and self.task_manager.tasks_by_date[today_key]:
-                    target_date_key = today_key
-                else:
-                    # Find the earliest future date
-                    future_dates = [dk for dk in date_keys if dk >= today_key]
-                    if future_dates:
-                        target_date_key = min(future_dates)
+                if self.task_manager.sorted_active_tasks:
+                    # Get the first (earliest) task group
+                    earliest_task_group = self.task_manager.sorted_active_tasks[0]
+                    if earliest_task_group and "tasks" in earliest_task_group:
+                        # Store the date for the header
+                        self.task_date = earliest_task_group["date"]
+                        # Convert task objects to dictionaries
+                        return [task.to_dict() for task in earliest_task_group["tasks"]]
                 
-                # If we found a suitable date, get its tasks
-                if target_date_key:
-                    tasks = self.task_manager.tasks_by_date[target_date_key]
-                    task_data = [task.to_dict() for task in sorted(tasks, key=lambda t: t.timestamp)]
-            
+                # If no active tasks, return empty list
+                return []
             else:
                 # No task manager available, try to read from file
+                today = datetime.now().date()
+                today_key = today.isoformat()
                 task_file_path = get_storage_path(PATH.TASK_FILE)
                 task_data = []
                 
@@ -210,6 +204,12 @@ class StartScreen(Screen):
             
             # Sort tasks by time
             task_data.sort(key=lambda t: t["timestamp"])
+            
+            # Store the date for the header if we have tasks
+            if task_data:
+                task_date = Task.to_date_str(task_data[0]["timestamp"])
+                header_text = get_task_header_text(task_date)
+                self.day_header.text = header_text
 
             logger.error(f"_GET_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
             return task_data
@@ -249,10 +249,6 @@ class StartScreen(Screen):
         """
         self.current_task_data = self._get_current_task_data()
         if self.current_task_data:
-            # Get the date from the first task to display in the header
-            first_date = self.current_task_data[0]["date"]
-            header_text = get_task_header_text(first_date)
-            self.day_header.text = header_text
             self._load_current_tasks_widgets()
         else:
             # No tasks to display
