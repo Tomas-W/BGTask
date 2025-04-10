@@ -1,5 +1,4 @@
 try:
-    # Import jnius but don't auto-import Java classes yet
     from jnius import autoclass  # type: ignore
 except ImportError:
     pass
@@ -48,7 +47,6 @@ class AndroidAudioPlayer:
             self.recorder.setOutputFile(path)
             self.recorder.prepare()
             self.current_path = path
-            logger.debug(f"Setup Android recording completed: {path}")
             return True
         
         except Exception as e:
@@ -62,12 +60,12 @@ class AndroidAudioPlayer:
                 return False
                 
             if self.recording:
-                logger.debug(f"Already recording: {self.current_path}")
+                logger.error(f"Already recording: {self.current_path}")
                 return False
             
             self.recorder.start()
             self.recording = True
-            logger.debug(f"Android recording started: {self.current_path}")
+            logger.trace(f"Android recording started: {self.current_path}")
             return True
         
         except Exception as e:
@@ -82,14 +80,14 @@ class AndroidAudioPlayer:
                 return False
                 
             if not self.recording:
-                logger.debug("Not recording Android audio, nothing to stop")
+                logger.error("Not recording Android audio, nothing to stop")
                 return False
             
             self.recorder.stop()
             self.recorder.release()
             self.recorder = None
             self.recording = False
-            logger.debug(f"Android recording stopped and saved: {self.current_path}")
+            logger.trace(f"Android recording stopped and saved: {self.current_path}")
             return True
         
         except Exception as e:
@@ -107,30 +105,26 @@ class AndroidAudioPlayer:
             self.media_player.setDataSource(path)
             self.media_player.prepare()
             self.media_player.start()
-            logger.debug(f"Started Android audio playback: {path}")
+            logger.trace(f"Started Android audio playback: {path}")
             return True
             
         except Exception as e:
             logger.error(f"Error playing audio on Android: {e}")
             return False
     
-    def stop(self, log: bool = True) -> bool:
+    def stop(self) -> bool:
         """
         Stop any playing audio.
-        If log is True, logs a debug message.
-        Log param used to suppress log when stopping audio in on_leave.
         """
         try:
             if not self.media_player or not self.media_player.isPlaying():
-                if log:
-                    logger.debug("Android audio not playing, nothing to stop")
                 return True
 
             self.media_player.stop()
             self.media_player.reset()
             self.media_player.release()
             self.media_player = None
-            logger.debug(f"Stopped Android audio playback: {self.current_path}")
+            logger.trace(f"Stopped Android audio playback: {self.current_path}")
             return True
         
         except Exception as e:
@@ -160,4 +154,3 @@ class AndroidAudioPlayer:
         except Exception as e:
             logger.error(f"Error releasing Android resources: {e}")
             return False
-

@@ -1,10 +1,7 @@
-import json
 import uuid
 from functools import lru_cache
 
 from datetime import datetime
-
-from src.utils.logger import logger
 
 
 class Task:

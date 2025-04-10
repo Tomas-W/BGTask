@@ -35,7 +35,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             on_tasks_changed_update_task_display=lambda instance,
              **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
         self.task_manager.bind(
-            on_tasks_expired_update_appearance=self.update_task_appearance)
+            on_tasks_expired_set_date_expired=self.set_date_expired)
 
         # Task attributes
         self.tasks_loaded: bool = False
@@ -144,24 +144,15 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
     def edit_selected_task(self, instance):
         """Edit the currently selected task"""
         if self.selected_task:
-            task_id = str(self.selected_task.task_id)  # Ensure it's a string
-            # Log the task ID we're trying to edit
-            logger.debug(f"Attempting to edit task with ID: {task_id}")
-            
-            # Get a fresh reference to the task to avoid stale data
+            task_id = str(self.selected_task.task_id)
             fresh_task = self.task_manager.get_task_by_id(task_id)
             if fresh_task:
-                # Store reference to task for efficiency
+                # Store reference
                 self.edited_task = fresh_task
-                
-                # CRITICAL: First dispatch event from task_manager to load task data in the NewTaskScreen
                 self.task_manager.dispatch("on_task_edit_load_task_data", task=fresh_task)
-                
-                # THEN navigate to the edit screen after the data is loaded
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(SCREEN.NEW_TASK), 0.1)
             else:
                 logger.error(f"Failed to edit task: Task with ID {task_id} not found")
-                # Refresh the UI to sync with current task state
                 self.update_task_display()
                 
             # Clean up selection state
@@ -174,28 +165,24 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
     def delete_selected_task(self, instance):
         """Delete the currently selected task"""
         if self.selected_task:
-            task_id = str(self.selected_task.task_id)  # Ensure it's a string
-            logger.debug(f"Attempting to delete task with ID: {task_id}")
-            
-            # Get a fresh reference to the task to avoid stale data
+            task_id = str(self.selected_task.task_id) 
             fresh_task = self.task_manager.get_task_by_id(task_id)
             if fresh_task:
-                # Clear selection before deletion to prevent selection restore attempts
+                # Remove selection
                 if self.selected_label:
                     self.selected_label.set_selected(False)
+                # Delete references
                 self.selected_task = None
                 self.selected_label = None
                 self.hide_floating_buttons()
                 
                 # Now delete the task
                 self.task_manager.delete_task(task_id)
-                # TaskManager will handle triggering update_task_display with the modified task
             else:
                 logger.error(f"Failed to delete task: Task with ID {task_id} not found")
-                # Refresh the UI to sync with current task state
                 self.update_task_display()
                 
-                # Clean up selection state (if we got here due to error)
+                # Clean up selection state
                 if self.selected_label:
                     self.selected_label.set_selected(False)
                 self.selected_task = None
@@ -306,10 +293,9 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_label = None
             self.hide_floating_buttons()
 
-    def update_task_appearance(self, instance, date, group, all_expired):
+    def set_date_expired(self, instance, date):
         """
-        Update task group appearance for expired tasks.
-        This is more efficient than doing a full rebuild for expiration updates.
+        Sets background color of given date's TaskGroup to inactive.
         """   
         # Find the task group widget for this date
         for task_group in self.active_task_widgets:
@@ -318,8 +304,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             from src.utils.misc import get_task_header_text
             if task_group.date_str == date or task_group.date_str == get_task_header_text(date):
                 # Update the appearance - this just changes the background color
-                if task_group.all_expired != all_expired:
-                    task_group.tasks_container.set_expired(all_expired)
-                    task_group.all_expired = all_expired
-                    logger.debug(f"Updated expired state for date {date} to {all_expired}")
+                if not task_group.all_expired:
+                    task_group.tasks_container.set_expired(True)
+                    task_group.all_expired = True
+                    logger.debug(f"Date expired: {date}")
                 break

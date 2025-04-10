@@ -23,12 +23,10 @@ class AudioManager(AudioManagerUtils):
         if self.is_android:
             from src.managers.audio.android_audio import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
-            logger.debug("Using Android audio player")
 
         elif self.is_windows:
             from src.managers.audio.windows_audio import WindowsAudioPlayer
             self.audio_player = WindowsAudioPlayer()
-            logger.debug("Using Windows audio player")
 
         else:
             logger.error("No audio player loaded")
@@ -157,7 +155,7 @@ class AudioManager(AudioManagerUtils):
             return False
         
         if not self.audio_player:
-            logger.error("No audio player available for this platform")
+            logger.error("No audio player available")
             return False
             
         try:
@@ -199,7 +197,6 @@ class AudioManager(AudioManagerUtils):
             if path and os.path.exists(path):
                 self.selected_alarm_path = path
                 self.selected_alarm_name = name
-                logger.debug(f"Selected alarm: {name} at {path}")
                 return True
     
         logger.error(f"Alarm not found: {name} at {path}")

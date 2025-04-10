@@ -1,4 +1,5 @@
 import json
+import time
 
 from datetime import datetime
 
@@ -27,7 +28,7 @@ class TaskManager(EventDispatcher):
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
-        self.register_event_type("on_tasks_expired_update_appearance")
+        self.register_event_type("on_tasks_expired_set_date_expired")
 
         # File path
         self.task_file_path: str = get_storage_path(PATH.TASK_FILE)
@@ -50,6 +51,7 @@ class TaskManager(EventDispatcher):
         Loads all Tasks from file, which are grouped by date.
         Returns a dictionary of date keys and lists of Task objects.
         """
+        start_time = time.time()
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
@@ -61,6 +63,7 @@ class TaskManager(EventDispatcher):
                     task = Task.to_class(task_data)
                     tasks_by_date[date_key].append(task)
             
+            logger.trace(f"_load_tasks_by_date time: {time.time() - start_time:.4f}")
             return tasks_by_date
         
         except Exception as e:
@@ -105,6 +108,7 @@ class TaskManager(EventDispatcher):
         Called by save_all_tasks with a delay.
         Only called on Task add/edit/delet.
         """
+        start_time = time.time()
         try:
             tasks_json = {}
             # Group by date
@@ -113,6 +117,7 @@ class TaskManager(EventDispatcher):
             
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
+            logger.trace(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
             return True
         
         except Exception as e:
@@ -173,15 +178,13 @@ class TaskManager(EventDispatcher):
         if timestamp > now and task.expired:
             # Task from past to future, -> not expired
             task.expired = False
-            logger.debug(f"Task {task_id} moved to future, marked as not expired")
         elif timestamp <= now and not task.expired:
             # Task from future to past, -> expired
             task.expired = True
-            logger.debug(f"Task {task_id} moved to past, marked as expired")
         
         new_date_key = task.get_date_key()
         
-        # If date changed, move task to new date group
+        # If date changed, move Task to new date group
         if old_date_key != new_date_key:
             # Remove from old date group
             if old_date_key in self.tasks_by_date:
@@ -196,8 +199,6 @@ class TaskManager(EventDispatcher):
             self.tasks_by_date[new_date_key].append(task)
 
         self.save_tasks_to_json()
-
-        logger.debug(f"Updated task: {task_id}")
         # Notify to update the Task display
         self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
         # Notify to scroll to Task
@@ -233,8 +234,6 @@ class TaskManager(EventDispatcher):
                 del self.tasks_by_date[date_key]
         
         self.save_tasks_to_json()
-
-        logger.debug(f"Deleted task: {task_id}")
         # Notify to update Task display
         self.dispatch("on_tasks_changed_update_task_display", modified_task=task_copy)
 
@@ -247,7 +246,6 @@ class TaskManager(EventDispatcher):
         """
         now = datetime.now()
         active_tasks = self.sorted_active_tasks[0]
-        logger.error(f"ACTIVE TASKS: {active_tasks}")
         if not active_tasks:
             return
         
@@ -260,13 +258,10 @@ class TaskManager(EventDispatcher):
                 logger.debug(f"Task {task.timestamp.strftime('%H:%M')} set to expired")
         
         if changed:
-            if all(task.expired for task in active_tasks["tasks"]):
-                self.dispatch("on_tasks_expired_update_appearance", 
-                                      date=active_tasks["date"], 
-                                      group=active_tasks,
-                                      all_expired=True)
-            
             self.save_tasks_to_json()
+            if all(task.expired for task in active_tasks["tasks"]):
+                self.dispatch("on_tasks_expired_set_date_expired", 
+                                      date=active_tasks["date"])
     
     def get_task_by_id(self, task_id: str) -> Task | None:
         """Get a Task object by its ID."""
@@ -289,6 +284,6 @@ class TaskManager(EventDispatcher):
         """Default handler for on_task_edit_load_task_data event"""
         pass
     
-    def on_tasks_expired_update_appearance(self, *args, **kwargs):
-        """Default handler for on_tasks_expired_update_appearance event"""
+    def on_tasks_expired_set_date_expired(self, *args, **kwargs):
+        """Default handler for on_tasks_expired_set_date_expired event"""
         pass

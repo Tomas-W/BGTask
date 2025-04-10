@@ -23,7 +23,6 @@ class WindowsAudioPlayer:
             self.pyaudio = pyaudio
             self.wave = wave
             self.pa = pyaudio.PyAudio()
-            logger.debug("Windows audio player initialized successfully with PyAudio")
         
         except Exception as e:
             logger.error(f"Error initializing PyAudio: {e}")
@@ -33,7 +32,6 @@ class WindowsAudioPlayer:
         try:
             self.current_path = path
             self.frames = []
-            logger.debug(f"Setup Windows recording completed: {path}")
             return True
         
         except Exception as e:
@@ -43,7 +41,7 @@ class WindowsAudioPlayer:
     def start_recording(self) -> bool:       
         try:
             if self.recording:
-                logger.debug(f"Already recording: {self.current_path}")
+                logger.error(f"Already recording: {self.current_path}")
                 return False
             
             self.recording = True
@@ -66,7 +64,7 @@ class WindowsAudioPlayer:
             )
             
             self.stream.start_stream()
-            logger.debug(f"Windows recording started: {self.current_path}")
+            logger.trace(f"Windows recording started: {self.current_path}")
             return True
         
         except Exception as e:
@@ -77,7 +75,7 @@ class WindowsAudioPlayer:
     def stop_recording(self) -> bool:
         try:
             if not self.recording:
-                logger.debug("Not recording Windows audio, nothing to stop")
+                logger.error("Not recording Windows audio, nothing to stop")
                 return False
             
             self.recording = False
@@ -87,7 +85,7 @@ class WindowsAudioPlayer:
                 self.stream.stop_stream()
                 self.stream.close()
                 self.stream = None
-                logger.debug("Windows recording stopped")
+                logger.trace("Windows recording stopped")
             
             # Save recording to WAV file
             if self.frames and self.current_path:
@@ -97,7 +95,6 @@ class WindowsAudioPlayer:
                 wf.setframerate(44100)
                 wf.writeframes(b"".join(self.frames))
                 wf.close()
-                logger.debug(f"Windows recording saved: {self.current_path}")
                 return True
             
             else:
@@ -117,7 +114,7 @@ class WindowsAudioPlayer:
             if sound:
                 sound.play()
                 self.sound = sound
-                logger.debug(f"Started Windows audio playback: {path}")
+                logger.trace(f"Started Windows audio playback: {path}")
                 return True
             
             else:
@@ -140,7 +137,7 @@ class WindowsAudioPlayer:
             
             self.sound.stop()
             self.sound = None
-            logger.debug("Stopped Windows audio playback")
+            logger.trace("Stopped Windows audio playback")
             return True
         
         except Exception as e:

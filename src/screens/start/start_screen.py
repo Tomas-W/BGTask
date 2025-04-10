@@ -23,7 +23,7 @@ from src.settings import DIR, PATH, SCREEN, STATE, LOADED
 
 
 from src.utils.logger import logger
-logger.error(f"Loading StartScreen IMPORTS time: {time_.time() - start_time:.4f}")
+logger.error(f"StartScreen IMPORTS time: {time_.time() - start_time:.4f}")
 
 
 
@@ -82,7 +82,7 @@ class StartScreen(Screen):
         self.bottom_bar = None
 
         end_time = time_.time()
-        logger.error(f"__INIT__ TIME: {end_time - start_time:.4f}")
+        logger.error(f"StartScreen __INIT__ TIME: {end_time - start_time:.4f}")
     
     def _load_current_tasks_widgets(self) -> None:
         """
@@ -129,8 +129,8 @@ class StartScreen(Screen):
             task_message.bind(size=update_text_size)
         
         end_time = time_.time()
-        logger.error(f"_LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
-
+        logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
+    
     def _get_current_task_data(self) -> list[dict]:
         """
         Gets the current task data from the TaskManager to display on the StartScreen.
@@ -182,7 +182,7 @@ class StartScreen(Screen):
             header_text = get_task_header_text(task_date)
             self.day_header.text = header_text
 
-        logger.error(f"_INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
+        logger.error(f"HomeScreen _INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
         return task_data
     
     @property
@@ -217,7 +217,6 @@ class StartScreen(Screen):
         if hasattr(self, "task_manager"):
             self.current_task_data = self._get_current_task_data()
         else:
-            # On initial load, task_manager won't be available yet
             self.current_task_data = self._init_current_task_data()
             
         if self.current_task_data:
@@ -254,10 +253,7 @@ class StartScreen(Screen):
     def take_screenshot(self, *args) -> None:
         start_time = time_.time()
         try:
-            import os
-            logger.debug("Starting screenshot capture process...")
-            
-            # Check and request permissions
+            import os            
             if device_is_android():
                 try:
                     from android.permissions import request_permissions, Permission, check_permission  # type: ignore
@@ -266,16 +262,14 @@ class StartScreen(Screen):
 
                 except Exception as e:
                     logger.error(f"Error requesting permissions: {str(e)}")
+                    return
             
             # Hide widgets from screenshot
             self.screen_header.opacity = 0
             self.screenshot_button.opacity = 0
-                    
             # Take screenshot
             texture = self.root_layout.export_as_image()
-            
             # Restore visibility
-
             self.screen_header.opacity = 1
             self.screenshot_button.opacity = 1
             
@@ -285,36 +279,33 @@ class StartScreen(Screen):
                 screenshot_path = os.path.join(app_storage_path(), DIR.IMG, "bgtask_screenshot.png")
             else:
                 screenshot_path = os.path.join(DIR.IMG, "bgtask_screenshot.png")
-            
-            logger.edbug(f"Saving screenshot to: {screenshot_path}")
-            
-            # Save the texture
+                        
+            # Save texture
             texture.save(screenshot_path)
-            logger.error(f"take_screenshot time: {time_.time() - start_time:.4f}")
-            # Now set the wallpaper on Android using the bitmap approach
+            logger.debug(f"take_screenshot time: {time_.time() - start_time:.4f}")
+            # Set wallpaper
             if device_is_android():
                 start_time = time_.time()
                 from jnius import autoclass  # type: ignore
-                print("Setting wallpaper on Android using bitmap approach...")
-                # Get the current activity and context
+                # Get current activity and context
                 PythonActivity = autoclass('org.kivy.android.PythonActivity')
                 currentActivity = PythonActivity.mActivity
                 context = currentActivity.getApplicationContext()
                 
-                # Use BitmapFactory to decode the image file
+                # Decode
                 File = autoclass('java.io.File')
                 BitmapFactory = autoclass('android.graphics.BitmapFactory')
                 file = File(screenshot_path)
                 bitmap = BitmapFactory.decodeFile(file.getAbsolutePath())
                 
                 if bitmap:
-                    # Get the WallpaperManager and set the bitmap
+                    # Get WallpaperManager and set the bitmap
                     WallpaperManager = autoclass('android.app.WallpaperManager')
                     manager = WallpaperManager.getInstance(context)
                     manager.setBitmap(bitmap)
-                    logger.error(f"set_wallpaper time: {time_.time() - start_time:.4f}")
+                    logger.debug(f"set_wallpaper time: {time_.time() - start_time:.4f}")
                 else:
-                    logger.debug("Failed to create bitmap from file")
+                    logger.error("Failed to create bitmap from file")
             else:
                 logger.debug("Wallpaper functionality is only available on Android.")
             

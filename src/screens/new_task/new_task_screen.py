@@ -162,9 +162,7 @@ class NewTaskScreen(BaseScreen):
         """
         Load task data for editing
         Called when the on_task_edit_load_task_data event is dispatched from HomeScreen
-        """
-        logger.debug(f"Loading task data for editing: {task.task_id}")
-        
+        """        
         # Set editing mode
         self.in_edit_task_mode = True
         self.task_manager.selected_task_id = task.task_id
@@ -172,17 +170,14 @@ class NewTaskScreen(BaseScreen):
         # Date and time
         self.task_manager.selected_date = task.timestamp.date()
         self.task_manager.selected_time = task.timestamp.time()
-        logger.debug(f"Task date: {self.task_manager.selected_date}, time: {self.task_manager.selected_time}")
         
         # Alarm
         self.task_manager.vibrate = task.vibrate
         self.audio_manager.selected_alarm_name = task.alarm_name
         self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name) if task.alarm_name else None
-        logger.debug(f"Task alarm: {self.audio_manager.selected_alarm_name}")
         
         # Message
         self.task_input_field.set_text(task.message)
-        logger.debug(f"Task message: {task.message}")
         
         # Update UI
         self.update_datetime_display()
@@ -192,8 +187,6 @@ class NewTaskScreen(BaseScreen):
         # Update button text
         self.save_button.set_text("Update Task")
         
-        logger.debug("Task data loaded successfully")
-    
     def save_task(self, instance) -> None:
         """
         Save the task and return to home screen.

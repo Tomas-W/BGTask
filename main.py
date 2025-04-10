@@ -18,12 +18,10 @@ if platform != PLATFORM.ANDROID:
 total_kivy_time = time.time() - start_kivy_time
 print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
-print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 # TaskManager
 # TODO: Expired check only today
 # TODO: Check every minute for expired tasks and update Task
-
 #TODO: Set first expiring time and check at that time
 
 
@@ -31,6 +29,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Refactor StartScreen / Layout / Widgets
 # TODO: When no tasks, edit message for screenshot
 # TODO: Smart loading widgets
+# TODO: Rework screenshot - storage paths
 
 
 # BaseScreen
@@ -69,6 +68,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # General
+# TODO: Rework is_android
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
 # TODO: Add alarm path to task
@@ -113,7 +113,7 @@ class TaskApp(App):
     
     def _load_app_components(self):
         self._init_logger()
-        self.logger.error(f"Loading StartScreen time: {self.start_screen_time:.4f}")
+        self.logger.critical(f"Loading StartScreen time: {self.start_screen_time:.4f}")
         self._init_managers()
         self._init_screens()
     
@@ -126,21 +126,21 @@ class TaskApp(App):
             start_screen=SCREEN.HOME
         )
         LOADED.NAVIGATION_MANAGER = True
-        self.logger.error(f"Loading NavigationManager time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading NavigationManager time: {time.time() - start_time:.4f}")
 
         # TaskManager
         start_time = time.time()
         from src.managers.tasks.task_manager import TaskManager
         self.task_manager = TaskManager() 
         LOADED.TASK_MANAGER = True
-        self.logger.error(f"Loading TaskManager time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading TaskManager time: {time.time() - start_time:.4f}")
 
         # AudioManager
         start_time = time.time()
         from src.managers.audio.audio_manager import AudioManager
         self.audio_manager = AudioManager()
         LOADED.AUDIO_MANAGER = True
-        self.logger.error(f"Loading AudioManager time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading AudioManager time: {time.time() - start_time:.4f}")
 
     def _init_screens(self):
         # HomeScreen
@@ -150,7 +150,7 @@ class TaskApp(App):
                                                navigation_manager=self.navigation_manager,
                                                task_manager=self.task_manager)
         LOADED.HOME = True
-        self.logger.error(f"Loading HomeScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading HomeScreen time: {time.time() - start_time:.4f}")
 
         # NewTaskScreen
         start_time = time.time()
@@ -160,7 +160,7 @@ class TaskApp(App):
                                                     task_manager=self.task_manager,
                                                     audio_manager=None)
         LOADED.NEW_TASK = True
-        self.logger.error(f"Loading NewTaskScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading NewTaskScreen time: {time.time() - start_time:.4f}")
 
         # SettingsScreen
         start_time = time.time()
@@ -169,7 +169,7 @@ class TaskApp(App):
                                                     navigation_manager=self.navigation_manager,
                                                     task_manager=self.task_manager)
         LOADED.SETTINGS = True
-        self.logger.error(f"Loading SettingsScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading SettingsScreen time: {time.time() - start_time:.4f}")
 
         # Add screens to screen manager
         for screen_name, screen in self.screens.items():
@@ -177,7 +177,6 @@ class TaskApp(App):
                 self.screen_manager.add_widget(screen)
         
         Clock.schedule_once(lambda dt: self.get_screen(SCREEN.HOME)._full_rebuild_task_display(), 0.1)
-        self.logger.debug(f"CALLING INIT OTHER SCREENS")
         self._init_other_screens(dt=None)
     
     def _init_other_screens(self, dt):
@@ -189,7 +188,7 @@ class TaskApp(App):
                                                             task_manager=self.task_manager)
         self.screen_manager.add_widget(self.screens[SCREEN.SELECT_DATE])
         LOADED.SELECT_DATE = True
-        self.logger.error(f"Loading SelectDateScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading SelectDateScreen time: {time.time() - start_time:.4f}")
 
         # SelectAlarmScreen
         start_time = time.time()
@@ -200,7 +199,7 @@ class TaskApp(App):
                                                             audio_manager=None)
         self.screen_manager.add_widget(self.screens[SCREEN.SELECT_ALARM])
         LOADED.SELECT_ALARM = True
-        self.logger.error(f"Loading SelectAlarmScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading SelectAlarmScreen time: {time.time() - start_time:.4f}")
 
         # SavedAlarmScreen
         start_time = time.time()
@@ -211,7 +210,7 @@ class TaskApp(App):
                                                             audio_manager=None)
         self.screen_manager.add_widget(self.screens[SCREEN.SAVED_ALARMS])
         LOADED.SAVED_ALARMS = True
-        self.logger.error(f"Loading SavedAlarmScreen time: {time.time() - start_time:.4f}")
+        self.logger.critical(f"Loading SavedAlarmScreen time: {time.time() - start_time:.4f}")
 
         self.connect_audio_screens()
     
@@ -229,9 +228,6 @@ class TaskApp(App):
         App is paused by the OS (e.g., user switches to another app).
         Backup the database to ensure data is persisted.
         """
-        if hasattr(self, 'task_manager'):
-            self.task_manager.save_tasks_to_json()
-                
         return True
     
     def on_resume(self):

@@ -76,7 +76,7 @@ class HomeScreenUtils:
         
         self.tasks_loaded = True
         end_time = time.time()
-        logger.debug(f"HomeScreenUtils update_task_display time: {end_time - start_time:.4f}s")
+        logger.trace(f"HomeScreenUtils update_task_display time: {end_time - start_time:.4f}s")
     
     def _invalidate_cache_for_date(self, date_str):
         """Remove all cached widgets for a specific date"""
@@ -131,7 +131,6 @@ class HomeScreenUtils:
         
         # If we get here, we didn't find the task in the UI
         if not found:
-            logger.debug(f"Task with id {task_id} not found in UI during _restore_task_selection")
             self.selected_task = None
             self.selected_label = None
             if hasattr(self, "hide_floating_buttons"):
@@ -149,17 +148,16 @@ class HomeScreenUtils:
         # Get sorted tasks
         self.task_manager.sort_active_tasks()
         task_groups = self.task_manager.sorted_active_tasks
-        logger.debug(f"Task groups received: {len(task_groups)}")
         
         if not task_groups:
-            logger.debug("No tasks to display")
             self.tasks_loaded = True
             return
-            
+        
+        nr_tasks = 0
         for group in task_groups:
             if not group["tasks"]:
                 continue
-                
+            nr_tasks += len(group["tasks"])  # Count tasks for logging
             # Create new task group widget
             date_str = group["date"]
             tasks = group["tasks"]
@@ -182,7 +180,8 @@ class HomeScreenUtils:
 
         self.tasks_loaded = True
         end_time = time.time()
-        logger.debug(f"HomeScreenUtils _full_rebuild_task_display time: {end_time - start_time}")
+        logger.error(f"HomeScreenUtils _full_rebuild_task_display time: {end_time - start_time}")
+        logger.debug(f"Loaded {len(task_groups)} task groups with {nr_tasks} tasks")
     
     def _create_task_group(self, group, all_expired_states=None) -> TasksByDate:
         """Create a TasksByDate widget for a group of tasks"""
