@@ -5,6 +5,7 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from src.utils.misc import get_task_header_text
+from src.utils.logger import logger
 
 from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH
 
@@ -20,12 +21,8 @@ class TasksByDate(BoxLayout):
       |-- TaskContainer(s) [vertical]
           |-- A TimeContainer [horizontal]
           |    |-- A TimeLabel [ Label (HH:MM) ]
-          |    |-- A TaskIconContainer [horizontal]
-          |    |    |-- A TaskIcon [ sound icon ]
-          |    |    |-- A TaskIcon [ vibrate icon ]
-          |    |-- A EditTaskButtonContainer [horizontal]
-          |    |    |-- An EditTaskButton [ edit button ]
-          |    |    |-- A DeleteTaskButton [ delete button ]
+          |    |-- A TaskIcon [ sound icon ]
+          |    |-- A TaskIcon [ vibrate icon ]
           |
           |--A TaskLabel [Task message]
     """
@@ -63,44 +60,24 @@ class TasksByDate(BoxLayout):
     
     def add_task_item(self, task):
         task_container = TaskContainer()
-        time_container = TimeContainer()
+        task_container.task = task  # Store task reference in container
+        task_container.task_id = task.task_id  # Store task ID in container
 
+        time_container = TimeContainer()
         # Time
         time_label = TimeLabel(text=task.get_time_str())
         time_container.add_widget(time_label)
 
-        # Icons
-        task_icon_container = TaskIconContainer()
         # Sound
         if task.alarm_name is not None:
             sound_icon = TaskIcon(source=PATH.SOUND_IMG)
-            task_icon_container.add_widget(sound_icon)
+            time_container.add_widget(sound_icon)
         # Vibrate
         if task.vibrate:
             vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
-            task_icon_container.add_widget(vibrate_icon)
-        # Add to container
-        time_container.add_widget(task_icon_container)
-
-        # Edit Delete Container
-        edit_delete_container = EditTaskButtonContainer()
-        # Edit
-        edit_button = EditTaskButton(text="Edit", type="edit")
-        edit_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.edit_task(task_id))
-        edit_delete_container.add_widget(edit_button)
-        # Delete    
-        delete_button = EditTaskButton(text="Delete", type="delete")
-        delete_button.bind(on_release=lambda x, task_id=task.task_id: self.task_manager.delete_task(task_id))
-        edit_delete_container.add_widget(delete_button)
-        # Add to container
-        time_container.add_widget(edit_delete_container)
+            time_container.add_widget(vibrate_icon)
         
-        # Register the buttons
-        if self.parent_screen:
-            self.parent_screen.register_edit_delete_button(edit_button)
-            self.parent_screen.register_edit_delete_button(delete_button)
-        
-        task_label = TaskLabel(text=task.message)
+        task_label = TaskLabel(text=task.message, task=task)
         
         def update_text_size(instance, value):
             width = value[0]
@@ -128,12 +105,8 @@ class TaskGroupContainer(BoxLayout):
     - TaskContainer(s) [vertical]
       |-- A TimeContainer [horizontal]
       |    |-- A TimeLabel [ HH:MM ]
-      |    |-- A TaskIconContainer [sound, vibrate]
-      |    |    |-- A TaskIcon [sound icon]
-      |    |    |-- A TaskIcon [vibrate icon]
-      |    |-- A EditTaskButtonContainer [edit, delete]
-      |    |    |-- An EditTaskButton [edit button]
-      |    |    |-- A DeleteTaskButton [delete button]
+      |    |-- A TaskIcon [sound icon]
+      |    |-- A TaskIcon [vibrate icon]
       |
       |--A TaskLabel [Task message]
     """
@@ -171,18 +144,14 @@ class TaskGroupContainer(BoxLayout):
 
 class TaskContainer(BoxLayout):
     """
-    A TaskContainer is used to group a TimeLabel, EditTaskButton, DeleteTaskButton,
-     and a TaskLabel.
+    A TaskContainer is used to group a TimeContainer, and a TaskLabel.
     
     TaskContainer structure:
     - A TimeContainer [vertical]
       |-- A TimeLabel [ HH:MM ]
-      |-- A TaskIconContainer [sound, vibrate]
-      |    |-- A TaskIcon [sound icon]
-      |    |-- A TaskIcon [vibrate icon]
-      |-- A EditTaskButtonContainer [edit, delete]
-      |    |-- An EditTaskButton [edit button]
-      |    |-- A DeleteTaskButton [delete button]
+      |-- A TaskIcon [sound icon]
+      |-- A TaskIcon [vibrate icon]
+      
     - A TaskLabel [Task message]
     """
     def __init__(self, **kwargs):
@@ -219,13 +188,14 @@ class TaskHeader(Label):
 
 class TimeContainer(BoxLayout):
     """
-    A TimeContainer is a container for a TimeLabel, EditTaskButton, and DeleteTaskButton.
+    A TimeContainer is a container for a TimeLabel, and TaskIcons.
     """
     def __init__(self, **kwargs):
         super().__init__(
             orientation="horizontal",
             size_hint=(1, None),
             height=FONT.DEFAULT,
+            spacing=SPACE.SPACE_S,
             **kwargs,
         )
 
@@ -256,27 +226,27 @@ class TimeLabel(Label):
         self.texture_update()
         self.width = self.texture_size[0]
 
-class TaskIconContainer(BoxLayout):
-    """
-    A TaskIconContainer is a container for TaskIcons with fixed width for 2 icons
-    """
-    def __init__(self, **kwargs):
-        super().__init__(
-            orientation="horizontal",
-            size_hint=(None, None),
-            height=FONT.DEFAULT,
-            spacing=SPACE.SPACE_S,
-            padding=[0, 0, SPACE.SPACE_XS, 0],
-            **kwargs
-        )
+# class TaskIconContainer(BoxLayout):
+#     """
+#     A TaskIconContainer is a container for TaskIcons with fixed width for 2 icons
+#     """
+#     def __init__(self, **kwargs):
+#         super().__init__(
+#             orientation="horizontal",
+#             size_hint=(None, None),
+#             height=FONT.DEFAULT,
+#             spacing=SPACE.SPACE_S,
+#             padding=[0, 0, SPACE.SPACE_XS, 0],
+#             **kwargs
+#         )
         
-        # Calculate fixed width for 2 icons
-        icon_width = FONT.DEFAULT * 0.8
-        self.width = (icon_width * 2) + SPACE.SPACE_S + self.padding[0] + self.padding[2]
+#         # Calculate fixed width for 2 icons
+#         icon_width = FONT.DEFAULT * 0.8
+#         self.width = (icon_width * 2) + SPACE.SPACE_S + self.padding[0] + self.padding[2]
     
-    def add_widget(self, widget, *args, **kwargs):
-        """Override to maintain fixed width when widgets are added"""
-        super().add_widget(widget, *args, **kwargs)
+#     def add_widget(self, widget, *args, **kwargs):
+#         """Override to maintain fixed width when widgets are added"""
+#         super().add_widget(widget, *args, **kwargs)
 
 class TaskIcon(Image):
     """
@@ -301,83 +271,84 @@ class TaskIcon(Image):
         self.source = source
 
 
-class EditTaskButtonContainer(BoxLayout):
-    """
-    A EditTaskButtonContainer is a container for an EditTaskButton.
-    """
-    def __init__(self, **kwargs):
-        super().__init__(
-            orientation="horizontal",
-            size_hint=(1, None),
-            height=FONT.DEFAULT,
-            spacing=SPACE.SPACE_S,
-            **kwargs
-        )
+# class EditTaskButtonContainer(BoxLayout):
+#     """
+#     A EditTaskButtonContainer is a container for an EditTaskButton.
+#     """
+#     def __init__(self, **kwargs):
+#         super().__init__(
+#             orientation="horizontal",
+#             size_hint=(1, None),
+#             height=FONT.DEFAULT,
+#             spacing=SPACE.SPACE_S,
+#             **kwargs
+#         )
 
 
-class EditTaskButton(Button):
-    """
-    An EditTaskButton is a button for editing or deleting a Task.
-    - Has an opacity of 0 by default
-    - Has a disabled=True to prevent it from being clickable by default.
-    """
-    def __init__(self, text: str, type: str, **kwargs):
-        super().__init__(
-            text=text,
-            size_hint=(1, None),
-            height=FONT.DEFAULT,
-            font_size=FONT.SETTINGS_BUTTON,
-            bold=False,
-            color=COL.TEXT,
-            background_color=COL.OPAQUE,
-            opacity=0,
-            disabled=True,
-            **kwargs
-        )
-        self.type = type
-        self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
-        self.last_bound_args = None  # Will store the task_id
+# class EditTaskButton(Button):
+#     """
+#     An EditTaskButton is a button for editing or deleting a Task.
+#     - Has an opacity of 0 by default
+#     - Has a disabled=True to prevent it from being clickable by default.
+#     """
+#     def __init__(self, text: str, type: str, **kwargs):
+#         super().__init__(
+#             text=text,
+#             size_hint=(1, None),
+#             height=FONT.DEFAULT,
+#             font_size=FONT.SETTINGS_BUTTON,
+#             bold=False,
+#             color=COL.TEXT,
+#             background_color=COL.OPAQUE,
+#             opacity=0,
+#             disabled=True,
+#             **kwargs
+#         )
+#         self.type = type
+#         self.bg_color = COL.FIELD_PASSED if type == "edit" else COL.ERROR
+#         self.last_bound_args = None  # Will store the task_id
         
-        with self.canvas.before:
-            Color(*self.bg_color)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos,
-                size=self.size,
-                radius=[STYLE.RADIUS_S]
-            )
-        self.bind(pos=self._update_bg, size=self._update_bg)
+#         with self.canvas.before:
+#             Color(*self.bg_color)
+#             self.bg_rect = RoundedRectangle(
+#                 pos=self.pos,
+#                 size=self.size,
+#                 radius=[STYLE.RADIUS_S]
+#             )
+#         self.bind(pos=self._update_bg, size=self._update_bg)
     
-    def bind(self, **kwargs):
-        """Override bind to capture task_id for remove_edit_buttons_for_group"""
-        if 'on_release' in kwargs and callable(kwargs['on_release']):
-            # Extract task_id from lambda function (if present)
-            # This assumes the lambda contains a task_id parameter
-            func_str = str(kwargs['on_release'])
-            if 'task_id=' in func_str:
-                # Store the task_id for later use
-                self.last_bound_args = [func_str.split('task_id=')[1].split(')')[0]]
+#     def bind(self, **kwargs):
+#         """Override bind to capture task_id for remove_edit_buttons_for_group"""
+#         if 'on_release' in kwargs and callable(kwargs['on_release']):
+#             # Extract task_id from lambda function (if present)
+#             # This assumes the lambda contains a task_id parameter
+#             func_str = str(kwargs['on_release'])
+#             if 'task_id=' in func_str:
+#                 # Store the task_id for later use
+#                 self.last_bound_args = [func_str.split('task_id=')[1].split(')')[0]]
         
-        return super().bind(**kwargs)
+#         return super().bind(**kwargs)
 
-    def _update_bg(self, instance, value):
-        self.bg_rect.pos = instance.pos
-        self.bg_rect.size = instance.size
+#     def _update_bg(self, instance, value):
+#         self.bg_rect.pos = instance.pos
+#         self.bg_rect.size = instance.size
     
-    def set_size_hint_x(self, value: float):
-        self.size_hint_x = value
+#     def set_size_hint_x(self, value: float):
+#         self.size_hint_x = value
     
-    def set_opacity(self, opacity: int):
-        self.opacity = int(opacity)
+#     def set_opacity(self, opacity: int):
+#         self.opacity = int(opacity)
     
-    def set_disabled(self, disabled: bool):
-        self.disabled = disabled
+#     def set_disabled(self, disabled: bool):
+#         self.disabled = disabled
 
 
 class TaskLabel(Label):
     """
     A TaskLabel displays the contents of a Task.
+    When tapped, it will be selected for editing or deletion.
     """
-    def __init__(self, text: str, **kwargs):
+    def __init__(self, text: str, task=None, **kwargs):
         super().__init__(
             text=text,
             size_hint=(1, None),
@@ -387,6 +358,11 @@ class TaskLabel(Label):
             color=COL.TEXT,
             **kwargs
         )
+        # Store task and task_id explicitly to avoid reference issues
+        self.task = task
+        self.task_id = str(task.task_id) if task else None  # Ensure it's a string
+        self.active = False
+        self.selected = False
         self.bind(size=self.setter("text_size"))
 
         with self.canvas.before:
@@ -404,8 +380,49 @@ class TaskLabel(Label):
     
     def set_active(self, active=True):
         """Set the background color based on active state"""
+        self.active = active
         if active:
             self.bg_color.rgba = COL.FIELD_ACTIVE
         else:
-            self.bg_color.rgba = COL.OPAQUE
-
+            if self.selected:
+                self.bg_color.rgba = COL.FIELD_PASSED  # Keep selected color
+            else:
+                self.bg_color.rgba = COL.OPAQUE
+                
+    def set_selected(self, selected=True):
+        """Set the background color based on selected state"""
+        self.selected = selected
+        if selected:
+            self.bg_color.rgba = COL.FIELD_PASSED
+        else:
+            if self.active:
+                self.bg_color.rgba = COL.FIELD_ACTIVE
+            else:
+                self.bg_color.rgba = COL.OPAQUE
+    
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos) and self.task_id:
+            # Find the parent TasksByDate widget to access parent_screen
+            parent = self.parent
+            # Travel up to find the TasksByDate instance to access parent_screen
+            while parent and not hasattr(parent, "parent_screen"):
+                parent = parent.parent
+                
+            if parent and parent.parent_screen and hasattr(parent.parent_screen, "select_task"):
+                # Get the fresh task from task_manager by ID to ensure we have the correct object
+                if hasattr(parent.parent_screen, "task_manager"):
+                    task_manager = parent.parent_screen.task_manager
+                    # Try to get the task by ID from the task manager
+                    fresh_task = task_manager.get_task_by_id(self.task_id)
+                    if fresh_task:
+                        parent.parent_screen.select_task(fresh_task, self)
+                        return True
+                    else:
+                        # If task not found, this is a serious error - log it
+                        logger.error(f"Task with id {self.task_id} not found in on_touch_down")
+                        return False
+                else:
+                    # Fallback to using our stored task reference if we can't get fresh task
+                    parent.parent_screen.select_task(self.task, self)
+                    return True
+        return super().on_touch_down(touch)

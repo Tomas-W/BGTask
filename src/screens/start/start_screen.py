@@ -13,7 +13,7 @@ from src.widgets.buttons import CustomConfirmButton
 
 from src.widgets.containers import StartContainer, BaseLayout
 from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
-                                           TimeLabel, TaskLabel)
+                                           TimeContainer, TimeLabel, TaskLabel, TaskIcon)
 from src.widgets.labels import PartitionHeader
 from src.managers.tasks.task_manager_utils import Task
 
@@ -43,31 +43,38 @@ class StartScreen(Screen):
 
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
-
+        
+        # Layout
         self.root_layout = FloatLayout()
-
         self.layout = BaseLayout()
 
+        # StartContainer
         self.start_container = StartContainer(parent_screen=self)
 
+        # Screen header
         self.screen_header = PartitionHeader(text="<< swipe to continue >>")
         self.start_container.container.add_widget(self.screen_header)
 
+        # TaskGroup
         self.task_group = BoxLayout(orientation="vertical", size_hint_y=None)
         self.task_group.bind(minimum_height=self.task_group.setter("height"))
-
+        # TaskHeader
         self.day_header = TaskHeader(text=self.task_date)
         self.task_group.add_widget(self.day_header)
-
+        # TaskGroupContainer
         self.tasks_container = TaskGroupContainer()
         self.task_group.add_widget(self.tasks_container)
-
+        # Add to container
         self.start_container.container.add_widget(self.task_group)
+
+        # Screenshot button
         self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
                                                      color_state=STATE.ACTIVE)
         self.screenshot_button.bind(on_release=self.take_screenshot)
+        # Add to container
         self.start_container.container.add_widget(self.screenshot_button)
 
+        # Layout
         self.layout.add_widget(self.start_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
@@ -77,44 +84,39 @@ class StartScreen(Screen):
         end_time = time_.time()
         logger.error(f"__INIT__ TIME: {end_time - start_time:.4f}")
     
-    def _build_page(self) -> None:
-        start_time = time_.time()
-        self.screen_header = PartitionHeader(text="<< swipe to continue >>")
-        self.start_container.container.add_widget(self.screen_header)
-
-        self.task_group = BoxLayout(orientation="vertical", size_hint_y=None)
-        self.task_group.bind(minimum_height=self.task_group.setter("height"))
-
-        self.day_header = TaskHeader(text=self.task_date)
-        self.task_group.add_widget(self.day_header)
-
-        self.tasks_container = TaskGroupContainer()
-        self.task_group.add_widget(self.tasks_container)
-
-        self.start_container.container.add_widget(self.task_group)
-        self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
-                                                     color_state=STATE.ACTIVE)
-        self.screenshot_button.bind(on_release=self.take_screenshot)
-        self.start_container.container.add_widget(self.screenshot_button)
-        end_time = time_.time()
-        logger.error(f"_BUILD_PAGE TIME: {end_time - start_time:.4f}")
-
     def _load_current_tasks_widgets(self) -> None:
         """
         Loads the tasks widgets into the tasks container.
         These contain the next tasks that are expiring, grouped by date.
         """
         start_time = time_.time()
-        self.tasks_container.clear_widgets()
+        # self.tasks_container.clear_widgets()
         for task in self.current_task_data:
+            # TaskContainer
             task_container = TaskContainer()
-
-            from src.managers.tasks.task_manager_utils import Task
+            
+            # TimeContainer
+            time_container = TimeContainer()
+            # TimeLabel
             time = Task.to_time_str(task["timestamp"])
             start_time_label = TimeLabel(text=time)
-            task_container.add_widget(start_time_label)
-
+            time_container.add_widget(start_time_label)
+            # SoundIcon
+            if task["alarm_name"]:
+                sound_icon = TaskIcon(source=PATH.SOUND_IMG)
+                time_container.add_widget(sound_icon)
+            # VibrateIcon
+            if task["vibrate"]:
+                vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
+                time_container.add_widget(vibrate_icon)
+            
+            # TaskLabel
             task_message = TaskLabel(text=task["message"])
+            task_container.add_widget(task_message)
+
+            # Add to container
+            task_container.add_widget(time_container)
+            self.tasks_container.add_widget(task_container)
             
             def update_text_size(instance, value):
                 width = value[0]
@@ -124,10 +126,7 @@ class StartScreen(Screen):
                 task_container.height = start_time_label.height + instance.height
             
             task_message.bind(size=update_text_size)
-            
-            task_container.add_widget(task_message)
-            self.tasks_container.add_widget(task_container)
-
+        
         end_time = time_.time()
         logger.error(f"_LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
 

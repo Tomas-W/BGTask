@@ -174,7 +174,7 @@ class TaskApp(App):
             if screen_name != SCREEN.START:
                 self.screen_manager.add_widget(screen)
         
-        Clock.schedule_once(lambda dt: self.get_screen(SCREEN.HOME).update_task_display(), 0.1)
+        Clock.schedule_once(lambda dt: self.get_screen(SCREEN.HOME)._full_rebuild_task_display(), 0.1)
         self.logger.debug(f"CALLING INIT OTHER SCREENS")
         self._init_other_screens(dt=None)
     
