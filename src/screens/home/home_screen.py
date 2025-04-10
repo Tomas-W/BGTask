@@ -30,8 +30,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
-        self.task_manager.bind(on_task_saved=self.scroll_to_new_task)
-        self.task_manager.bind(on_tasks_changed=self.handle_tasks_changed)
+        self.task_manager.bind(on_task_saved_scroll_to_task=self.scroll_to_task)
+        self.task_manager.bind(
+            on_tasks_changed_update_task_display=lambda instance,
+             **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
 
         # Task attributes
         self.tasks_loaded: bool = False
@@ -151,7 +153,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                 self.edited_task = fresh_task
                 
                 # CRITICAL: First dispatch event from task_manager to load task data in the NewTaskScreen
-                self.task_manager.dispatch("on_task_edit", task=fresh_task)
+                self.task_manager.dispatch("on_task_edit_load_task_data", task=fresh_task)
                 
                 # THEN navigate to the edit screen after the data is loaded
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(SCREEN.NEW_TASK), 0.1)
@@ -242,7 +244,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             
         return True
 
-    def scroll_to_new_task(self, instance, task):
+    def scroll_to_task(self, instance, task):
         """Scroll to the new/edited task"""
         # Mark to invalidate this Widgets cache
         self.invalidate_cache_for_date = task.get_date_str()
@@ -301,35 +303,3 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
-    
-    def check_for_edit_delete(self) -> None:
-        """
-        Toggle the visibility of the edit and delete icons based on the current state.
-        """
-        if self.edit_delete_visible:
-            self.show_edit_delete()
-        else:
-            self.hide_edit_delete()
-    
-    def toggle_edit_delete(self, *args) -> None:
-        """Toggle the visibility state of the edit and delete buttons."""
-        self.edit_delete_visible = not self.edit_delete_visible
-        self.check_for_edit_delete()
-    
-    def show_edit_delete(self) -> None:
-        """Show the edit and delete icons for every Task."""
-        for button in self.edit_delete_buttons:
-            button.set_opacity(1)
-            button.set_disabled(False)
-    
-    def hide_edit_delete(self) -> None:
-        """Hide the edit and delete icons for every Task."""
-        for button in self.edit_delete_buttons:
-            button.set_opacity(0)
-            button.set_disabled(True)
-
-    def handle_tasks_changed(self, instance, **kwargs):
-        """Handle the on_tasks_changed event with potential modified_task parameter"""
-        modified_task = kwargs.get("modified_task")
-        logger.debug(f"Handling tasks_changed event, modified_task: {modified_task.task_id if modified_task else None}")
-        self.update_task_display(modified_task=modified_task)

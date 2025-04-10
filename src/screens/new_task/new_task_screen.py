@@ -28,7 +28,7 @@ class NewTaskScreen(BaseScreen):
         self.task_manager = task_manager
         self.audio_manager = audio_manager
 
-        self.task_manager.bind(on_task_edit=self.load_task_data)
+        self.task_manager.bind(on_task_edit_load_task_data=self.load_task_data)
 
         # Edit/delete attributes
         self.in_edit_task_mode: bool = False
@@ -161,7 +161,7 @@ class NewTaskScreen(BaseScreen):
     def load_task_data(self, instance, task, *args) -> None:
         """
         Load task data for editing
-        Called when the on_task_edit event is dispatched from HomeScreen
+        Called when the on_task_edit_load_task_data event is dispatched from HomeScreen
         """
         logger.debug(f"Loading task data for editing: {task.task_id}")
         

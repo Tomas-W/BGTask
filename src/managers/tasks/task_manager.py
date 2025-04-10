@@ -23,6 +23,11 @@ class TaskManager(EventDispatcher):
         super().__init__()
         self.navigation_manager = App.get_running_app().navigation_manager
 
+        # Events
+        self.register_event_type("on_task_saved_scroll_to_task")
+        self.register_event_type("on_tasks_changed_update_task_display")
+        self.register_event_type("on_task_edit_load_task_data")
+
         # File path
         self.task_file_path: str = get_storage_path(PATH.TASK_FILE)
         validate_file(self.task_file_path)
@@ -30,11 +35,6 @@ class TaskManager(EventDispatcher):
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
         self.sorted_active_tasks: list[dict] = None
-
-        # Events
-        self.register_event_type("on_task_saved")
-        self.register_event_type("on_tasks_changed")
-        self.register_event_type("on_task_edit")
 
         # Editing
         self.selected_task_id: str | None = None
@@ -139,9 +139,9 @@ class TaskManager(EventDispatcher):
         self.save_tasks_to_json()
 
         # Notify UI to update the Task display
-        self.dispatch("on_tasks_changed", modified_task=task)
+        self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
         # Notify to scroll to Task
-        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
+        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
     
     def update_task(self, task_id: str, message: str,
                     timestamp: datetime, alarm_name: str, vibrate: bool) -> None:
@@ -158,6 +158,17 @@ class TaskManager(EventDispatcher):
         task.message = message
         task.alarm_name = alarm_name
         task.vibrate = vibrate
+        
+        # Update expired state based on new timestamp
+        now = datetime.now()
+        if timestamp > now and task.expired:
+            # Task was moved from past to future, mark as not expired
+            task.expired = False
+            logger.debug(f"Task {task_id} moved to future, marked as not expired")
+        elif timestamp <= now and not task.expired:
+            # Task was moved from future to past, mark as expired
+            task.expired = True
+            logger.debug(f"Task {task_id} moved to past, marked as expired")
         
         new_date_key = task.get_date_key()
         
@@ -179,9 +190,9 @@ class TaskManager(EventDispatcher):
 
         logger.debug(f"Updated task: {task_id}")
         # Notify UI to update with specific task
-        self.dispatch("on_tasks_changed", modified_task=task)
+        self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
         # Notify to scroll to Task
-        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved", task=task), 0.1)
+        Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
 
     def delete_task(self, task_id: str) -> None:
         """Delete a task by ID."""
@@ -213,7 +224,7 @@ class TaskManager(EventDispatcher):
 
         logger.debug(f"Deleted task: {task_id}")
         # Notify to update task display with the original task information
-        self.dispatch("on_tasks_changed", modified_task=task_copy)
+        self.dispatch("on_tasks_changed_update_task_display", modified_task=task_copy)
 
     def set_expired_tasks(self):
         """Set Task to be expired if its timestamp is in the past."""
@@ -229,11 +240,11 @@ class TaskManager(EventDispatcher):
         if modified_tasks:
             # If many tasks changed, do a full rebuild
             if len(modified_tasks) > 3:
-                self.dispatch("on_tasks_changed")
+                self.dispatch("on_tasks_changed_update_task_display")
             else:
                 # Otherwise, update each task individually
                 for task in modified_tasks:
-                    self.dispatch("on_tasks_changed", modified_task=task)
+                    self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
             self.save_tasks_to_json()
     
     def get_task_by_id(self, task_id: str) -> Task:
@@ -246,14 +257,14 @@ class TaskManager(EventDispatcher):
         
         return None
     
-    def on_task_saved(self, task, *args):
-        """Default handler for on_task_saved event"""
-        logger.debug(f"on_task_saved event finished: {task}")
+    def on_task_saved_scroll_to_task(self, task, *args):
+        """Default handler for on_task_saved_scroll_to_task event"""
+        pass
     
-    def on_tasks_changed(self, *args, **kwargs):
-        """Default handler for on_tasks_changed event"""
-        logger.debug("on_tasks_changed event finished")
+    def on_tasks_changed_update_task_display(self, *args, **kwargs):
+        """Default handler for on_tasks_changed_update_task_display event"""
+        pass
     
-    def on_task_edit(self, *args, **kwargs):
-        """Default handler for on_task_edit event"""
-        logger.debug("on_task_edit event finished")
+    def on_task_edit_load_task_data(self, *args, **kwargs):
+        """Default handler for on_task_edit_load_task_data event"""
+        pass
