@@ -9,12 +9,12 @@ from datetime import datetime
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
-from src.widgets.buttons import CustomConfirmButton
+from src.widgets.buttons import CustomButton
 
 from src.managers.device_manager import DM
 from src.managers.tasks.task_manager_utils import Task
 
-from .start_screen_utils import take_screenshot
+from .start_screen_utils import set_screen_as_wallpaper
 
 from src.widgets.containers import StartContainer, BaseLayout
 from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
@@ -44,6 +44,7 @@ class StartScreen(Screen):
         super().__init__(**kwargs)
         start_time = time_.time()
         self.screen_is_loaded: bool = False
+        self.is_taking_screenshot: bool = False  # Flag to prevent multiple screenshot calls
 
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
@@ -72,9 +73,9 @@ class StartScreen(Screen):
         self.start_container.container.add_widget(self.task_group)
 
         # Screenshot button
-        self.screenshot_button = CustomConfirmButton(text="Set as Wallpaper", width=1,
+        self.screenshot_button = CustomButton(text="Set as Wallpaper", width=1,
                                                      color_state=STATE.ACTIVE)
-        self.screenshot_button.bind(on_release=self._take_screenshot)
+        self.screenshot_button.bind(on_release=self._set_screen_as_wallpaper)
         # Add to container
         self.start_container.container.add_widget(self.screenshot_button)
 
@@ -254,5 +255,25 @@ class StartScreen(Screen):
         
         self.navigation_manager.navigate_to(SCREEN.HOME, slide_direction)
 
-    def _take_screenshot(self, instance) -> None:
-        take_screenshot(self.root_layout, self.screen_header, self.screenshot_button)
+    def _set_screen_as_wallpaper(self, instance) -> None:
+        """
+        Takes a screenshot of the current screen and,
+          if android, sets it as the wallpaper.
+        Widgets besides the TaskHeader and TaskGroupContainer are hidden
+        while the screenshot is taken.
+        """
+        # Prevent multiple simultaneous screenshot attempts
+        if self.is_taking_screenshot:
+            return
+            
+        self.is_taking_screenshot = True
+        
+        # Disable the button at UI level to give immediate visual feedback
+        self.screenshot_button.disabled = True
+        
+        # Call the actual screenshot function
+        set_screen_as_wallpaper(self.root_layout, self.screen_header, self.screenshot_button)
+        
+        # Reset the flag when the screenshot process completes
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: setattr(self, 'is_taking_screenshot', False), 1)

@@ -10,8 +10,8 @@ class DeviceManager:
     Manages device-related operations.
     """
     def __init__(self):
-        self.is_android = self._device_is_android()
-        self.is_windows = not self.is_android
+        self.is_android: bool = self._device_is_android()
+        self.is_windows: bool = not self.is_android
 
         self.has_recording_permission: bool = self.check_recording_permission()
         self.has_wallpaper_permission: bool = self.check_wallpaper_permission()
@@ -28,34 +28,41 @@ class DeviceManager:
         else:
             return os.path.join(directory)
     
-    def validate_dir(self, dir_path):
+    def validate_dir(self, dir_path) -> bool:
         """Validate and create a directory if it doesn't exist."""
         if not os.path.isdir(dir_path):
             try:
                 os.makedirs(dir_path, exist_ok=True)
                 logger.debug(f"Created directory: {dir_path}")
-
+                return True
+            
             except PermissionError:
                 logger.error(f"Permission denied: Cannot create directory {dir_path}. Check app permissions.")
+                return False
             except FileNotFoundError:
                 logger.error(f"Invalid path: {dir_path} does not exist.")
+                return False
             except OSError as e:
                 logger.error(f"OS error while creating {dir_path}: {e}")
-    
-    def validate_file(self, file_path):
+                return False
+
+    def validate_file(self, file_path: str) -> bool:
         """Validate and create a file if it doesn't exist."""
         if not os.path.isfile(file_path):
             try:
-                with open(file_path, "w") as f:
-                    pass
+                with open(file_path, "r") as f:
+                    return True
 
             except PermissionError:
                 logger.error(f"Permission denied: Cannot create file {file_path}. Check app permissions.")
+                return False
             except FileNotFoundError:
                 logger.error(f"Invalid path: {file_path} does not exist.")
+                return False
             except OSError as e:
                 logger.error(f"OS error while creating {file_path}: {e}")
-            
+                return False
+
     def check_recording_permission(self) -> bool:
         """Returns whether Android RECORD_AUDIO permission is granted."""
         if not self.is_android:

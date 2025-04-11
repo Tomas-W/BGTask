@@ -46,6 +46,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # NewTaskScreen
+# TODO: Fix vibrate loading/setting/resetting in new task screen
 # TODO: 1 Task per timestamp
 # TODO: Delete alarm button on NewTask screen
 # TODO: After saving task, reset task details
@@ -68,6 +69,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # General
+# TODO: Non confim buttons must be custom buttons, regular color is active, active color is custom confirm active
 # TODO: Rework is_android
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
