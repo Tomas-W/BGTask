@@ -1,8 +1,10 @@
+import os
+
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 
-from src.settings import COL, SIZE, FONT, STYLE, STATE
+from src.settings import COL, SIZE, FONT, STYLE, STATE, PATH
 
 
 class TopBarButton(Button):
@@ -293,3 +295,63 @@ class CustomSettingsButton(CustomButton):
         self.font_size = FONT.SETTINGS_BUTTON if not symbol else FONT.SETTINGS_BUTTON_SYMBOL
         self.always_clickable = True  # Set property to keep clickable
         self.disabled = False  # Ensure it's enabled
+
+
+class IconButton(Button):
+    """
+    IconButton is a button that:
+    - Has an state [active, inactive]
+    - Has a color based on state
+    - Has a transparent background
+    """
+    def __init__(self, size_x: float, icon_name: str, color_state: str = STATE.ACTIVE, **kwargs):
+        super().__init__(
+            size_hint=(size_x, None),
+            width=SIZE.ICON_BUTTON_HEIGHT,
+            height=SIZE.ICON_BUTTON_HEIGHT,
+            background_color=COL.OPAQUE,
+            **kwargs
+        )
+        self.icon_name = icon_name
+        self.color_state = color_state
+        self.active_path = os.path.join(PATH.IMG, icon_name + "_active_64.png")
+        self.inactive_path = os.path.join(PATH.IMG, icon_name + "_inactive_64.png")
+        self.icon = Image(source=self.active_path if self.color_state == STATE.ACTIVE else self.inactive_path)
+        
+        self.icon.size = (SIZE.ICON_BUTTON_HEIGHT, SIZE.ICON_BUTTON_HEIGHT)
+
+        self.add_widget(self.icon)
+        self.bind(pos=self._update_image, size=self._update_image)
+
+    def _update_image(self, instance, value):
+        self.icon.pos = (
+            self.x + (self.width - self.icon.width) / 2,
+            self.y + (self.height - self.icon.height) / 2
+        )
+    
+    def set_active_state(self):
+        self.color_state = STATE.ACTIVE
+        self._set_new_icon(STATE.ACTIVE)
+    
+    def set_inactive_state(self):
+        self.color_state = STATE.INACTIVE
+        self._set_new_icon(STATE.INACTIVE)
+    
+    def set_disabled(self, value):
+        self.disabled = value
+    
+    def _set_new_icon(self, state: STATE):
+        self.remove_widget(self.icon)
+
+        try:
+            if state == STATE.ACTIVE:
+                self.icon = Image(source=self.active_path)
+            else:
+                self.icon = Image(source=self.inactive_path)
+            
+            self.icon.size = (SIZE.ICON_BUTTON_HEIGHT, SIZE.ICON_BUTTON_HEIGHT)
+            self.add_widget(self.icon)
+            self._update_image(self, self.size)
+        
+        except ValueError as e:
+            raise ValueError(f"Error setting new icon: {e}")

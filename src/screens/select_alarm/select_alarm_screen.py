@@ -2,10 +2,9 @@ from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.containers import (ScrollContainer, Partition,
-                                    CustomButtonRow, CustomSettingsButtonsRow)
+from src.widgets.containers import Partition, CustomButtonRow, CustomRow
 from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
-                                CustomCancelButton)
+                                CustomCancelButton, IconButton)
 from src.widgets.fields import SettingsField
 
 from src.utils.logger import logger
@@ -55,19 +54,23 @@ class SelectAlarmScreen(BaseScreen):
         self.selected_alarm = SettingsField(text="No alarm selected", width=1, color_state=STATE.INACTIVE)
         self.preview_alarm_partition.add_widget(self.selected_alarm)
         # Selected alarm row
-        self.preview_alarm_row = CustomSettingsButtonsRow()
+        self.preview_alarm_row = CustomButtonRow()
         # Play selected alarm button
-        self.play_selected_alarm_button = CustomSettingsButton(text="Play Selected Alarm", width=1, color_state=STATE.INACTIVE)
+        self.play_selected_alarm_button = IconButton(size_x=0.25, icon_name="play", color_state=STATE.INACTIVE)
         self.play_selected_alarm_button.bind(on_release=self.play_selected_alarm)
         self.preview_alarm_row.add_widget(self.play_selected_alarm_button)
         # Stop selected alarm button
-        self.stop_selected_alarm_button = CustomSettingsButton(text="Stop Selected Alarm", width=1, color_state=STATE.INACTIVE)
+        self.stop_selected_alarm_button = IconButton(size_x=0.25, icon_name="stop", color_state=STATE.INACTIVE)
         self.stop_selected_alarm_button.bind(on_release=self.stop_selected_alarm)
         self.preview_alarm_row.add_widget(self.stop_selected_alarm_button)
         # Edit selected alarm button
-        self.edit_selected_alarm_button = CustomSettingsButton(text="Edit Selected Alarm", width=1, color_state=STATE.INACTIVE)
+        self.edit_selected_alarm_button = IconButton(size_x=0.25, icon_name="edit", color_state=STATE.INACTIVE)
         self.edit_selected_alarm_button.bind(on_release=self.edit_selected_alarm_name)
         self.preview_alarm_row.add_widget(self.edit_selected_alarm_button)
+        # Delete selected alarm button
+        self.delete_selected_alarm_button = IconButton(size_x=0.25, icon_name="delete", color_state=STATE.INACTIVE)
+        self.delete_selected_alarm_button.bind(on_release=self.delete_selected_alarm)
+        self.preview_alarm_row.add_widget(self.delete_selected_alarm_button)
 
         # Add to scroll container
         self.preview_alarm_partition.add_widget(self.preview_alarm_row)
@@ -287,6 +290,10 @@ class SelectAlarmScreen(BaseScreen):
         """Edit the name of the selected alarm"""
         pass
 
+    def delete_selected_alarm(self, instance) -> None:
+        """Delete the selected alarm"""
+        pass
+
     def toggle_vibration(self, instance) -> None:
         """Toggle vibration on the selected alarm"""
         self.task_manager.vibrate = not self.task_manager.vibrate
@@ -313,7 +320,23 @@ class SelectAlarmScreen(BaseScreen):
             active=False, 
             enabled=False
         )
+    
+    def test_cancel(self, instance=None) -> None:
+        """Test the cancel button"""
+        print("Test the cancel button")
 
+    def test_confirm(self, instance=None) -> None:
+        """Test the confirm button"""
+        print("Test the confirm button")
+
+    def on_enter(self) -> None:
+        super().on_enter()
+        self.show_confirmation_popup(
+            header="Are you sure you want to delete this alarm:\nrecording_12-12-12",
+            on_confirm=self.test_confirm,
+            on_cancel=self.test_cancel
+        )
+    
     def on_leave(self) -> None:
         """Called when the screen is left"""
         super().on_leave()

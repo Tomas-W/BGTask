@@ -10,6 +10,7 @@ from kivy.uix.screenmanager import Screen
 from src.widgets.bars import TopBarClosed, TopBarExpanded, BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
 from src.widgets.misc import Spacer
+from src.widgets.popups import ConfirmationPopup, TextInputPopup
 
 from src.utils.logger import logger
 
@@ -30,6 +31,19 @@ class BaseScreen(Screen):
         self.initial_scroll = True        # Prevent BottomBar untill user scrolls
         self.animating_spacer = False     # If spacer is animating
         self.pending_bar_check = None     # Timer for debounced bottom bar visibility
+
+        # Initialize popup instances with None callbacks
+        self.confirmation_popup = ConfirmationPopup(
+            header="",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+        self.text_input_popup = TextInputPopup(
+            header="",
+            input_text="",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
 
         self.root_layout = FloatLayout()
         self.layout = BaseLayout()
@@ -235,6 +249,39 @@ class BaseScreen(Screen):
             
         button.set_disabled(not enabled)
     
+    def _handle_popup_confirmation(self, confirmed: bool):
+        """Handle confirmation popup button press"""
+        if self.callback:
+            self.callback(confirmed)
+
+    def _handle_popup_text_input(self, confirmed: bool):
+        """Handle text input popup button press"""
+        if self.callback:
+            text = self.text_input_popup.input_field.text if confirmed else None
+            self.callback(text)
+
+    def show_confirmation_popup(self, header: str,
+                                 on_confirm: Callable, on_cancel: Callable):
+        """
+        Show a confirmation popup with a PartitionHeader (aligned center),
+        CustomConfirmButton and CustomCancelButton.
+        Reuses the same popup instance for efficiency.
+        """
+        self.confirmation_popup.header.text = header
+        self.confirmation_popup.update_callbacks(on_confirm, on_cancel)
+        self.confirmation_popup.show_animation()
+
+    def show_text_popup(self, header: str, input_text: str,
+                         on_confirm: Callable, on_cancel: Callable):
+        """
+        Show a popup with an InputField between the header and buttons.
+        Reuses the same popup instance for efficiency.
+        """
+        self.text_input_popup.header.text = header
+        self.text_input_popup.input_field.text = input_text
+        self.text_input_popup.update_callbacks(on_confirm, on_cancel)
+        self.text_input_popup.show_animation()
+
     def show_error_popup(self, title, message):
         """
         Show an error popup with the given title and message.

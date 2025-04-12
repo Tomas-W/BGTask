@@ -270,15 +270,29 @@ class CustomButtonRow(BoxLayout):
         super().__init__(
             orientation="horizontal",
             size_hint=(1, None),
+            pos_hint={"center_y": 0.5, "center_x": 0.5},
             height=SIZE.BUTTON_HEIGHT,
             spacing=SPACE.SPACE_M,
             **kwargs
         )
 
 
-class CustomSettingsButtonsRow(CustomButtonRow):
+class CustomIconButtonRow(CustomButtonRow):
     """
-    CustomSettingsButtonsRow is the base for a row of CustomSettingsButtons that:
+    CustomIconButtonRow is the base for a row of CustomIconButtons that:
+    - Contains CustomIconButtons
+    - Has spacing between its children
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            **kwargs
+        )
+        self.height = SIZE.ICON_BUTTON_HEIGHT
+
+
+class CustomSettingsButtonRow(CustomButtonRow):
+    """
+    CustomSettingsButtonRow is the base for a row of CustomSettingsButtons that:
     - Contains CustomSettingsButtons
     - Has spacing between its children
     """

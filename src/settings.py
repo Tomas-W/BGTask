@@ -28,6 +28,15 @@ class Paths(Directories):
 
     SOUND_IMG = os.path.join(Directories.IMG, "sound_64.png")
     VIBRATE_IMG = os.path.join(Directories.IMG, "vibrate_64.png")
+
+    PLAY_ACTIVE_IMG = os.path.join(Directories.IMG, "play_active_64.png")
+    PLAY_INACTIVE_IMG = os.path.join(Directories.IMG, "play_inactive_64.png")
+    STOP_ACTIVE_IMG = os.path.join(Directories.IMG, "stop_active_64.png")
+    STOP_INACTIVE_IMG = os.path.join(Directories.IMG, "stop_inactive_64.png")
+    EDIT_ACTIVE_IMG = os.path.join(Directories.IMG, "edit_active_64.png")
+    EDIT_INACTIVE_IMG = os.path.join(Directories.IMG, "edit_inactive_64.png")
+    DELETE_ACTIVE_IMG = os.path.join(Directories.IMG, "delete_active_64.png")
+    DELETE_INACTIVE_IMG = os.path.join(Directories.IMG, "delete_inactive_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
 
@@ -87,6 +96,8 @@ class Sizes:
 
     BUTTON_HEIGHT = dp(60)
     SETTINGS_BUTTON_HEIGHT = dp(40)
+
+    ICON_BUTTON_HEIGHT = dp(50)
     
     CUSTOM_ROW_HEIGHT = dp(40)
     NO_TASKS_LABEL_HEIGHT = dp(100)

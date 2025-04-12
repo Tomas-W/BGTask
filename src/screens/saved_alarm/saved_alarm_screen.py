@@ -64,8 +64,6 @@ class SavedAlarmScreen(BaseScreen):
         """
         Cancel the alarm selection.
         """
-        self.audio_manager.selected_alarm_name = None
-        self.audio_manager.selected_alarm_path = None
         self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
 
     def create_alarm_buttons(self) -> None:

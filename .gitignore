@@ -17,6 +17,9 @@ bin/
 # Profiler
 profiler/data/
 
+# Backups
+backups/
+
 # Media
 *.wav
 *.mp3

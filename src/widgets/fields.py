@@ -17,12 +17,19 @@ class TextField(BoxLayout):
     - Applies visible border on error
     - Has a hint text
     - Has an error message
+    - Supports n_lines to determine height and multiline behavior
     """
-    def __init__(self, hint_text="", **kwargs):
+    def __init__(self, hint_text="", n_lines=1, **kwargs):
+        # Calculate total height based on number of lines and padding
+        font_size = FONT.DEFAULT
+        if n_lines == 1:
+            font_size = FONT.DEFAULT * 1.2
+        total_height = (font_size * n_lines) + (2 * SPACE.SPACE_M)  # Account for top and bottom padding
+        
         super().__init__(
             orientation="vertical",
             size_hint=(1, None),
-            height=SIZE.BUTTON_HEIGHT * 3,
+            height=total_height,
             padding=[0, SPACE.SPACE_M, 0, SPACE.SPACE_M],
             **kwargs
         )
@@ -52,15 +59,18 @@ class TextField(BoxLayout):
             
             self.bind(pos=self.update_rects, size=self.update_rects)
         
+        # Calculate text input height (total height minus padding)
+        text_input_height = total_height - (2 * SPACE.SPACE_M)
+        
         self.text_input = TextInput(
             hint_text=hint_text,
             size_hint=(1, None),
-            height=SIZE.BUTTON_HEIGHT * 3 - SPACE.SPACE_M * 2,
-            multiline=True,
+            height=text_input_height,
+            multiline=n_lines > 1,  # Only multiline if more than 1 line
             font_size=FONT.DEFAULT,
             background_color=COL.OPAQUE,
             foreground_color=COL.TEXT,
-            padding=[SPACE.FIELD_PADDING_X, 0]
+            padding=[SPACE.FIELD_PADDING_X, 0],
         )
         
         self.text_input.bind(text=self._on_text_change)        
