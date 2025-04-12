@@ -43,7 +43,7 @@ class StartScreen(Screen):
         """
         super().__init__(**kwargs)
         start_time = time_.time()
-        self.screen_is_loaded: bool = False
+        self._start_screen_finished: bool = False
         self.is_taking_screenshot: bool = False  # Flag to prevent multiple screenshot calls
 
         self.current_task_data: list[dict] = []
@@ -191,28 +191,22 @@ class StartScreen(Screen):
         logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
     
     @property
-    def is_completed(self) -> bool:
-        return self.screen_is_loaded
+    def start_screen_finished(self) -> bool:
+        return self._start_screen_finished
 
-    @is_completed.setter
-    def is_completed(self, value: bool) -> None:
+    @start_screen_finished.setter
+    def start_screen_finished(self, value: bool) -> None:
         """
-        Sets the start screen loaded to the value.
+        Sets the start_screen_finished to the value.
         Triggers loading the rest of the app in the background.
         """
-        self.screen_is_loaded = value
-        from kivy.clock import Clock
-        Clock.schedule_once(self.background_load_app_components, 0.01)
-
-    def background_load_app_components(self, dt: float) -> None:
-        from kivy.clock import Clock
-        def load(dt):
-            from kivy.app import App
-            App.get_running_app()._load_app_components()
-            self.navigation_manager = App.get_running_app().navigation_manager
-            self.task_manager = App.get_running_app().task_manager
+        if self._start_screen_finished == value:
+            return
         
-        Clock.schedule_once(load, 0.1)
+        self._start_screen_finished = value
+        from kivy.app import App
+        app = App.get_running_app()
+        app.dispatch("on_start_screen_finished_load_app")
 
     def on_pre_enter(self) -> None:
         """
@@ -236,10 +230,10 @@ class StartScreen(Screen):
         When the screen is shown, the rest of the app is loaded in the background.
         After loading the app, the HomeScreen is loaded.
         """
-        if not self.screen_is_loaded:
+        if not self._start_screen_finished:
             import time
             self.on_enter_time = time.time()        
-            self.is_completed = True
+            self.start_screen_finished = True
             finish_time = time.time()
             from kivy.app import App
             app = App.get_running_app()

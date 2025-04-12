@@ -5,6 +5,8 @@ from kivy.metrics import dp, sp
 
 
 class Directories:
+    PROFILER = os.path.join(os.getcwd(), "profiler")
+
     SRC = os.path.dirname(os.path.abspath(__file__))
     ASSETS = os.path.join(SRC, "assets")
     IMG = os.path.join(SRC, ASSETS, "images")

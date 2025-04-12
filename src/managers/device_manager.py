@@ -1,6 +1,8 @@
 import os
+import time
 
 from src.utils.logger import logger
+
 
 from src.settings import PLATFORM
 
@@ -143,3 +145,46 @@ class DeviceManager:
 
 
 DM = DeviceManager()
+
+
+def start_profiler():
+    import cProfile
+    profile = cProfile.Profile()
+    profile.enable()
+    return profile
+
+
+def stop_profiler(profile):
+    profile.disable()
+        
+    profiler_dir = os.path.join(os.getcwd(), "profiler", "data")
+    os.makedirs(profiler_dir, exist_ok=True)
+    
+    profile_path = os.path.join(profiler_dir, "myapp.profile")
+    profile.dump_stats(profile_path)
+
+    if DM.is_android:
+        try:
+            from android.storage import primary_external_storage_path  # type: ignore
+            from jnius import autoclass  # type: ignore
+            import shutil
+            
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            
+            ext_path = primary_external_storage_path()
+            dest_dir = os.path.join(ext_path, "Documents", "BGTask")
+            
+            if not os.path.exists(dest_dir):
+                os.makedirs(dest_dir, exist_ok=True)
+            
+            dest_file = os.path.join(dest_dir, f"profile_{timestamp}.profile")
+            shutil.copy2(profile_path, dest_file)
+            
+            MediaScannerConnection = autoclass("android.media.MediaScannerConnection")
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            MediaScannerConnection.scanFile(activity, [dest_file], None, None)
+
+            print(f"Profile exported to: {dest_file}")
+            
+        except Exception as e:
+            print(f"Error exporting profile: {str(e)}")
