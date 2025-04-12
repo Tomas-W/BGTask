@@ -22,7 +22,17 @@ class AudioManagerUtils:
         Get the path and filename of a new recording.
         Format: ../{recordings_dir}/recording_HH-MM-SS.wav
         """
-        filename = f"recording_{datetime.now().strftime('%H-%M-%S')}"
+        name = "recording_"
+        timestamp = datetime.now().strftime('%H-%M-%S')
+        while True:
+            path = os.path.join(self.recordings_dir, name + timestamp + EXT.WAV)
+            if os.path.exists(path):
+                logger.warning(f"Recording file already exists: {path}")
+                name += "_"
+            else:
+                break
+
+        filename = f"{name}{timestamp}"
         path = os.path.join(self.recordings_dir, filename + EXT.WAV)
         return path, filename
     

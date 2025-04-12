@@ -24,7 +24,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TaskManager
 # TODO: Expired check only today
 # TODO: Check every minute for expired tasks and update Task
-#TODO: Set first expiring time and check at that time
+# TODO: Set first expiring time and check at that time
 
 
 # StartScreen
@@ -65,9 +65,11 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Rework audio preview
 # TODO: Fix alarm name taken filename
 # TODO: Cache alarm buttons
+# TODO: Limit alarm name length
 
 
 # SavedAlarmScreen
+# TODO: Limit alarm name length
 
 
 # General
@@ -279,9 +281,9 @@ class TaskApp(App, EventDispatcher):
         App is being started.
         Load the database to ensure data is loaded.
         """
-        # pass
-        from src.managers.device_manager import start_profiler
-        self.profile = start_profiler()
+        pass
+        # from src.managers.device_manager import start_profiler
+        # self.profile = start_profiler()
     
 
     def on_stop(self):
@@ -289,9 +291,9 @@ class TaskApp(App, EventDispatcher):
         App is being stopped.
         Save the database to ensure data is persisted.
         """
-        # pass
-        from src.managers.device_manager import stop_profiler
-        stop_profiler(self.profile)
+        pass
+        # from src.managers.device_manager import stop_profiler
+        # stop_profiler(self.profile)
 
 
 if __name__ == "__main__":
