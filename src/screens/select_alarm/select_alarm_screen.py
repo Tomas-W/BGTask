@@ -2,14 +2,14 @@ from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.containers import Partition, CustomButtonRow, CustomRow
+from src.widgets.containers import Partition, BorderedPartition, CustomButtonRow, CustomIconButtonRow
 from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
                                 CustomCancelButton, IconButton)
-from src.widgets.fields import SettingsField
+from src.widgets.fields import CustomSettingsField
 
 from src.utils.logger import logger
 
-from src.settings import STATE, SCREEN
+from src.settings import STATE, SCREEN, SPACE
 
 
 class SelectAlarmScreen(BaseScreen):
@@ -24,7 +24,6 @@ class SelectAlarmScreen(BaseScreen):
 
         # TopBar title
         self.top_bar.bar_title.set_text("Select Alarm")
-
 
         # Alarm picker partition
         self.saved_alarms_partition = Partition()
@@ -49,26 +48,28 @@ class SelectAlarmScreen(BaseScreen):
         self.scroll_container.container.add_widget(self.create_alarm_partition)
         
         # Preview alarm partition
-        self.preview_alarm_partition = Partition()
+        self.preview_alarm_partition = BorderedPartition()
+        self.preview_alarm_partition.padding = [0, 0, 0, SPACE.SPACE_S]
         # Create alarm display box
-        self.selected_alarm = SettingsField(text="No alarm selected", width=1, color_state=STATE.INACTIVE)
+        self.selected_alarm = CustomSettingsField(text="No alarm selected", width=1, color_state=STATE.INACTIVE)
+        self.selected_alarm.remove_bottom_radius()
         self.preview_alarm_partition.add_widget(self.selected_alarm)
         # Selected alarm row
-        self.preview_alarm_row = CustomButtonRow()
+        self.preview_alarm_row = CustomIconButtonRow()
         # Play selected alarm button
-        self.play_selected_alarm_button = IconButton(size_x=0.25, icon_name="play", color_state=STATE.INACTIVE)
+        self.play_selected_alarm_button = IconButton(icon_name="play", color_state=STATE.INACTIVE)
         self.play_selected_alarm_button.bind(on_release=self.play_selected_alarm)
         self.preview_alarm_row.add_widget(self.play_selected_alarm_button)
         # Stop selected alarm button
-        self.stop_selected_alarm_button = IconButton(size_x=0.25, icon_name="stop", color_state=STATE.INACTIVE)
+        self.stop_selected_alarm_button = IconButton(icon_name="stop", color_state=STATE.INACTIVE)
         self.stop_selected_alarm_button.bind(on_release=self.stop_selected_alarm)
         self.preview_alarm_row.add_widget(self.stop_selected_alarm_button)
         # Edit selected alarm button
-        self.edit_selected_alarm_button = IconButton(size_x=0.25, icon_name="edit", color_state=STATE.INACTIVE)
+        self.edit_selected_alarm_button = IconButton(icon_name="edit", color_state=STATE.INACTIVE)
         self.edit_selected_alarm_button.bind(on_release=self.edit_selected_alarm_name)
         self.preview_alarm_row.add_widget(self.edit_selected_alarm_button)
         # Delete selected alarm button
-        self.delete_selected_alarm_button = IconButton(size_x=0.25, icon_name="delete", color_state=STATE.INACTIVE)
+        self.delete_selected_alarm_button = IconButton(icon_name="delete", color_state=STATE.INACTIVE)
         self.delete_selected_alarm_button.bind(on_release=self.delete_selected_alarm)
         self.preview_alarm_row.add_widget(self.delete_selected_alarm_button)
 
@@ -218,9 +219,21 @@ class SelectAlarmScreen(BaseScreen):
         """
         Checks for audio state (playing/recording) and updates UI accordingly.
         """
+        # Determine if we have an active state (either recording or alarm selected)
+        alarm_selected = self.audio_manager.is_recording or self.audio_manager.selected_alarm_name is not None
+        
+        # Update partition and field states
+        if alarm_selected:
+            self.preview_alarm_partition.set_active()
+            self.selected_alarm.set_active()
+        else:
+            self.preview_alarm_partition.set_inactive()
+            self.selected_alarm.set_inactive()
+        
+        # Update text and button states
         self.update_selected_alarm_text()
         self.update_button_states_based_on_alarm()
-        
+
     def start_recording_alarm(self, instance) -> None:
         """Start recording an alarm"""
         was_playing: bool = self.audio_manager.is_playing()
@@ -323,19 +336,19 @@ class SelectAlarmScreen(BaseScreen):
     
     def test_cancel(self, instance=None) -> None:
         """Test the cancel button"""
-        print("Test the cancel button")
+        pass
 
     def test_confirm(self, instance=None) -> None:
         """Test the confirm button"""
-        print("Test the confirm button")
+        pass
 
     def on_enter(self) -> None:
         super().on_enter()
-        self.show_confirmation_popup(
-            header="Are you sure you want to delete this alarm:\nrecording_12-12-12",
-            on_confirm=self.test_confirm,
-            on_cancel=self.test_cancel
-        )
+        # self.show_confirmation_popup(
+        #     header="Are you sure you want to delete this alarm:\nrecording_12-12-12",
+        #     on_confirm=self.test_confirm,
+        #     on_cancel=self.test_cancel
+        # )
     
     def on_leave(self) -> None:
         """Called when the screen is left"""

@@ -1,10 +1,10 @@
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 
 from kivy.logger import Logger as logger
 
-from src.settings import COL, SIZE, SPACE, FONT
+from src.settings import COL, SIZE, SPACE, FONT, STYLE
 
 
 class BaseLayout(BoxLayout):
@@ -257,7 +257,52 @@ class Partition(BoxLayout):
             spacing=SPACE.SPACE_S,
             **kwargs
         )
-        self.bind(minimum_height=self.setter('height'))
+        self.bind(minimum_height=self.setter("height"))
+
+
+class BorderedPartition(Partition):
+    """
+    BorderedPartition is a Partition that:
+    - Has a border in TEXT color
+    - Can have rounded corners at top or bottom
+    - Maintains same spacing and functionality as Partition
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.border_color = COL.BLACK
+        self.border_color_active = COL.BUTTON_ACTIVE
+
+        self.border_radius = STYLE.RADIUS_M
+        self._current_radius = [self.border_radius] * 4
+
+        with self.canvas.before:
+            # Border - initially visible
+            self.border_color_instr = Color(*self.border_color)
+            self.border_rect = Line(
+                rounded_rectangle=(
+                    self.pos[0], self.pos[1],
+                    self.size[0], self.size[1],
+                    self._current_radius[0]  # Use first radius value
+                ),
+                width=1
+            )
+            self.bind(pos=self._update_border, size=self._update_border)
+
+    def _update_border(self, instance, value):
+        """Update the border rectangle"""
+        self.border_rect.rounded_rectangle = (
+            instance.pos[0], instance.pos[1],
+            instance.size[0], instance.size[1],
+            self._current_radius[0]  # Use first radius value for consistency
+        )
+
+    def set_active(self):
+        """Set border color to active"""
+        self.border_color_instr.rgba = self.border_color_active
+
+    def set_inactive(self):
+        """Set border color to default (inactive)"""
+        self.border_color_instr.rgba = self.border_color
 
 
 class CustomButtonRow(BoxLayout):
@@ -277,17 +322,46 @@ class CustomButtonRow(BoxLayout):
         )
 
 
-class CustomIconButtonRow(CustomButtonRow):
+class CustomIconButtonRow(BoxLayout):
     """
     CustomIconButtonRow is the base for a row of CustomIconButtons that:
-    - Contains CustomIconButtons
-    - Has spacing between its children
+    - Contains IconButtons arranged horizontally
+    - Dynamically adjusts spacing based on number of icons
+    - Centers icons within the container
+    - Adapts to different screen sizes and platforms
     """
     def __init__(self, **kwargs):
         super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            pos_hint={"center_y": 0.5, "center_x": 0.5},
+            height=SIZE.ICON_BUTTON_HEIGHT,
+            padding=[SPACE.SPACE_L, 0],
             **kwargs
         )
-        self.height = SIZE.ICON_BUTTON_HEIGHT
+        self.bind(
+            minimum_height=self.setter("height"),
+            size=self._update_spacing,
+            children=self._update_spacing
+        )
+    
+    def _update_spacing(self, *args):
+        """Dynamically update spacing based on container width and number of children"""
+        if not self.children:
+            return
+        
+        # Calculate total width available for spacing
+        padding = self.padding[0] * 2
+        total_width = self.width - padding
+        num_children = len(self.children)
+        total_children_width = num_children * SIZE.ICON_BUTTON_HEIGHT
+        
+        if num_children > 1:
+            # Calculate spacing needed between each child
+            available_space = total_width - total_children_width
+            self.spacing = available_space / (num_children - 1)
+        else:
+            self.spacing = 0
 
 
 class CustomSettingsButtonRow(CustomButtonRow):

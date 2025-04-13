@@ -21,6 +21,12 @@ total_kivy_time = time.time() - start_kivy_time
 print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
+
+
+# Widgets
+# TODO: Base widgets and custom - with extra options like borders / radius / etc
+
+
 # TaskManager
 # TODO: Expired check only today
 # TODO: Check every minute for expired tasks and update Task

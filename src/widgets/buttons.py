@@ -299,59 +299,68 @@ class CustomSettingsButton(CustomButton):
 
 class IconButton(Button):
     """
-    IconButton is a button that:
-    - Has an state [active, inactive]
-    - Has a color based on state
-    - Has a transparent background
+    IconButton:
+    - Maintains active/inactive states
+    - Displays different icons based on state
+    - Uses transparent background
     """
-    def __init__(self, size_x: float, icon_name: str, color_state: str = STATE.ACTIVE, **kwargs):
+
+    def __init__(self, icon_name: str, color_state: str = STATE.ACTIVE, **kwargs):
         super().__init__(
-            size_hint=(size_x, None),
+            size_hint=(None, None),
             width=SIZE.ICON_BUTTON_HEIGHT,
             height=SIZE.ICON_BUTTON_HEIGHT,
             background_color=COL.OPAQUE,
             **kwargs
         )
+
         self.icon_name = icon_name
         self.color_state = color_state
+
         self.active_path = os.path.join(PATH.IMG, icon_name + "_active_64.png")
         self.inactive_path = os.path.join(PATH.IMG, icon_name + "_inactive_64.png")
-        self.icon = Image(source=self.active_path if self.color_state == STATE.ACTIVE else self.inactive_path)
-        
-        self.icon.size = (SIZE.ICON_BUTTON_HEIGHT, SIZE.ICON_BUTTON_HEIGHT)
 
+        self.icon = self._create_icon_widget(self.color_state)
         self.add_widget(self.icon)
-        self.bind(pos=self._update_image, size=self._update_image)
 
-    def _update_image(self, instance, value):
+        self.bind(pos=self._update_image_position, size=self._update_image_position)
+
+        # Optional: debug info to print on Android
+        from kivy.clock import Clock
+        Clock.schedule_once(self._debug_info, 1)
+
+    def _create_icon_widget(self, state: str):
+        path = self.active_path if state == STATE.ACTIVE else self.inactive_path
+        return Image(
+            source=path,
+            size=(SIZE.ICON_BUTTON_HEIGHT, SIZE.ICON_BUTTON_HEIGHT),
+            size_hint=(None, None),
+            allow_stretch=True,
+            keep_ratio=True
+        )
+
+    def _update_image_position(self, *args):
         self.icon.pos = (
             self.x + (self.width - self.icon.width) / 2,
             self.y + (self.height - self.icon.height) / 2
         )
-    
-    def set_active_state(self):
-        self.color_state = STATE.ACTIVE
-        self._set_new_icon(STATE.ACTIVE)
-    
-    def set_inactive_state(self):
-        self.color_state = STATE.INACTIVE
-        self._set_new_icon(STATE.INACTIVE)
-    
-    def set_disabled(self, value):
-        self.disabled = value
-    
-    def _set_new_icon(self, state: STATE):
-        self.remove_widget(self.icon)
 
-        try:
-            if state == STATE.ACTIVE:
-                self.icon = Image(source=self.active_path)
-            else:
-                self.icon = Image(source=self.inactive_path)
-            
-            self.icon.size = (SIZE.ICON_BUTTON_HEIGHT, SIZE.ICON_BUTTON_HEIGHT)
-            self.add_widget(self.icon)
-            self._update_image(self, self.size)
-        
-        except ValueError as e:
-            raise ValueError(f"Error setting new icon: {e}")
+    def set_active_state(self):
+        self._update_state(STATE.ACTIVE)
+
+    def set_inactive_state(self):
+        self._update_state(STATE.INACTIVE)
+
+    def _update_state(self, state: str):
+        self.color_state = state
+        self.remove_widget(self.icon)
+        self.icon = self._create_icon_widget(state)
+        self.add_widget(self.icon)
+        self._update_image_position()
+
+    def set_disabled(self, value: bool):
+        self.disabled = value
+
+    def _debug_info(self, *args):
+        print(f"[IconButton Debug] Button size: {self.size}, pos: {self.pos}")
+        print(f"[IconButton Debug] Icon size: {self.icon.size}, pos: {self.icon.pos}")

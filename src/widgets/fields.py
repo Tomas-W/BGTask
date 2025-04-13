@@ -389,3 +389,62 @@ class SettingsField(ButtonField):
         self.remove_widget(self.label)
         self.label = SettingsFieldLabel(text=self.text)
         self.add_widget(self.label)
+
+
+class CustomSettingsField(ButtonField):
+    """
+    CustomSettingsField is a text only field that looks like a CustomButton that:
+    - Has a state (active, inactive, error)
+    - Has a Label for text
+    - Has a background color based on state
+    - Has a border (default is transparent)
+    - Is half the height of the CustomButton
+    - Can have top or bottom corners made sharp
+    """
+    def __init__(self, text: str, width: int, color_state=STATE.ACTIVE, **kwargs):
+        super().__init__(
+            text=text,
+            width=width,
+            color_state=color_state,
+            **kwargs
+        )
+        self.height = SIZE.SETTINGS_BUTTON_HEIGHT
+        self.font_size = FONT.SETTINGS_BUTTON
+        self.remove_widget(self.label)
+        self.label = SettingsFieldLabel(text=self.text)
+        self.add_widget(self.label)
+        
+        self._default_radius = STYLE.RADIUS_M
+        self._current_radius = [self._default_radius] * 4
+    
+    def remove_top_radius(self):
+        """Remove the top rounded corners, making them sharp"""
+        self._current_radius[0] = 0
+        self._current_radius[1] = 0
+        self._update_radius()
+    
+    def remove_bottom_radius(self):
+        """Remove the bottom rounded corners, making them sharp"""
+        self._current_radius[2] = 0
+        self._current_radius[3] = 0
+        self._update_radius()
+    
+    def reset_radius(self):
+        """Reset all corners to default rounded state"""
+        self._current_radius = [self._default_radius] * 4
+        self._update_radius()
+    
+    def _update_radius(self):
+        """Update both background and border radius"""
+        self.bg_rect.radius = self._current_radius
+        self.border_rect.rounded_rectangle = (
+            self.pos[0], self.pos[1],
+            self.size[0], self.size[1],
+            self._current_radius[0]
+        )
+    
+    def set_active(self):
+        self.color_instr.rgba = COL.CONFIRM_BUTTON_INACTIVE
+
+    def set_inactive(self):
+        self.color_instr.rgba = COL.BUTTON_INACTIVE
