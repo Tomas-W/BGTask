@@ -32,9 +32,12 @@ class BaseScreen(Screen):
         self.animating_spacer = False     # If spacer is animating
         self.pending_bar_check = None     # Timer for debounced bottom bar visibility
 
+        self.popup_text: str | None = None
+
         # Initialize popup instances with None callbacks
         self.confirmation_popup = ConfirmationPopup(
             header="",
+            field_text="",
             on_confirm=lambda: None,
             on_cancel=lambda: None
         )
@@ -263,7 +266,7 @@ class BaseScreen(Screen):
             text = self.text_input_popup.input_field.text if confirmed else None
             self.callback(text)
 
-    def show_confirmation_popup(self, header: str,
+    def show_confirmation_popup(self, header: str, field_text: str,
                                  on_confirm: Callable, on_cancel: Callable):
         """
         Show a confirmation popup with a PartitionHeader (aligned center),
@@ -271,6 +274,7 @@ class BaseScreen(Screen):
         Reuses the same popup instance for efficiency.
         """
         self.confirmation_popup.header.text = header
+        self.confirmation_popup.update_field_text(field_text)
         self.confirmation_popup.update_callbacks(on_confirm, on_cancel)
         self.confirmation_popup.show_animation()
 

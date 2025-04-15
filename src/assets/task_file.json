@@ -244,7 +244,7 @@
       "message": "scanner vibrate",
       "alarm_name": "scanner",
       "vibrate": false,
-      "expired": false
+      "expired": true
     },
     {
       "task_id": "4ec25afc-3397-4acb-9d80-3c599fccf545",
@@ -252,7 +252,7 @@
       "message": "rooster",
       "alarm_name": "digital",
       "vibrate": false,
-      "expired": false
+      "expired": true
     },
     {
       "task_id": "101c0fa7-6ab4-40a4-b73f-d888ac03a4d5",

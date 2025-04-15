@@ -67,7 +67,8 @@ class AudioManager(AudioManagerUtils):
                     alarms[name] = os.path.join(self.alarms_dir, file)
                     alarm_count += 1
         
-        self.alarms = alarms
+        sorted_alarms = sorted(alarms.items(), key=lambda x: x[0])
+        self.alarms = dict(sorted_alarms)
         logger.debug(f"Loaded {rec_count} recordings and {alarm_count} alarms")
     
     def start_recording_audio(self) -> bool:
@@ -197,3 +198,33 @@ class AudioManager(AudioManagerUtils):
     
         logger.error(f"Alarm not found: {name} at {path}")
         return False
+    
+    def update_alarm_name(self, instance, new_name: str) -> bool:
+        """
+        Updates the alarm name and path.
+        """
+        old_name = self.selected_alarm_name
+        old_path = self.get_audio_path(old_name)
+        if not old_path:
+            logger.error(f"Alarm file not found: {old_name}")
+            return False
+        
+        # Construct new path based on old file's location
+        directory = os.path.dirname(old_path)
+        new_path = os.path.join(directory, f"{new_name}{EXT.WAV}")
+        
+        # Rename the file
+        os.rename(old_path, new_path)
+        
+        # Update internal state
+        del self.alarms[old_name]
+        self.alarms[new_name] = new_path
+        self.selected_alarm_name = new_name
+        self.selected_alarm_path = new_path
+        
+        # Update UI
+        from kivy.app import App
+        from src.settings import SCREEN
+        select_alarm_screen = App.get_running_app().get_screen(SCREEN.SELECT_ALARM)
+        select_alarm_screen.update_selected_alarm_text()
+        return True

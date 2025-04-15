@@ -398,7 +398,7 @@ class CustomSettingsField(ButtonField):
     - Has a Label for text
     - Has a background color based on state
     - Has a border (default is transparent)
-    - Is half the height of the CustomButton
+    - Is 2/3 the height of the CustomButton
     - Can have top or bottom corners made sharp
     """
     def __init__(self, text: str, width: int, color_state=STATE.ACTIVE, **kwargs):

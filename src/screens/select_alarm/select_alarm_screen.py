@@ -301,7 +301,13 @@ class SelectAlarmScreen(BaseScreen):
 
     def edit_selected_alarm_name(self, instance) -> None:
         """Edit the name of the selected alarm"""
-        pass
+        old_name = self.audio_manager.selected_alarm_name
+        self.show_text_popup(
+            header="Provide new name:",
+            input_text=old_name,
+            on_confirm=lambda new_name: self.audio_manager.update_alarm_name(instance, new_name),
+            on_cancel=None
+        )
 
     def delete_selected_alarm(self, instance) -> None:
         """Delete the selected alarm"""
@@ -315,7 +321,7 @@ class SelectAlarmScreen(BaseScreen):
             active=self.task_manager.vibrate,
             text="Vibrating on" if self.task_manager.vibrate else "Vibration off"
         )
-    
+
     def select_alarm(self, instance) -> None:
         """Select the alarm and return to NewTaskScreen"""
         # Remove scheduled checks
@@ -346,11 +352,12 @@ class SelectAlarmScreen(BaseScreen):
 
     def on_enter(self) -> None:
         super().on_enter()
-        # self.show_confirmation_popup(
-        #     header="Are you sure you want to delete this alarm:\nrecording_12-12-12",
-        #     on_confirm=self.test_confirm,
-        #     on_cancel=self.test_cancel
-        # )
+        self.show_confirmation_popup(
+            header="Delete this alarm?",
+            field_text="recording_12-12-12",
+            on_confirm=self.test_confirm,
+            on_cancel=self.test_cancel
+        )
     
     def on_leave(self) -> None:
         """Called when the screen is left"""
