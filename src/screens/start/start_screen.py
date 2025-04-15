@@ -8,7 +8,7 @@ from datetime import datetime
 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.relativelayout import RelativeLayout
 from src.widgets.buttons import CustomButton
 
 from src.managers.device_manager import DM
@@ -50,7 +50,7 @@ class StartScreen(Screen):
         self.task_date: str = ""
 
         # Layout
-        self.root_layout = FloatLayout()
+        self.root_layout = RelativeLayout()
         self.layout = BaseLayout()
 
         # StartContainer

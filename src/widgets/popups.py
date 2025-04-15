@@ -28,7 +28,7 @@ class BasePopup(Popup):
             content=self.content_layout,
             size_hint=(1, None),
             background="",  # Remove default background
-            background_color=COL.BG,  # Set background color
+            background_color=COL.BG_POPUP,  # Set background color
             separator_height=0,  # No separator
             auto_dismiss=False,  # Don't close on outside click
             **kwargs

@@ -29,16 +29,19 @@ class TopBarButton(Button):
         self.none_radius = [0, 0, 0, 0]
         self.right_radius = [0, STYLE.RADIUS_L, STYLE.RADIUS_L, 0]
         self.radius_side = radius_side
-        self.color_instr = None  # Initialize color instruction
+        self.color_instr = None
 
         with self.canvas.before:
-            self.update_bg_color()  # Create the background color instruction
+            self.update_bg_color()
             if self.radius_side == "left":
                 self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.left_radius)
+
             elif self.radius_side == "none":
                 self.bg_rect = Rectangle(pos=self.pos, size=self.size, radius=self.none_radius)
+
             elif self.radius_side == "right":
                 self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=self.right_radius)
+
             else:
                 raise ValueError(f"Invalid radius side: {self.radius_side}")
             self.bind(pos=self._update, size=self._update)
@@ -90,7 +93,7 @@ class TopBarButton(Button):
             with self.canvas.before:
                 self.color_instr = Color(*self.bg_color)
         else:
-            self.color_instr.rgba = self.bg_color  # Update existing color instruction
+            self.color_instr.rgba = self.bg_color
     
     def set_bg_color(self, color):
         """Set the background color"""
@@ -100,14 +103,14 @@ class TopBarButton(Button):
     def set_image(self, img_path):
         """Set the image"""
         self.img_path = img_path
-        self.remove_widget(self.image)  # Remove old image widget
+        self.remove_widget(self.image)
         self.image = Image(source=img_path)
         if not self.image.texture:
             raise ValueError(f"Texture not found for {img_path}")
         
         self.image.size = (self.icon_size, self.icon_size)
         self.add_widget(self.image)
-        self._update_image(self, self.size)  # Position the new image correctly
+        self._update_image(self, self.size)
 
 
 class TopBarTitle(Button):
@@ -174,15 +177,14 @@ class CustomButton(Button):
         self._init_colors()
         self.color_state = color_state
         self.disabled_color = COL.WHITE
-        self.always_clickable = False  # New property
+        self.always_clickable = False
         
-        # Background color - will be set based on state
+        # Background color
         with self.canvas.before:
             self.color_instr = Color(1, 1, 1)
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[STYLE.RADIUS_M])
             self.bind(pos=self._update, size=self._update)
         
-        # Apply the initial state
         self._init_state()
     
     def _init_colors(self):
@@ -258,6 +260,7 @@ class CustomConfirmButton(CustomButton):
     CustomConfirmButton is a Confirm button that:
     - Inherits from CustomButton
     - Only differs in color
+    - Is always clickable
     """
     def __init__(self, width: int = 1, color_state: str = STATE.ACTIVE, symbol: bool = False, **kwargs):
         super().__init__(
@@ -293,8 +296,8 @@ class CustomSettingsButton(CustomButton):
         )
         self.height = SIZE.SETTINGS_BUTTON_HEIGHT
         self.font_size = FONT.SETTINGS_BUTTON if not symbol else FONT.SETTINGS_BUTTON_SYMBOL
-        self.always_clickable = True  # Set property to keep clickable
-        self.disabled = False  # Ensure it's enabled
+        self.always_clickable = True
+        self.disabled = False
 
 
 class IconButton(Button):
@@ -323,11 +326,8 @@ class IconButton(Button):
         self.icon = self._create_icon_widget(self.color_state)
         self.add_widget(self.icon)
 
-        self.bind(pos=self._update_image_position, size=self._update_image_position)
+        self.bind(pos=self._update, size=self._update)
 
-        # Optional: debug info to print on Android
-        from kivy.clock import Clock
-        Clock.schedule_once(self._debug_info, 1)
 
     def _create_icon_widget(self, state: str):
         path = self.active_path if state == STATE.ACTIVE else self.inactive_path
@@ -339,7 +339,7 @@ class IconButton(Button):
             keep_ratio=True
         )
 
-    def _update_image_position(self, *args):
+    def _update(self, *args):
         self.icon.pos = (
             self.x + (self.width - self.icon.width) / 2,
             self.y + (self.height - self.icon.height) / 2
@@ -356,11 +356,7 @@ class IconButton(Button):
         self.remove_widget(self.icon)
         self.icon = self._create_icon_widget(state)
         self.add_widget(self.icon)
-        self._update_image_position()
+        self._update()
 
     def set_disabled(self, value: bool):
         self.disabled = value
-
-    def _debug_info(self, *args):
-        print(f"[IconButton Debug] Button size: {self.size}, pos: {self.pos}")
-        print(f"[IconButton Debug] Icon size: {self.icon.size}, pos: {self.icon.pos}")

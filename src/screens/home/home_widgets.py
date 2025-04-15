@@ -6,8 +6,9 @@ from kivy.uix.image import Image
 from kivy.clock import Clock
 from src.utils.misc import get_task_header_text
 from src.utils.logger import logger
+from kivy.app import App
 
-from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH
+from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH, SCREEN
 
 
 class TasksByDate(BoxLayout):
@@ -40,9 +41,7 @@ class TasksByDate(BoxLayout):
         self.all_expired = False
         self.date_str = date_str            # Formatted date string [Monday 24 Mar]
 
-        # Format date string using cached function
         self.date_str = get_task_header_text(date_str)
-
         day_header = TaskHeader(text=self.date_str)
         self.add_widget(day_header)
         
@@ -54,7 +53,7 @@ class TasksByDate(BoxLayout):
         # Set background color to FIELD_INACTIVE if all tasks are expired
         if tasks and all(task.expired for task in tasks):
             self.tasks_container.set_expired(True)
-            self.all_expired = True  # Mark this container as having all expired tasks
+            self.all_expired = True
         
         self.tasks_container.bind(height=self._update_height)
     
@@ -63,8 +62,8 @@ class TasksByDate(BoxLayout):
     
     def add_task_item(self, task):
         task_container = TaskContainer()
-        task_container.task = task  # Store task reference in container
-        task_container.task_id = task.task_id  # Store task ID in container
+        task_container.task = task
+        task_container.task_id = task.task_id
 
         time_container = TimeContainer()
         # Time
@@ -214,7 +213,6 @@ class TimeLabel(Label):
             size_hint=(None, None),
             height=FONT.DEFAULT,
             halign="left",
-            # padding=[0, 0, SPACE.FIELD_PADDING_X, 0],
             font_size=FONT.DEFAULT,
             bold=True,
             color=COL.TEXT,
@@ -268,9 +266,8 @@ class TaskLabel(Label):
             color=COL.TEXT,
             **kwargs
         )
-        # Store task and task_id explicitly to avoid reference issues
         self.task = task
-        self.task_id = str(task.task_id) if task else None  # Ensure it's a string
+        self.task_id = str(task.task_id) if task else None
         self.active = False
         self.selected = False
         self.bind(size=self.setter("text_size"))
@@ -292,47 +289,39 @@ class TaskLabel(Label):
         """Set the background color based on active state"""
         self.active = active
         if active:
-            self.bg_color.rgba = COL.FIELD_ACTIVE
+            self.bg_color.rgba = COL.FIELD_SELECTED
         else:
             if self.selected:
-                self.bg_color.rgba = COL.FIELD_PASSED  # Keep selected color
+                self.bg_color.rgba = COL.FIELD_SELECTED
             else:
                 self.bg_color.rgba = COL.OPAQUE
-                
+    
     def set_selected(self, selected=True):
         """Set the background color based on selected state"""
         self.selected = selected
         if selected:
-            self.bg_color.rgba = COL.FIELD_PASSED
+            self.bg_color.rgba = COL.FIELD_SELECTED
         else:
             if self.active:
-                self.bg_color.rgba = COL.FIELD_ACTIVE
+                self.bg_color.rgba = COL.FIELD_SELECTED
             else:
                 self.bg_color.rgba = COL.OPAQUE
     
     def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos) and self.task_id:
-            # Find the parent TasksByDate widget to access parent_screen
-            parent = self.parent
-            # Travel up to find the TasksByDate instance to access parent_screen
-            while parent and not hasattr(parent, "parent_screen"):
-                parent = parent.parent
+        if not self.collide_point(*touch.pos) or not self.task_id:
+            return super().on_touch_down(touch)
+        
+        app = App.get_running_app()
+        task_manager = app.task_manager
+        home_screen = app.get_screen(SCREEN.HOME)
+        task_to_select = self.task
+
+        fresh_task = task_manager.get_task_by_id(self.task_id)
+        if fresh_task:
+            task_to_select = fresh_task
+        else:
+            logger.error(f"Task with id {self.task_id} not found in on_touch_down")
+            return False
                 
-            if parent and parent.parent_screen and hasattr(parent.parent_screen, "select_task"):
-                # Get the fresh task from task_manager by ID to ensure we have the correct object
-                if hasattr(parent.parent_screen, "task_manager"):
-                    task_manager = parent.parent_screen.task_manager
-                    # Try to get the task by ID from the task manager
-                    fresh_task = task_manager.get_task_by_id(self.task_id)
-                    if fresh_task:
-                        parent.parent_screen.select_task(fresh_task, self)
-                        return True
-                    else:
-                        # If task not found, this is a serious error - log it
-                        logger.error(f"Task with id {self.task_id} not found in on_touch_down")
-                        return False
-                else:
-                    # Fallback to using our stored task reference if we can't get fresh task
-                    parent.parent_screen.select_task(self.task, self)
-                    return True
-        return super().on_touch_down(touch)
+        home_screen.select_task(task_to_select, self)
+        return True

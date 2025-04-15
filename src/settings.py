@@ -51,6 +51,7 @@ class Colors:
     RED = (1.0, 0.0, 0.0, 1.0)
 
     BG = (0.93, 0.93, 0.93, 1.0)
+    BG_POPUP = (0.85, 0.85, 0.85, 1.0)
     
     BAR = (0.2, 0.4, 0.7, 1.0)
     BAR_BUTTON = (0.7, 0.7, 0.7, 0.2)
@@ -72,6 +73,7 @@ class Colors:
     TEXT_GREY = (0.4, 0.4, 0.4, 1.0)
 
     FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
+    FIELD_SELECTED = (0.45, 0.65, 0.95, 0.5)
     FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
     FIELD_ERROR = (1, 0.4, 0.4, 1)
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)

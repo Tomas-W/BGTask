@@ -67,7 +67,7 @@ class StartContainer(BoxLayout):
         with self.canvas.before:
             Color(*COL.BG)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
-            self.bind(pos=self._update_bg, size=self._update_bg)
+            self.bind(pos=self._update, size=self._update)
 
         self.scroll_view = ScrollView(
             do_scroll_x=True,
@@ -77,7 +77,7 @@ class StartContainer(BoxLayout):
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
         
-    def _update_bg(self, instance, value):
+    def _update(self, instance, value):
         """Update the background"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
@@ -89,18 +89,20 @@ class StartContainer(BoxLayout):
         return super().on_touch_down(touch)
     
     def on_touch_up(self, touch):
-        # Calculate the distance moved
+        # Calculate distance moved
         delta_x = touch.x - self.touch_start_x
         delta_y = touch.y - self.touch_start_y
         
-        # Determine if the swipe is significant enough
-        if abs(delta_x) > 10 or abs(delta_y) > 10:  # Adjust threshold as needed
-            if abs(delta_x) > abs(delta_y):  # Horizontal swipe
+        # Is swipe significant enough
+        if abs(delta_x) > 10 or abs(delta_y) > 10:
+            # Horizontal
+            if abs(delta_x) > abs(delta_y):
                 if delta_x > 0:
                     self.on_swipe_right()
                 else:
                     self.on_swipe_left()
-            else:  # Vertical swipe
+            # Vertical
+            else:
                 if delta_y > 0:
                     self.on_swipe_up()
                 else:
@@ -146,12 +148,12 @@ class ScrollContainer(BoxLayout):
         self.scroll_callback = scroll_callback
 
         self.scroll_threshold_pixels = 800
-        self.last_pixels_scrolled = 0  # Track the last scroll position
+        self.last_pixels_scrolled = 0
         
         with self.canvas.before:
             Color(*COL.BG)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size)
-            self.bind(pos=self._update_bg, size=self._update_bg)
+            self.bind(pos=self._update, size=self._update)
 
         self.scroll_view = ScrollView(
             do_scroll_x=allow_scroll_x,
@@ -163,13 +165,13 @@ class ScrollContainer(BoxLayout):
         
         self.scroll_view.bind(scroll_y=self._on_scroll)
     
-    def _update_bg(self, instance, value):
+    def _update(self, instance, value):
         """Update the background"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
     
     def _on_scroll(self, instance, value):
-        """Handle scroll events to show/hide bottom bar"""
+        """Handle scroll events to show/hide BottomBar"""
         if not self.parent_screen.bottom_bar:
             return
         
@@ -181,45 +183,32 @@ class ScrollContainer(BoxLayout):
         max_scroll = scrollable_height - view_height
 
         pixels_scrolled = (1 - value) * max_scroll
-
-        # Store the current position for the next comparison
         self.last_pixels_scrolled = pixels_scrolled
-        
-        # Skip visibility changes during active touch events to prevent scroll jumping
         if self.scroll_view._touch is not None:
             return
         
-        # Show bottom bar when scrolled beyond threshold
+        # Show BottomBar
         if pixels_scrolled > self.scroll_threshold_pixels and not self.parent_screen.bottom_bar.visible:
-            # Instead of animating directly, just update the visible flag
-            # The animation will be handled by the parent screen
+            # Set flag so screen can handle animation
             self.parent_screen.bottom_bar.visible = True
-            
-            # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
                 self.scroll_callback()
 
-        # Hide bottom bar when scrolled less than threshold
+        # Hide BottomBar
         elif pixels_scrolled <= self.scroll_threshold_pixels and self.parent_screen.bottom_bar.visible:
-            # Instead of animating directly, just update the visible flag
-            # The animation will be handled by the parent screen
+            # Set flag so screen can handle animation
             self.parent_screen.bottom_bar.visible = False
-            
-            # Call the parent's check method to handle synchronized animation
             if self.scroll_callback:
                 self.scroll_callback()
 
     def scroll_to_top(self, *args):
         """Scroll to the top of the scroll view"""
-        # Stop any ongoing scrolling by resetting the scroll effect
+        # Stop ongoing scrolling
         if hasattr(self.scroll_view, "effect_y"):
             self.scroll_view.effect_y.value = 0
             self.scroll_view.effect_y.velocity = 0
         
-        # Clear any active touch that might be causing scrolling
         self.scroll_view._touch = None
-        
-        # Force scroll position to top
         self.scroll_view.scroll_y = 1
 
 
@@ -282,18 +271,18 @@ class BorderedPartition(Partition):
                 rounded_rectangle=(
                     self.pos[0], self.pos[1],
                     self.size[0], self.size[1],
-                    self._current_radius[0]  # Use first radius value
+                    self._current_radius[0]
                 ),
                 width=1
             )
-            self.bind(pos=self._update_border, size=self._update_border)
+            self.bind(pos=self._update, size=self._update)
 
-    def _update_border(self, instance, value):
+    def _update(self, instance, value):
         """Update the border rectangle"""
         self.border_rect.rounded_rectangle = (
             instance.pos[0], instance.pos[1],
             instance.size[0], instance.size[1],
-            self._current_radius[0]  # Use first radius value for consistency
+            self._current_radius[0]
         )
 
     def set_active(self):
@@ -391,11 +380,3 @@ class CustomRow(BoxLayout):
             spacing=SPACE.SPACE_XS,
             **kwargs
         )
-    #     with self.canvas.before:
-    #         Color(*COL.RED)
-    #         self.bg_rect = Rectangle(pos=self.pos, size=self.size)
-    #         self.bind(pos=self._update, size=self._update)
-    
-    # def _update(self, instance, value):
-    #     self.bg_rect.pos = instance.pos
-    #     self.bg_rect.size = instance.size

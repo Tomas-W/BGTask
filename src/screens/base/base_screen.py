@@ -3,7 +3,7 @@ from typing import Callable
 from kivy.animation import Animation, AnimationTransition
 from kivy.clock import Clock
 from kivy.uix.label import Label
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 
@@ -45,7 +45,11 @@ class BaseScreen(Screen):
             on_cancel=lambda: None
         )
 
-        self.root_layout = FloatLayout()
+        # Use RelativeLayout instead of FloatLayout
+        # RelativeLayout works similar to FloatLayout but is more efficient
+        self.root_layout = RelativeLayout()
+        
+        # Main content container
         self.layout = BaseLayout()
 
         self.top_bar = TopBarClosed(
@@ -77,7 +81,6 @@ class BaseScreen(Screen):
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
     
-
     def add_bottom_bar(self):
         """
         Add a bottom bar to the screen to scroll to the top.

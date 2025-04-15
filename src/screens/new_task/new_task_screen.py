@@ -276,10 +276,10 @@ class NewTaskScreen(BaseScreen):
 
     def on_enter(self) -> None:
         super().on_enter()
-        # input_text = "recording_12-12-12 "
-        # self.show_text_popup(
-        #     header="recording_12-12-12 recording_12-12-12 recording_12-12-12 recording_12-12-12",
-        #     input_text=input_text,
-        #     on_confirm=self.test_confirm,
-        #     on_cancel=self.test_cancel
-        # )
+        input_text = "recording_12-12-12 "
+        self.show_text_popup(
+            header="recording_12-12-12 recording_12-12-12 recording_12-12-12 recording_12-12-12",
+            input_text=input_text,
+            on_confirm=self.test_confirm,
+            on_cancel=self.test_cancel
+        )

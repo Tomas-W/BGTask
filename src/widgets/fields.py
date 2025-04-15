@@ -57,16 +57,16 @@ class TextField(BoxLayout):
                 width=self.border_width
             )
             
-            self.bind(pos=self.update_rects, size=self.update_rects)
+            self.bind(pos=self._update, size=self._update)
         
-        # Calculate text input height (total height minus padding)
+        # Calculate height
         text_input_height = total_height - (2 * SPACE.SPACE_M)
         
         self.text_input = TextInput(
             hint_text=hint_text,
             size_hint=(1, None),
             height=text_input_height,
-            multiline=n_lines > 1,  # Only multiline if more than 1 line
+            multiline=n_lines > 1,
             font_size=FONT.DEFAULT,
             background_color=COL.OPAQUE,
             foreground_color=COL.TEXT,
@@ -85,7 +85,7 @@ class TextField(BoxLayout):
             if self.hint_text == self._error_message:
                 self.hint_text = self._hint_text
     
-    def update_rects(self, instance, value):
+    def _update(self, instance, value):
         """Update background and border"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
@@ -188,7 +188,7 @@ class InputField(BoxLayout):
                 width=self.border_width
             )
             
-            self.bind(pos=self.update_rects, size=self.update_rects)
+            self.bind(pos=self._update, size=self._update)
         
         self.text_input = TextInput(
             size_hint=(1, 1),
@@ -209,7 +209,7 @@ class InputField(BoxLayout):
             self.set_border_color(COL.OPAQUE)
             self.set_text_color(COL.TEXT)
 
-    def update_rects(self, instance, value):
+    def _update(self, instance, value):
         """Update background and border"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
