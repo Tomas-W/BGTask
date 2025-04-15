@@ -229,7 +229,7 @@ class SelectAlarmScreen(BaseScreen):
         else:
             self.preview_alarm_partition.set_inactive()
             self.selected_alarm.set_inactive()
-        
+
         # Update text and button states
         self.update_selected_alarm_text()
         self.update_button_states_based_on_alarm()
@@ -315,9 +315,9 @@ class SelectAlarmScreen(BaseScreen):
             active=self.task_manager.vibrate,
             text="Vibrating on" if self.task_manager.vibrate else "Vibration off"
         )
-
+    
     def select_alarm(self, instance) -> None:
-        """Select the alarm and return to previous screen"""
+        """Select the alarm and return to NewTaskScreen"""
         # Remove scheduled checks
         self.unschedule_audio_check()
         
@@ -328,11 +328,13 @@ class SelectAlarmScreen(BaseScreen):
         super().on_pre_enter()
         
         self.update_screen_state()
-        self.set_button_state(
-            self.stop_selected_alarm_button, 
-            active=False, 
-            enabled=False
-        )
+        if self.task_manager.task_to_edit:
+            self.set_button_state(
+                self.vibration_button, 
+                active=self.task_manager.task_to_edit.vibrate, 
+                enabled=True,
+                text="Vibrating on" if self.task_manager.task_to_edit.vibrate else "Vibration off"
+            )
     
     def test_cancel(self, instance=None) -> None:
         """Test the cancel button"""

@@ -15,7 +15,7 @@ from src.utils.logger import logger
 from src.settings import SCREEN, LOADED, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
-    from src.widgets.labels import TaskHeader, TaskLabel, TimeLabel
+    from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
     from src.managers.tasks.task_manager_utils import Task
 
 
@@ -37,14 +37,12 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.task_manager.bind(
             on_tasks_expired_set_date_expired=self.set_date_expired)
 
-        # Task attributes
+        # Loading attributes
         self.tasks_loaded: bool = False
-        self.show_hints: bool = True
         # Scroll to Task attributes
         self.task_header_widget: TaskHeader | None = None
         self.time_label_widget: TimeLabel | None = None
         self.task_message_widget: TaskLabel | None = None
-        
         # Task selection
         self.selected_task: Task | None = None
         self.selected_label: TaskLabel | None = None
@@ -145,11 +143,9 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """Edit the currently selected task"""
         if self.selected_task:
             task_id = str(self.selected_task.task_id)
-            fresh_task = self.task_manager.get_task_by_id(task_id)
-            if fresh_task:
-                # Store reference
-                self.edited_task = fresh_task
-                self.task_manager.dispatch("on_task_edit_load_task_data", task=fresh_task)
+            task_to_edit = self.task_manager.get_task_by_id(task_id)
+            if task_to_edit:
+                self.task_manager.dispatch("on_task_edit_load_task_data", task=task_to_edit)
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(SCREEN.NEW_TASK), 0.1)
             else:
                 logger.error(f"Failed to edit task: Task with ID {task_id} not found")
@@ -166,8 +162,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """Delete the currently selected task"""
         if self.selected_task:
             task_id = str(self.selected_task.task_id) 
-            fresh_task = self.task_manager.get_task_by_id(task_id)
-            if fresh_task:
+            task_to_delete = self.task_manager.get_task_by_id(task_id)
+            if task_to_delete:
                 # Remove selection
                 if self.selected_label:
                     self.selected_label.set_selected(False)
@@ -279,8 +275,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         if not self.tasks_loaded:
             self.scroll_container.scroll_view.scroll_y = 1.0
             self.tasks_loaded = True
-            logger.warning(f"Going to first active task")
-    
+
     def on_leave(self):
         """Handle screen exit - deselect any task"""
         super().on_leave()

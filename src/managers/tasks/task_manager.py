@@ -38,13 +38,13 @@ class TaskManager(EventDispatcher):
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
         self.sorted_active_tasks: list[dict] = None
 
-        # Editing
-        self.selected_task_id: str | None = None
         # Date & Time
         self.selected_date: datetime | None = None
         self.selected_time: datetime | None = None
         # Vibration
         self.vibrate: bool = False
+
+        self.task_to_edit: Task | None = None
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """

@@ -72,6 +72,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Fix alarm name taken filename
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
+# TODO: Implement alarm before task end
 
 
 # SavedAlarmScreen
