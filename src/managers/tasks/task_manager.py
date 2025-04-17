@@ -1,6 +1,7 @@
 import json
 import time
-from datetime import datetime, timedelta
+
+from datetime import datetime
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -146,8 +147,6 @@ class TaskManager(EventDispatcher):
         Adds Task to tasks_by_date, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
-        # Always store timestamps with 0 seconds and microseconds
-        timestamp = timestamp.replace(second=0, microsecond=0)
         task = Task(message=message, timestamp=timestamp,
                     alarm_name=alarm_name, vibrate=vibrate)
         
@@ -177,8 +176,6 @@ class TaskManager(EventDispatcher):
             logger.error(f"Task with id {task_id} not found for update")
             return
         
-        # Always store timestamps with 0 seconds and microseconds
-        timestamp = timestamp.replace(second=0, microsecond=0) 
         old_date_key = task.get_date_key()
         # Update task properties
         task.timestamp = timestamp
@@ -257,9 +254,7 @@ class TaskManager(EventDispatcher):
         If changes, save to memory and file.
         If all Tasks in group are now expired, notify to update Task's appearance.
         """
-        # Normalize current time to 0 seconds for consistent comparison
-        now = datetime.now().replace(second=1, microsecond=0)
-        
+        now = datetime.now()
         active_tasks = self.sorted_active_tasks[0]
         if not active_tasks:
             return
@@ -314,8 +309,6 @@ class TaskManager(EventDispatcher):
         First checks the date to avoid unnecessary time comparisons.
         Only compares hours and minutes, ignoring seconds and microseconds.
         """
-        # Normalize timestamp to 0 seconds for consistent storage and comparison
-        target_datetime = target_datetime.replace(second=0, microsecond=0)
         target_date_key = target_datetime.strftime("%Y-%m-%d")
         
         # First check if we have any tasks on this date
@@ -334,31 +327,15 @@ class TaskManager(EventDispatcher):
     def check_task_expired(self, dt: float) -> None:
         """
         Check if any Tasks are expired and trigger the alarm if so.
-        
-        Tasks are stored with seconds=0 (e.g., 10:15:00).
-        We subtract 1 second from the current time to ensure tasks expire exactly
-        when their minute arrives, even with small timing variations.
-        
-        For example, a task at 10:15:00 will expire as soon as the time reaches
-        10:15:00, by comparing with 10:14:59.
         """
-        if not self.sorted_active_tasks:
-            return
-            
-        # Get current time with microseconds=0 and subtract 1 second
-        # This ensures tasks expire exactly at their scheduled minute
-        now = datetime.now().replace(microsecond=0)
-        comparison_time = now - timedelta(seconds=1)
-        
         current_tasks = self.sorted_active_tasks[0]["tasks"]
         for task in current_tasks:
-            if task.timestamp <= comparison_time and not task.expired:
-                task.expired = True
+            if task.timestamp < datetime.now() and not task.expired:
                 self.save_tasks_to_json()
-                
-                # Dispatch events for alarm and popup
+                self.set_expired_tasksbydate()
                 self.dispatch("on_task_expired_trigger_alarm", task=task)
                 self.dispatch("on_task_expired_show_task_popup", task=task)
+                return
 
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""

@@ -9,6 +9,7 @@ from src.widgets.containers import (Partition, BorderedPartition, CustomButtonRo
 from src.widgets.buttons import (ConfirmButton, SettingsButton,
                                 CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
+from src.widgets.popups import POPUP
 
 from src.utils.logger import logger
 
@@ -170,7 +171,7 @@ class SelectAlarmScreen(BaseScreen):
     def edit_selected_alarm_name(self, instance) -> None:
         """Show a popup to edit the name of the selected alarm."""
         old_name = self.audio_manager.selected_alarm_name
-        self.show_text_popup(
+        POPUP.show_input_popup(
             header="Provide new name:",
             input_text=old_name,
             on_confirm=self._handle_alarm_rename,
@@ -184,7 +185,7 @@ class SelectAlarmScreen(BaseScreen):
 
     def delete_selected_alarm(self, instance) -> None:
         """Show a popup to delete the selected alarm"""
-        self.show_confirmation_popup(
+        POPUP.show_confirmation_popup(
             header="Delete this alarm?",
             field_text=self.audio_manager.selected_alarm_name,
             on_confirm=self._handle_alarm_delete,

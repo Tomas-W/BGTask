@@ -10,7 +10,6 @@ from kivy.uix.screenmanager import Screen
 from src.widgets.bars import TopBarClosed, TopBarExpanded, BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
 from src.widgets.misc import Spacer
-from src.widgets.popups import ConfirmationPopup, TextInputPopup, CustomPopup, TaskPopup
 
 from src.utils.logger import logger
 
@@ -26,47 +25,13 @@ class BaseScreen(Screen):
     - Button state functionality
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        from kivy.app import App
-        self.task_manager = App.get_running_app().task_manager
-        self.task_manager.bind(on_task_expired_show_task_popup=self.show_task_popup)
-
+        super().__init__(**kwargs)        
 
         self.top_bar_is_expanded = False  # TopBar or TopBarExpanded
         self.initial_scroll = True        # Prevent BottomBar untill user scrolls
         self.animating_spacer = False     # If spacer is animating
         self.pending_bar_check = None     # Timer for debounced bottom bar visibility
-
-        self.popup_text: str | None = None
-
-        # Initialize popup instances with None callbacks
-        self.custom_popup = CustomPopup(
-            header="",
-            field_text="",
-            extra_info="",
-            confirm_text="",
-            on_confirm=lambda: None,
-            on_cancel=lambda: None
-        )
-        self.confirmation_popup = ConfirmationPopup(
-            header="",
-            field_text="",
-            on_confirm=lambda: None,
-            on_cancel=lambda: None
-        )
-        self.text_input_popup = TextInputPopup(
-            header="",
-            input_text="",
-            on_confirm=lambda: None,
-            on_cancel=lambda: None
-        )
-        self.task_popup = TaskPopup(
-            on_confirm=lambda: None,
-            on_cancel=lambda: None
-        )
-
-        # Use RelativeLayout instead of FloatLayout
-        # RelativeLayout works similar to FloatLayout but is more efficient
+        
         self.root_layout = RelativeLayout()
         
         # Main content container
@@ -271,77 +236,6 @@ class BaseScreen(Screen):
             button.set_inactive_state()
             
         button.set_disabled(not enabled)
-        
-    def _handle_popup_confirmation(self, confirmed: bool):
-        """Handle confirmation popup button press"""
-        if self.callback:
-            self.callback(confirmed)
-
-    def _handle_popup_text_input(self, confirmed: bool):
-        """Handle text input popup button press"""
-        if self.callback:
-            text = self.text_input_popup.input_field.text if confirmed else None
-            self.callback(text)
-    
-    def show_custom_popup(self, header: str, field_text: str, extra_info: str, confirm_text: str,
-                          on_confirm: Callable, on_cancel: Callable):
-        """Show a custom popup with a PartitionHeader (aligned center),
-        ConfirmButton and CancelButton."""
-        self.custom_popup.header.text = header
-        self.custom_popup.extra_info.text = extra_info
-        self.custom_popup.update_field_text(field_text)
-        self.custom_popup.confirm_button.set_text(confirm_text)
-        self.custom_popup.update_callbacks(on_confirm, on_cancel)
-        self.custom_popup.show_animation()
-
-    def show_confirmation_popup(self, header: str, field_text: str,
-                                 on_confirm: Callable, on_cancel: Callable):
-        """
-        Show a confirmation popup with a PartitionHeader (aligned center),
-        CustomConfirmButton and CustomCancelButton.
-        Reuses the same popup instance for efficiency.
-        """
-        self.confirmation_popup.header.text = header
-        self.confirmation_popup.update_field_text(field_text)
-        self.confirmation_popup.update_callbacks(on_confirm, on_cancel)
-        self.confirmation_popup.show_animation()
-
-    def show_text_popup(self, header: str, input_text: str,
-                         on_confirm: Callable, on_cancel: Callable):
-        """
-        Show a popup with an InputField between the header and buttons.
-        Reuses the same popup instance for efficiency.
-        """
-        self.text_input_popup.header.text = header
-        self.text_input_popup.input_field.text = input_text
-        self.text_input_popup.update_callbacks(on_confirm, on_cancel)
-        self.text_input_popup.show_animation()
-    
-    def show_task_popup(self, *args, **kwargs):
-        """Show a task popup with a TaskHeader, TaskContainer, Timestamp, and TaskLabel."""
-        # Get task from either positional args or kwargs
-        task = kwargs.get("task") if "task" in kwargs else args[-1]
-        
-        # Ensure we're on the main thread and in a window context
-        def show_popup(dt):
-            # Set up the task popup
-            self.task_popup.task_header.text = task.timestamp.strftime("%A %d %B")
-            self.task_popup.task_time.text = task.timestamp.strftime("%H:%M")
-            self.task_popup.task_label.text = task.message
-            
-            # Force the popup to use the app's root window context
-            from kivy.app import App
-            app = App.get_running_app()
-            
-            # Close any existing popups
-            if hasattr(app, 'active_popup') and app.active_popup:
-                app.active_popup.dismiss()
-                
-            # Store reference and show
-            app.active_popup = self.task_popup
-            self.task_popup.show_animation()
-        
-        Clock.schedule_once(show_popup, 0)
 
     def show_error_popup(self, title, message):
         """

@@ -23,6 +23,9 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 
+# TODO: self.keep_alarming as Task attribute (select on select alarm screen)
+
+
 # Widgets
 # TODO: Base widgets and custom - with extra options like borders / radius / etc
 

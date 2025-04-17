@@ -1,7 +1,7 @@
 import os
 
 from kivy.app import App
-
+from kivy.clock import Clock
 from src.managers.device_manager import DM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
@@ -31,6 +31,11 @@ class AudioManager(AudioManagerUtils):
         
         app = App.get_running_app()
         app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
+
+        self.alarm_is_triggered: bool = False
+        self.keep_alarming: bool = True
+        self.audio_player.keep_alarming = self.keep_alarming
+        self.current_alarm_path: str | None = None
         
         # Recordings
         self.recordings_dir: str = DM.get_storage_path(DIR.RECORDINGS)
@@ -53,6 +58,9 @@ class AudioManager(AudioManagerUtils):
         """
         Trigger the alarm for the given task.
         """
+        import time
+        from datetime import datetime
+        logger.error(f"TIME IS: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         task = kwargs.get("task")
         if not task:
             logger.error("No task provided to trigger_alarm")
@@ -64,8 +72,21 @@ class AudioManager(AudioManagerUtils):
         if task.vibrate:
             self.audio_player.vibrate()
         
-        alarm_path = self.get_audio_path(task.alarm_name)
-        self.start_playing_audio(alarm_path)
+        self.alarm_is_triggered = True
+        self.current_alarm_path = self.get_audio_path(task.alarm_name)
+        self.start_playing_audio(self.current_alarm_path)
+        self.check_and_replay_alarm()
+    
+    def check_and_replay_alarm(self, *args, **kwargs):
+        """Check if the alarm has finished playing and schedule the next play."""
+        if self.is_playing():
+            Clock.schedule_once(self.check_and_replay_alarm, 2)
+            return
+        
+        if self.keep_alarming:
+            self.start_playing_audio(self.current_alarm_path)
+            Clock.schedule_once(self.check_and_replay_alarm, 2)
+            return
     
     def load_alarms(self) -> None:
         """Load all audio files from alarms and recordings directories."""
@@ -223,7 +244,6 @@ class AudioManager(AudioManagerUtils):
         """
         Updates the alarm name and path.
         """
-        logger.trace(f"TRIGGERED update_alarm_name")
         old_name = self.selected_alarm_name
         old_path = self.get_audio_path(old_name)
         if not old_path:
