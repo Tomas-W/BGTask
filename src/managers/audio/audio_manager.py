@@ -199,10 +199,11 @@ class AudioManager(AudioManagerUtils):
         logger.error(f"Alarm not found: {name} at {path}")
         return False
     
-    def update_alarm_name(self, instance, new_name: str) -> bool:
+    def update_alarm_name(self, new_name: str) -> bool:
         """
         Updates the alarm name and path.
         """
+        logger.trace(f"TRIGGERED update_alarm_name")
         old_name = self.selected_alarm_name
         old_path = self.get_audio_path(old_name)
         if not old_path:
@@ -228,3 +229,29 @@ class AudioManager(AudioManagerUtils):
         select_alarm_screen = App.get_running_app().get_screen(SCREEN.SELECT_ALARM)
         select_alarm_screen.update_selected_alarm_text()
         return True
+    
+    def delete_alarm(self, name: str) -> bool:
+        """
+        Deletes the alarm from the alarms and recordings directories.
+        """
+        path = self.get_audio_path(name)
+        logger.trace(f"Called delete_alarm: {name} at {path}")
+        if not path:
+            logger.error(f"Alarm file not found: {name}")
+            return False
+        
+        try:
+            os.remove(path)
+            logger.trace(f"Deleted alarm: {name} at {path}")
+            self.selected_alarm_name = None
+            self.selected_alarm_path = None
+            self.load_alarms()
+            from kivy.app import App
+            from src.settings import SCREEN
+            select_alarm_screen = App.get_running_app().get_screen(SCREEN.SELECT_ALARM)
+            select_alarm_screen.update_screen_state()
+            return True
+        
+        except Exception as e:
+            logger.error(f"Error deleting alarm: {e}")
+            return False

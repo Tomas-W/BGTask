@@ -67,9 +67,9 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 # SelectAlarmScreen
 # TODO: Save - Alarm Name - Delete [with confirmation]
-# TODO: PLay - Stop - Rename
 # TODO: Rework audio preview
 # TODO: Fix alarm name taken filename
+# TODO: new name = old name -> continue dont rename
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
 # TODO: Implement alarm before task end

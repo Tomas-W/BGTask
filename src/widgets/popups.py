@@ -36,6 +36,10 @@ class BasePopup(Popup):
         )
         self.content_layout.bind(minimum_height=self._update_height)
 
+        # Store callbacks
+        self._confirm_handler = None
+        self._cancel_handler = None
+
     def _update_height(self, instance, value):
         """Update popup height based on content"""
         self.height = value + SPACE.SPACE_XL
@@ -46,12 +50,12 @@ class BasePopup(Popup):
         self.header.text_size = (width, None)
         
     def _update_label_height(self, instance, value):
-        """Update label height to match its texture height plus padding"""
+        """Update label height to match its texture height"""
         texture_height = instance.texture_size[1]
         instance.height = texture_height
     
     def _safe_call(self, func: Callable, arg=None):
-        """Safely call a function that might expect arguments or not"""
+        """Call a function that might expect arguments"""
         import inspect
         if func:
             sig = inspect.signature(func)
@@ -92,7 +96,6 @@ class ConfirmationPopup(BasePopup):
             height=1,
             text_size=(None, None)
         )
-
         self.header.bind(texture_size=self._update_label_height)
         self.content_layout.add_widget(self.header)
         # Field
@@ -118,22 +121,24 @@ class ConfirmationPopup(BasePopup):
         self.bind(width=self._update_text_size)
     
     def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
-        """Update button callbacks with proper unbinding"""
-        # Unbind existing callbacks
-        self.confirm_button.unbind(on_release=self.confirm_button.on_release)
-        self.cancel_button.unbind(on_release=self.cancel_button.on_release)
+        """Un- and re-bind callbacks"""
+        # Unbind callbacks
+        if self._confirm_handler:
+            self.confirm_button.unbind(on_release=self._confirm_handler)
+        if self._cancel_handler:
+            self.cancel_button.unbind(on_release=self._cancel_handler)
+        
+        # Create new handlers
+        self._confirm_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_confirm)
+        )
+        self._cancel_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
+        )
         
         # Bind new callbacks
-        self.confirm_button.bind(
-            on_release=lambda x: self.hide_animation(
-                on_complete=lambda *args: self._safe_call(on_confirm)
-            )
-        )
-        self.cancel_button.bind(
-            on_release=lambda x: self.hide_animation(
-                on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
-            )
-        )
+        self.confirm_button.bind(on_release=self._confirm_handler)
+        self.cancel_button.bind(on_release=self._cancel_handler)
 
     def update_field_text(self, text: str):
         """Update the text displayed in the field"""
@@ -159,7 +164,6 @@ class TextInputPopup(BasePopup):
         )
         self.header.bind(texture_size=self._update_label_height)
         self.content_layout.add_widget(self.header)
-
         # Input field
         self.input_field = TextField(
             hint_text=input_text,
@@ -186,19 +190,21 @@ class TextInputPopup(BasePopup):
         self.bind(width=self._update_text_size)
     
     def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
-        """Update button callbacks with proper unbinding"""
-        # Unbind existing callbacks
-        self.confirm_button.unbind(on_release=self.confirm_button.on_release)
-        self.cancel_button.unbind(on_release=self.cancel_button.on_release)
+        """Un- and re-bind callbacks"""
+        # Unbind callbacks
+        if self._confirm_handler:
+            self.confirm_button.unbind(on_release=self._confirm_handler)
+        if self._cancel_handler:
+            self.cancel_button.unbind(on_release=self._cancel_handler)
+        
+        # Create new handlers
+        self._confirm_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_confirm, self.input_field.text)
+        )
+        self._cancel_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
+        )
         
         # Bind new callbacks
-        self.confirm_button.bind(
-            on_release=lambda x: self.hide_animation(
-                on_complete=lambda *args: self._safe_call(on_confirm, self.input_field.text)
-            )
-        )
-        self.cancel_button.bind(
-            on_release=lambda x: self.hide_animation(
-                on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
-            )
-        )
+        self.confirm_button.bind(on_release=self._confirm_handler)
+        self.cancel_button.bind(on_release=self._cancel_handler)
