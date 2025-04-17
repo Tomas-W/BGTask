@@ -76,7 +76,7 @@ class HomeScreenUtils:
         
         self.tasks_loaded = True
         end_time = time.time()
-        logger.trace(f"HomeScreenUtils update_task_display time: {end_time - start_time:.4f}s")
+        logger.error(f"HomeScreenUtils update_task_display time: {end_time - start_time:.4f}s")
     
     def _invalidate_cache_for_date(self, date_str):
         """Remove all cached widgets for a specific date"""

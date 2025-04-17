@@ -1,5 +1,7 @@
 import os
 
+from kivy.app import App
+
 from src.managers.device_manager import DM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
 
@@ -16,7 +18,6 @@ class AudioManager(AudioManagerUtils):
     """
     def __init__(self):
         super().__init__()
-        
         if DM.is_android:
             from src.managers.audio.android_audio import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
@@ -27,6 +28,9 @@ class AudioManager(AudioManagerUtils):
 
         else:
             logger.error("No audio player loaded")
+        
+        app = App.get_running_app()
+        app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
         
         # Recordings
         self.recordings_dir: str = DM.get_storage_path(DIR.RECORDINGS)
@@ -44,6 +48,24 @@ class AudioManager(AudioManagerUtils):
         # States
         self.is_recording: bool = False
         self.has_recording_permission: bool = DM.check_recording_permission()
+    
+    def trigger_alarm(self, *args, **kwargs):
+        """
+        Trigger the alarm for the given task.
+        """
+        task = kwargs.get("task")
+        if not task:
+            logger.error("No task provided to trigger_alarm")
+            return
+        
+        if not task.alarm_name:
+            return
+        
+        if task.vibrate:
+            self.audio_player.vibrate()
+        
+        alarm_path = self.get_audio_path(task.alarm_name)
+        self.start_playing_audio(alarm_path)
     
     def load_alarms(self) -> None:
         """Load all audio files from alarms and recordings directories."""
@@ -137,18 +159,16 @@ class AudioManager(AudioManagerUtils):
         self.is_recording = False
         return True
 
-    def start_playing_audio(self):
+    def start_playing_audio(self, audio_path: str) -> bool:
         """
         Validates the alarm path and plays the audio file.
-        """
-        path_to_play = self.selected_alarm_path
-        
-        if not path_to_play:
+        """        
+        if not audio_path:
             logger.error("No alarm selected to play")
             return False
         
-        if not os.path.exists(path_to_play):
-            logger.error(f"Alarm file not found: {path_to_play}")
+        if not os.path.exists(audio_path):
+            logger.error(f"Alarm file not found: {audio_path}")
             return False
         
         if not self.audio_player:
@@ -157,7 +177,7 @@ class AudioManager(AudioManagerUtils):
             
         try:
             # Try playing the audio
-            return self.audio_player.play(path_to_play)
+            return self.audio_player.play(audio_path)
         
         except Exception as e:
             logger.error(f"Error playing alarm: {e}")
@@ -255,3 +275,7 @@ class AudioManager(AudioManagerUtils):
         except Exception as e:
             logger.error(f"Error deleting alarm: {e}")
             return False
+
+    def on_task_expired_trigger_alarm(self, *args, **kwargs):
+        """Default handler for on_task_expired_trigger_alarm event"""
+        pass

@@ -18,7 +18,7 @@ version = 0.1
 orientation = portrait
 fullscreen = 0
 
-android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,SET_WALLPAPER
+android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,SET_WALLPAPER,VIBRATE
 android.api = 33
 android.minapi = 21
 android.ndk = 25b

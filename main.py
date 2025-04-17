@@ -54,7 +54,6 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # NewTaskScreen
-# TODO: 1 Task per timestamp
 # TODO: Delete alarm button on NewTask screen
 
 
@@ -67,6 +66,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
 # TODO: Implement alarm before task end
+# TODO: Repeat alarm
 
 
 # SavedAlarmScreen

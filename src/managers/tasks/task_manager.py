@@ -29,6 +29,7 @@ class TaskManager(EventDispatcher):
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
         self.register_event_type("on_tasks_expired_set_date_expired")
+        self.register_event_type("on_task_expired_trigger_alarm")
 
         # File path
         self.task_file_path: str = DM.get_storage_path(PATH.TASK_FILE)
@@ -44,6 +45,8 @@ class TaskManager(EventDispatcher):
         self.vibrate: bool = False
         # Editing Task attributes
         self.task_to_edit: Task | None = None
+
+        Clock.schedule_interval(self.check_task_expired, 1)
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """
@@ -116,7 +119,7 @@ class TaskManager(EventDispatcher):
             
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
-            logger.trace(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
+            logger.error(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
             return True
         
         except Exception as e:
@@ -261,6 +264,7 @@ class TaskManager(EventDispatcher):
             if all(task.expired for task in active_tasks["tasks"]):
                 self.dispatch("on_tasks_expired_set_date_expired", 
                                       date=active_tasks["date"])
+                self.dispatch("on_tasks_changed_update_task_display") 
     
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """
@@ -290,8 +294,7 @@ class TaskManager(EventDispatcher):
                     return task
         
         return None
-        
-
+    
     def date_is_taken(self, target_datetime: datetime) -> bool:
         """
         Check if a date and time is taken by any Task.
@@ -313,6 +316,18 @@ class TaskManager(EventDispatcher):
         
         return False
 
+    def check_task_expired(self, dt: float) -> None:
+        """
+        Check if any Tasks are expired and trigger the alarm if so.
+        """
+        current_tasks = self.sorted_active_tasks[0]["tasks"]
+        for task in current_tasks:
+            if task.timestamp < datetime.now() and not task.expired:
+                self.save_tasks_to_json()
+                self.set_expired_tasks()
+                self.dispatch("on_task_expired_trigger_alarm", 
+                              task=task)
+
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""
         pass
@@ -327,4 +342,8 @@ class TaskManager(EventDispatcher):
     
     def on_tasks_expired_set_date_expired(self, *args, **kwargs):
         """Default handler for on_tasks_expired_set_date_expired event"""
+        pass
+    
+    def on_task_expired_trigger_alarm(self, *args, **kwargs):
+        """Default handler for on_task_expired_trigger_alarm event"""
         pass

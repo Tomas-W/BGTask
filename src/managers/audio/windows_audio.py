@@ -64,7 +64,7 @@ class WindowsAudioPlayer:
             )
             
             self.stream.start_stream()
-            logger.trace(f"Windows recording started: {self.current_path}")
+            logger.debug(f"Windows recording started: {self.current_path}")
             return True
         
         except Exception as e:
@@ -85,7 +85,7 @@ class WindowsAudioPlayer:
                 self.stream.stop_stream()
                 self.stream.close()
                 self.stream = None
-                logger.trace("Windows recording stopped")
+                logger.debug("Windows recording stopped")
             
             # Save recording to WAV file
             if self.frames and self.current_path:
@@ -114,7 +114,7 @@ class WindowsAudioPlayer:
             if sound:
                 sound.play()
                 self.sound = sound
-                logger.trace(f"Started Windows audio playback: {path}")
+                logger.debug(f"Started Windows audio playback: {path}")
                 return True
             
             else:
@@ -137,7 +137,7 @@ class WindowsAudioPlayer:
             
             self.sound.stop()
             self.sound = None
-            logger.trace("Stopped Windows audio playback")
+            logger.debug("Stopped Windows audio playback")
             return True
         
         except Exception as e:
@@ -172,3 +172,7 @@ class WindowsAudioPlayer:
         except Exception as e:
             logger.error(f"Error releasing Windows audio resources: {e}")
             return False
+    
+    def vibrate(self) -> bool:
+        """Stub implementation for Windows - vibration not supported"""
+        return True

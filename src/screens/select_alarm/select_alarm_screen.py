@@ -149,7 +149,7 @@ class SelectAlarmScreen(BaseScreen):
             self.show_error_popup("Playback Error", "No alarm selected")
             return
         
-        if self.audio_manager.start_playing_audio():
+        if self.audio_manager.start_playing_audio(self.audio_manager.selected_alarm_path):
             self.update_button_states()
             # Update buttons states when audio finishes
             Clock.schedule_interval(self.check_audio_finished, 0.2)

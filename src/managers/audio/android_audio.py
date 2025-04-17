@@ -16,6 +16,7 @@ class AndroidAudioPlayer:
         
         # Cache for Java classes
         self._java_classes = {}
+        self.vibrator = None
         
     def _get_java_class(self, class_name):
         """Lazy load Java classes only when needed"""
@@ -153,4 +154,27 @@ class AndroidAudioPlayer:
         
         except Exception as e:
             logger.error(f"Error releasing Android resources: {e}")
+            return False
+    
+    def vibrate(self) -> bool:
+        """Vibrate the device using Android's Vibrator service."""
+        try:
+            if not self.vibrator:
+                # Get the Android Context
+                Context = self._get_java_class("android.content.Context")
+                PythonActivity = self._get_java_class("org.kivy.android.PythonActivity")
+                activity = PythonActivity.mActivity
+                
+                # Get the Vibrator service
+                self.vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
+            
+            if self.vibrator:
+                # Vibrate for 1 second (1000ms)
+                self.vibrator.vibrate(1000)
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error vibrating on Android: {e}")
             return False
