@@ -1,8 +1,8 @@
 from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.containers import Partition, ScrollContainer, CustomButtonRow
-from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
-                                 CustomCancelButton)
+from src.widgets.buttons import (ConfirmButton, SettingsButton,
+                                 CancelButton)
 
 from src.utils.logger import logger
 
@@ -37,11 +37,11 @@ class SavedAlarmScreen(BaseScreen):
         # Button row
         self.confirmation_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel")
+        self.cancel_button = CancelButton(text="Cancel")
         self.cancel_button.bind(on_release=self.cancel_alarm_selection)
         self.confirmation_row.add_widget(self.cancel_button)
         # Confirm button
-        self.confirm_button = CustomConfirmButton(text="Select")
+        self.confirm_button = ConfirmButton(text="Select")
         self.confirm_button.bind(on_release=self.confirm_alarm_selection)
         self.confirmation_row.add_widget(self.confirm_button)
         # Add to confirmation partition
@@ -71,7 +71,7 @@ class SavedAlarmScreen(BaseScreen):
         Create the alarm buttons for the AlarmPicker partition.
         """
         for name, path in self.audio_manager.alarms.items():
-            button = CustomSettingsButton(
+            button = SettingsButton(
                 text=name,
                 width=1,
                 color_state=STATE.INACTIVE,

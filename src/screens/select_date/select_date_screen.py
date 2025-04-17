@@ -7,7 +7,7 @@ from kivy.app import App
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
+from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import (ScrollContainer, CustomButtonRow, Partition,
                                     CustomRow)
 from src.widgets.labels import PartitionHeader
@@ -38,7 +38,7 @@ class SelectDateScreen(BaseScreen):
         # Select month row
         self.select_month_row = CustomButtonRow()
         # Previous month button
-        self.prev_month_button = CustomConfirmButton(
+        self.prev_month_button = ConfirmButton(
             text="<",
             width=0.6,
             symbol=True,
@@ -49,7 +49,7 @@ class SelectDateScreen(BaseScreen):
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
         # Next month button
-        self.next_month_button = CustomConfirmButton(
+        self.next_month_button = ConfirmButton(
             text=">",
             width=0.6,
             symbol=True,
@@ -100,10 +100,10 @@ class SelectDateScreen(BaseScreen):
         self.confirmation_partition = Partition()
         self.confirmation_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
+        self.cancel_button = CancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_release=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
         # Confirm button
-        self.confirm_button = CustomConfirmButton(text="Confirm", width=2,
+        self.confirm_button = ConfirmButton(text="Confirm", width=2,
                                                   color_state=STATE.ACTIVE)
         self.confirm_button.bind(on_release=self.confirm_date_selection)
         # Apply confirmation partition

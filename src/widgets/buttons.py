@@ -1,6 +1,6 @@
 import os
 
-from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle, Line
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 
@@ -232,9 +232,9 @@ class CustomButton(Button):
         self.disabled = value
 
 
-class CustomCancelButton(CustomButton):
+class CancelButton(CustomButton):
     """
-    CustomCancelButton is a Cancel button that:
+    CancelButton is a button that:
     - Inherits from CustomButton
     - Only differs in color
     - Does not use states
@@ -255,9 +255,9 @@ class CustomCancelButton(CustomButton):
         self.color_error = COL.CANCEL_BUTTON
 
 
-class CustomConfirmButton(CustomButton):
+class ConfirmButton(CustomButton):
     """
-    CustomConfirmButton is a Confirm button that:
+    ConfirmButton is a button that:
     - Inherits from CustomButton
     - Only differs in color
     - Is always clickable
@@ -280,9 +280,9 @@ class CustomConfirmButton(CustomButton):
         self.color_error = COL.ERROR
 
 
-class CustomSettingsButton(CustomButton):
+class SettingsButton(CustomButton):
     """
-    CustomSettingsButton is a button that:
+    SettingsButton is a button that:
     - Inherits styling and functionality from CustomButton
     - Is 2/3 the height of the CustomButton
     - Always remains clickable regardless of visual state
@@ -298,6 +298,44 @@ class CustomSettingsButton(CustomButton):
         self.font_size = FONT.SETTINGS_BUTTON if not symbol else FONT.SETTINGS_BUTTON_SYMBOL
         self.always_clickable = True
         self.disabled = False
+
+
+class CustomSettingsButton(SettingsButton):
+    """
+    CustomSettingsButton is a button that:
+    - Inherits styling and functionality from SettingsButton
+    - Can have top or bottom corners made sharp
+    """
+    def __init__(self, width: int, symbol: bool = False, color_state: str = STATE.INACTIVE, **kwargs):
+        super().__init__(
+            width=width,
+            symbol=symbol,
+            color_state=color_state,
+            **kwargs
+        )
+        self._default_radius = STYLE.RADIUS_M
+        self._current_radius = [self._default_radius] * 4
+    
+    def remove_top_radius(self):
+        """Remove the top rounded corners, making them sharp"""
+        self._current_radius[0] = 0
+        self._current_radius[1] = 0
+        self._update_radius()
+    
+    def remove_bottom_radius(self):
+        """Remove the bottom rounded corners, making them sharp"""
+        self._current_radius[2] = 0
+        self._current_radius[3] = 0
+        self._update_radius()
+
+    def reset_radius(self):
+        """Reset all corners to default rounded state"""
+        self._current_radius = [STYLE.RADIUS_M] * 4
+        self._update_radius()
+
+    def _update_radius(self):
+        """Update background radius"""
+        self.bg_rect.radius = self._current_radius
 
 
 class IconButton(Button):

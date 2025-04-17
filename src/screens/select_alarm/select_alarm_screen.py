@@ -6,8 +6,8 @@ from src.screens.select_alarm.select_alarm_utils import ScreenState, BUTTON_STAT
 
 from src.widgets.containers import (Partition, BorderedPartition, CustomButtonRow,
                                     CustomIconButtonRow)
-from src.widgets.buttons import (CustomConfirmButton, CustomSettingsButton,
-                                CustomCancelButton, IconButton)
+from src.widgets.buttons import (ConfirmButton, SettingsButton,
+                                CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
 
 from src.utils.logger import logger
@@ -39,7 +39,7 @@ class SelectAlarmScreen(BaseScreen):
         # Saved alarms partition
         self.saved_alarms_partition = Partition()
         # Saved alarms button
-        self.saved_alarms_button = CustomSettingsButton(text="Saved Alarms", width=1, color_state=STATE.ACTIVE)
+        self.saved_alarms_button = SettingsButton(text="Saved Alarms", width=1, color_state=STATE.ACTIVE)
         self.saved_alarms_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(SCREEN.SAVED_ALARMS))
         self.saved_alarms_partition.add_widget(self.saved_alarms_button)
         # Add to scroll container
@@ -48,11 +48,11 @@ class SelectAlarmScreen(BaseScreen):
         # Recording partition
         self.recording_partition = Partition()
         # Start recording button
-        self.start_recording_button = CustomSettingsButton(text="Start Recording", width=1, color_state=STATE.ACTIVE)
+        self.start_recording_button = SettingsButton(text="Start Recording", width=1, color_state=STATE.ACTIVE)
         self.start_recording_button.bind(on_release=self.start_recording_alarm)
         self.recording_partition.add_widget(self.start_recording_button)
         # Stop recording button
-        self.stop_recording_button = CustomSettingsButton(text="Stop Recording", width=1, color_state=STATE.INACTIVE)
+        self.stop_recording_button = SettingsButton(text="Stop Recording", width=1, color_state=STATE.INACTIVE)
         self.stop_recording_button.bind(on_release=self.stop_recording_alarm)
         self.recording_partition.add_widget(self.stop_recording_button)
         # Add to scroll container
@@ -60,7 +60,7 @@ class SelectAlarmScreen(BaseScreen):
         
         # Playback partition
         self.playback_partition = BorderedPartition()
-        self.playback_partition.padding = [0, 0, 0, SPACE.SPACE_S]
+        # self.playback_partition.padding = [0, 0, 0, SPACE.SPACE_S]
         # Alarm display box
         self.selected_alarm = CustomSettingsField(text="No alarm selected", width=1, color_state=STATE.INACTIVE)
         self.selected_alarm.remove_bottom_radius()
@@ -83,15 +83,19 @@ class SelectAlarmScreen(BaseScreen):
         self.delete_selected_alarm_button = IconButton(icon_name="delete", color_state=STATE.INACTIVE)
         self.delete_selected_alarm_button.bind(on_release=self.delete_selected_alarm)
         self.playback_row.add_widget(self.delete_selected_alarm_button)
-
+        # Deselect alarm button
+        self.deselect_alarm_button = CustomSettingsButton(text="Deselect Alarm", width=1, color_state=STATE.INACTIVE)
+        self.deselect_alarm_button.remove_top_radius()
+        self.deselect_alarm_button.bind(on_release=self.deselect_alarm)
         # Add to scroll container
         self.playback_partition.add_widget(self.playback_row)
+        self.playback_partition.add_widget(self.deselect_alarm_button)
         self.scroll_container.container.add_widget(self.playback_partition)
 
         # Vibrating partition
         self.vibration_partition = Partition()
         # Vibrating button
-        self.vibration_button = CustomSettingsButton(text="Vibrate off", width=1, color_state=STATE.INACTIVE)
+        self.vibration_button = SettingsButton(text="Vibrate off", width=1, color_state=STATE.INACTIVE)
         self.vibration_button.bind(on_release=self.toggle_vibration)
         self.vibration_partition.add_widget(self.vibration_button)
         # Add to scroll container
@@ -102,17 +106,17 @@ class SelectAlarmScreen(BaseScreen):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
+        self.cancel_button = CancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_release=self.cancel_select_alarm)
         self.button_row.add_widget(self.cancel_button)
         # Save button
-        self.save_button = CustomConfirmButton(text="Select", width=2)
+        self.save_button = ConfirmButton(text="Select", width=2)
         self.save_button.bind(on_release=self.select_alarm)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
-    
+
         # Initialize screen state
         self._screen_state = ScreenState.IDLE
 
@@ -223,6 +227,14 @@ class SelectAlarmScreen(BaseScreen):
         self.unschedule_audio_check()
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
     
+    def deselect_alarm(self, instance) -> None:
+        """Deselect the alarm and return to NewTaskScreen"""
+        logger.trace("Deselecting alarm")
+        self.unschedule_audio_check()
+        self.audio_manager.selected_alarm_name = None
+        self.audio_manager.selected_alarm_path = None
+        self.update_screen_state()
+    
     def check_audio_finished(self, dt: float) -> bool:
         """Check if audio has finished playing and update buttons accordingly"""
         if not self.audio_manager.is_playing():
@@ -290,6 +302,7 @@ class SelectAlarmScreen(BaseScreen):
         self.set_button_state(self.rename_selected_alarm_button, **state_config["rename"])
         self.set_button_state(self.delete_selected_alarm_button, **state_config["delete"])
         self.set_button_state(self.save_button, **state_config["save"])
+        self.set_button_state(self.deselect_alarm_button, **state_config["deselect"])
     
     def update_screen_state(self) -> None:
         """Update all UI elements based on current ScreenState"""

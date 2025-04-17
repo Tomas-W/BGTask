@@ -54,20 +54,14 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # NewTaskScreen
-# TODO: Fix vibrate loading/setting/resetting in new task screen
 # TODO: 1 Task per timestamp
 # TODO: Delete alarm button on NewTask screen
-# TODO: After saving task, reset task details
-# TODO: Remove selected_task_alarm after saving
-# TODO: Prevent Tasks at same time
 
 
 # SelectDateScreen
 # TODO: Optimize layout / widgets
 
 # SelectAlarmScreen
-# TODO: Save - Alarm Name - Delete [with confirmation]
-# TODO: Rework audio preview
 # TODO: Fix alarm name taken filename
 # TODO: new name = old name -> continue dont rename
 # TODO: Cache alarm buttons
@@ -84,12 +78,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Rework is_android
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
-# TODO: Add alarm path to task
-# TODO: Add vibrtating to task
 # TODO: Look at caching
-# TODO: Add on_pause saving data
-# TODO: Add on_resume loading data
-# TODO: Add on_stop saving data
 
 
 class TaskApp(App, EventDispatcher):

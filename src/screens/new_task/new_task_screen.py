@@ -3,7 +3,7 @@ from datetime import datetime
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
+from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import Partition, CustomButtonRow
 from src.widgets.fields import TextField, ButtonField
 
@@ -42,7 +42,7 @@ class NewTaskScreen(BaseScreen):
         # Date picker partition
         self.date_picker_partition = Partition()
         # Date picker button
-        self.pick_date_button = CustomConfirmButton(text="Select Date", color_state=STATE.ACTIVE)
+        self.pick_date_button = ConfirmButton(text="Select Date", color_state=STATE.ACTIVE)
         self.pick_date_button.bind(on_release=self.go_to_select_date_screen)
         self.date_picker_partition.add_widget(self.pick_date_button)
         # Date display box
@@ -63,7 +63,7 @@ class NewTaskScreen(BaseScreen):
         # Alarm picker partition
         self.select_alarm_partition = Partition()
         # Alarm picker button
-        self.select_alarm_button = CustomConfirmButton(text="Select Alarm", color_state=STATE.ACTIVE)
+        self.select_alarm_button = ConfirmButton(text="Select Alarm", color_state=STATE.ACTIVE)
         self.select_alarm_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(SCREEN.SELECT_ALARM))
         self.select_alarm_partition.add_widget(self.select_alarm_button)
         # Alarm display box
@@ -77,11 +77,11 @@ class NewTaskScreen(BaseScreen):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
+        self.cancel_button = CancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_release=self.cancel_edit_task)
         self.button_row.add_widget(self.cancel_button)
         # Save button - with inactive state
-        self.save_button = CustomConfirmButton(text="Save Task", width=2, color_state=STATE.INACTIVE)
+        self.save_button = ConfirmButton(text="Save Task", width=2, color_state=STATE.INACTIVE)
         self.save_button.bind(on_release=self.save_task)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)

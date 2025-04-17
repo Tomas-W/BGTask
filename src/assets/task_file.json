@@ -288,5 +288,23 @@
       "vibrate": true,
       "expired": false
     }
+  ],
+  "2025-04-17": [
+    {
+      "task_id": "35b0dafe-d52c-4914-9f91-94933a622302",
+      "timestamp": "2025-04-17T13:35:15.514790",
+      "message": "vvv",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "df427137-703d-491e-8061-2cbb71261ca4",
+      "timestamp": "2025-04-17T13:36:43.408193",
+      "message": "dfg",
+      "alarm_name": "scanner",
+      "vibrate": false,
+      "expired": true
+    }
   ]
 }

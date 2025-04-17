@@ -6,7 +6,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
-from src.widgets.buttons import CustomConfirmButton, CustomCancelButton
+from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow
 from src.widgets.fields import TextField, CustomSettingsField
 from src.widgets.misc import Spacer
@@ -109,10 +109,10 @@ class ConfirmationPopup(BasePopup):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
+        self.cancel_button = CancelButton(text="Cancel", width=2)
         self.button_row.add_widget(self.cancel_button)
         # Confirm button
-        self.confirm_button = CustomConfirmButton(text="Confirm", width=2)
+        self.confirm_button = ConfirmButton(text="Confirm", width=2)
         self.button_row.add_widget(self.confirm_button)
         # Add to layout
         self.content_layout.add_widget(self.button_row)
@@ -178,10 +178,10 @@ class TextInputPopup(BasePopup):
         # Button row
         self.button_row = CustomButtonRow()
         # Cancel button
-        self.cancel_button = CustomCancelButton(text="Cancel", width=2)
+        self.cancel_button = CancelButton(text="Cancel", width=2)
         self.button_row.add_widget(self.cancel_button)
         # Confirm button
-        self.confirm_button = CustomConfirmButton(text="Confirm", width=2)
+        self.confirm_button = ConfirmButton(text="Confirm", width=2)
         self.button_row.add_widget(self.confirm_button)
         # Add to layout
         self.content_layout.add_widget(self.button_row)
