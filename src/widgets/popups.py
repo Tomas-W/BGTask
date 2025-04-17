@@ -4,12 +4,14 @@ start_time = time.time()
 from typing import Callable
 
 from kivy.animation import Animation
+from kivy.clock import Clock
 from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.clock import Clock
-from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer, TaskLabel, TimeLabel
+
+from src.screens.home.home_widgets import (TaskHeader, TaskGroupContainer,
+                                           TaskLabel, TimeLabel)
 
 from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow
@@ -119,12 +121,12 @@ class TaskPopup(BasePopup):
 
         # Button row
         self.button_row = CustomButtonRow()
-        # Cancel button
-        self.cancel_button = CancelButton(text="Stop", width=2)
-        self.button_row.add_widget(self.cancel_button)
-        # Confirm button
-        self.confirm_button = ConfirmButton(text="Snooze", width=2)
-        self.button_row.add_widget(self.confirm_button)
+        # Stop button
+        self.stop_alarm = CancelButton(text="Stop", width=2)
+        self.button_row.add_widget(self.stop_alarm)
+        # Snooze button
+        self.snooze_alarm = ConfirmButton(text="Snooze", width=2)
+        self.button_row.add_widget(self.snooze_alarm)
         # Add to layout
         self.content_layout.add_widget(self.button_row)
 
@@ -134,9 +136,9 @@ class TaskPopup(BasePopup):
         """Un- and re-bind callbacks"""
         # Unbind callbacks
         if self._confirm_handler:
-            self.confirm_button.unbind(on_release=self._confirm_handler)
+            self.snooze_alarm.unbind(on_release=self._confirm_handler)
         if self._cancel_handler:
-            self.cancel_button.unbind(on_release=self._cancel_handler)
+            self.stop_alarm.unbind(on_release=self._cancel_handler)
         
         # Create new handlers
         self._confirm_handler = lambda x: self.hide_animation(
@@ -147,8 +149,8 @@ class TaskPopup(BasePopup):
         )
         
         # Bind new callbacks
-        self.confirm_button.bind(on_release=self._confirm_handler)
-        self.cancel_button.bind(on_release=self._cancel_handler)
+        self.snooze_alarm.bind(on_release=self._confirm_handler)
+        self.stop_alarm.bind(on_release=self._cancel_handler)
 
 
 class CustomPopup(BasePopup):
@@ -368,7 +370,7 @@ class PopupManager:
         self.input = TextInputPopup()
         self.task = TaskPopup()
         
-        # Bind to task manager events
+        # Managers
         from kivy.app import App
         app = App.get_running_app()
         self.task_manager = app.task_manager
@@ -379,22 +381,36 @@ class PopupManager:
         logger.critical(f"Time taken to initialize PopupManager: {total_time}")
     
     def _handle_task_popup(self, *args, **kwargs):
-        """Handle showing task popup when task expires."""
-        logger.critical(f"Handling task popup: {args} {kwargs}")
-        # Get task from either positional args or kwargs
+        """
+        Handle showing TaskPopup when a Task expires.
+        Configures callbacks for:
+        - Stop alarm
+        - Snooze alarm
+        """
         task = kwargs.get("task") if "task" in kwargs else args[0]
+        if not task:
+            logger.error("No task provided to _handle_task_popup")
+            return
         
         def stop_alarm(*args):
-            """Stop the alarm for the given task."""
+            """Stop the alarm and reset alarm state."""
             self.audio_manager.keep_alarming = False
             self.audio_manager.stop_playing_audio()
             self.audio_manager.current_alarm_path = None
             self.audio_manager.alarm_is_triggered = False
         
+        def snooze_alarm(*args):
+            """Stop current alarm and trigger task manager snooze."""
+            stop_alarm()
+            pass
+        
+        # Update popup callbacks
         self.task.update_callbacks(
-            on_confirm=lambda *args: self.task_manager.on_task_popup_confirm(task),
-            on_cancel=lambda *args: stop_alarm()
+            on_confirm=snooze_alarm,
+            on_cancel=stop_alarm
         )
+        
+        # Show the popup
         self.show_task_popup(task=task)
 
     def _handle_popup_confirmation(self, confirmed: bool):
@@ -410,8 +426,13 @@ class PopupManager:
     
     def show_custom_popup(self, header: str, field_text: str, extra_info: str, confirm_text: str,
                           on_confirm: Callable, on_cancel: Callable):
-        """Show a custom popup with a PartitionHeader (aligned center),
-        ConfirmButton and CancelButton."""
+        """
+        Show a CustomPopup with a:
+        - Header [aligned left]
+        - Info field
+        - Extra info [aligned left]
+        - ConfirmButton and CancelButton.
+        """
         self.custom.header.text = header
         self.custom.extra_info.text = extra_info
         self.custom.update_field_text(field_text)
@@ -422,8 +443,10 @@ class PopupManager:
     def show_confirmation_popup(self, header: str, field_text: str,
                                  on_confirm: Callable, on_cancel: Callable):
         """
-        Show a confirmation popup with a PartitionHeader (aligned center),
-        CustomConfirmButton and CustomCancelButton.
+        Show a ConfirmationPopup with a:
+        - Header [aligned left]
+        - Info field
+        - ConfirmButton and CancelButton.
         Reuses the same popup instance for efficiency.
         """
         self.confirmation.header.text = header
@@ -434,7 +457,10 @@ class PopupManager:
     def show_input_popup(self, header: str, input_text: str,
                          on_confirm: Callable, on_cancel: Callable):
         """
-        Show a popup with an InputField between the header and buttons.
+        Show a TextInputPopup with a:
+        - Header [aligned left]
+        - Input field
+        - ConfirmButton and CancelButton.
         Reuses the same popup instance for efficiency.
         """
         self.input.header.text = header
@@ -443,33 +469,42 @@ class PopupManager:
         self.input.show_animation()
     
     def show_task_popup(self, *args, **kwargs):
-        """Show a task popup with a TaskHeader, TaskContainer, Timestamp, and TaskLabel."""
-        # Get task from either positional args or kwargs
+        """
+        Show a TaskPopup with a:
+        - Header [aligned center]
+        - TaskHeader
+        - TaskContainer
+          |- TimeLabel
+          |- TaskLabel
+        - StopButton and SnoozeButton
+        """
         task = kwargs.get("task") if "task" in kwargs else args[-1]
         
-        # Ensure we're on the main thread and in a window context
         def show_popup(dt):
-            # Set up the task popup
             self.task.task_header.text = task.timestamp.strftime("%A %d %B")
             self.task.task_time.text = task.timestamp.strftime("%H:%M")
             self.task.task_label.text = task.message
             
-            # Force the popup to use the app's root window context
             from kivy.app import App
             app = App.get_running_app()
             
+            def display_new_popup(dt):
+                app.active_popup = self.task
+                self.task.show_animation()
+            
             # Close any existing popups
-            if hasattr(app, 'active_popup') and app.active_popup:
+            if hasattr(app, "active_popup") and app.active_popup:
                 app.active_popup.dismiss()
-                
-            # Store reference and show
-            app.active_popup = self.task
-            self.task.show_animation()
+                # Schedule new popup to show after a small delay
+                Clock.schedule_once(display_new_popup, 0.3)
+            else:
+                # No existing popup, show immediately
+                display_new_popup(0)
         
         Clock.schedule_once(show_popup, 0)
 
     def _show_task_popup(self, task, on_confirm=None, on_cancel=None):
-        """Show a task popup with the given callbacks."""
+        """Internal callback for handling the TaskPopup."""
         logger.critical(f"Showing task popup for task: {task}")
         
         self.task.update_callbacks(

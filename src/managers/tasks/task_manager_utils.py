@@ -8,15 +8,16 @@ class Task:
     """
     Represents a Task with a message and timestamp.
     """
-    def __init__(self, task_id=None, message="", timestamp=None,
-                 alarm_name=None, vibrate=False, expired=False):
+    def __init__(self, task_id=None, message="", timestamp=None, alarm_name=None,
+                 vibrate=False, expired=False, keep_alarming=False):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.message = message
         self.timestamp = timestamp if timestamp else datetime.now()
         self.alarm_name = alarm_name
         self.vibrate = vibrate
         self.expired = expired
-    
+        self.keep_alarming = keep_alarming
+
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
         timestamp = self.timestamp if type(self.timestamp) == datetime else datetime.fromisoformat(self.timestamp)
@@ -26,19 +27,22 @@ class Task:
             "message": self.message,
             "alarm_name": self.alarm_name,
             "vibrate": self.vibrate,
-            "expired": self.expired
+            "expired": self.expired,
+            "keep_alarming": self.keep_alarming
         }
     
     @classmethod
     def to_class(cls, data: dict) -> "Task":
         """Convert dictionary to Task class."""
+        keep_alarming = data.get("keep_alarming", False)
         return Task(
             task_id=data["task_id"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
             message=data["message"],
             alarm_name=data["alarm_name"],
             vibrate=data["vibrate"],
-            expired=data["expired"]
+            expired=data["expired"],
+            keep_alarming=keep_alarming
         )
 
     def to_json(self) -> dict:
@@ -49,7 +53,8 @@ class Task:
             "message": self.message,
             "alarm_name": self.alarm_name,
             "vibrate": self.vibrate,
-            "expired": self.expired
+            "expired": self.expired,
+            "keep_alarming": self.keep_alarming
         }
 
     @staticmethod

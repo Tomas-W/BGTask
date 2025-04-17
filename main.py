@@ -24,6 +24,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 
 # TODO: self.keep_alarming as Task attribute (select on select alarm screen)
+# TODO: Trigger laarm dont change nbutton states
 
 
 # Widgets
@@ -63,6 +64,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 # NewTaskScreen
 # TODO: Delete alarm button on NewTask screen
+# TODO: Autofocus on input field when field error
 
 
 # SelectDateScreen

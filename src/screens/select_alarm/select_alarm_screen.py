@@ -5,7 +5,7 @@ from src.screens.base.base_screen import BaseScreen
 from src.screens.select_alarm.select_alarm_utils import ScreenState, BUTTON_STATES
 
 from src.widgets.containers import (Partition, BorderedPartition, CustomButtonRow,
-                                    CustomIconButtonRow)
+                                    CustomIconButtonRow, CustomSettingsButtonRow)
 from src.widgets.buttons import (ConfirmButton, SettingsButton,
                                 CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
@@ -99,6 +99,17 @@ class SelectAlarmScreen(BaseScreen):
         self.vibration_button = SettingsButton(text="Vibrate off", width=1, color_state=STATE.INACTIVE)
         self.vibration_button.bind(on_release=self.toggle_vibration)
         self.vibration_partition.add_widget(self.vibration_button)
+        # Keep alarming row
+        self.keep_alarming_row = CustomSettingsButtonRow()
+        self.vibration_partition.add_widget(self.keep_alarming_row)
+        # Alarm once button
+        self.alarm_once_button = SettingsButton(text="Trigger once", width=2, color_state=STATE.ACTIVE)
+        self.alarm_once_button.bind(on_release=self.toggle_keep_alarming)
+        self.keep_alarming_row.add_widget(self.alarm_once_button)
+        # Alarm continuously button
+        self.alarm_continuously_button = SettingsButton(text="Trigger continuously", width=2, color_state=STATE.INACTIVE)
+        self.alarm_continuously_button.bind(on_release=self.toggle_keep_alarming)
+        self.keep_alarming_row.add_widget(self.alarm_continuously_button)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.vibration_partition)
 
@@ -207,13 +218,18 @@ class SelectAlarmScreen(BaseScreen):
 
     def toggle_vibration(self, instance) -> None:
         """Toggle vibration on the selected alarm"""
-        self.task_manager.vibrate = not self.task_manager.vibrate
+        self.task_manager.selected_vibrate = not self.task_manager.selected_vibrate
         self.set_button_state(
             self.vibration_button,
-            active=self.task_manager.vibrate,
-            text="Vibrate on" if self.task_manager.vibrate else "Vibrate off"
+            active=self.task_manager.selected_vibrate,
+            text="Vibrate on" if self.task_manager.selected_vibrate else "Vibrate off"
         )
     
+    def toggle_keep_alarming(self, instance) -> None:
+        """Toggle keep alarming on the selected alarm"""
+        self.task_manager.selected_keep_alarming = not self.task_manager.selected_keep_alarming
+        self.update_keep_alarming_states()
+
     def cancel_select_alarm(self, instance) -> None:
         """
         Reset the selected_alarm and navigate back to the NewTaskScreen.
@@ -290,6 +306,19 @@ class SelectAlarmScreen(BaseScreen):
         else:
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
     
+    def update_keep_alarming_states(self) -> None:
+        """Update the keep_alarming states"""
+        self.set_button_state(
+            self.alarm_once_button,
+            active=not self.task_manager.selected_keep_alarming,
+            enabled=self.task_manager.selected_keep_alarming
+        )
+        self.set_button_state(
+            self.alarm_continuously_button,
+            active=self.task_manager.selected_keep_alarming,
+            enabled=not self.task_manager.selected_keep_alarming
+        )
+    
     def update_button_states(self) -> None:
         """Update all button states based on current ScreenState"""
         current_state = self.screen_state
@@ -308,6 +337,7 @@ class SelectAlarmScreen(BaseScreen):
         """Update all UI elements based on current ScreenState"""
         self.update_playback_partition_states()
         self.update_selected_alarm_text()
+        self.update_keep_alarming_states()
         self.update_button_states()
 
     def unschedule_audio_check(self):

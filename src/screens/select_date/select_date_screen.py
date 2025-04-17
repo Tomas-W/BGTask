@@ -11,6 +11,8 @@ from src.widgets.containers import CustomButtonRow, Partition, CustomRow
 from src.widgets.labels import PartitionHeader
 from src.widgets.fields import InputField
 
+from src.widgets.popups import POPUP
+
 from src.utils.logger import logger
 
 from src.settings import SPACE, STATE, SCREEN
@@ -189,7 +191,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         """
         date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
         if self.task_manager.date_is_taken(date):
-            self.show_custom_popup(
+            POPUP.show_custom_popup(
                 header="Existing task found for:",
                 field_text=f"{self.task_manager.selected_date} at {self.task_manager.selected_time.strftime('%H:%M')}",
                 extra_info="Cancel to resume selection\nEdit to update existing task",

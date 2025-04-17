@@ -21,11 +21,12 @@ class AudioManager(AudioManagerUtils):
         if DM.is_android:
             from src.managers.audio.android_audio import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
-
+            self.audio_player.bind_audio_manager(self)
+        
         elif DM.is_windows:
             from src.managers.audio.windows_audio import WindowsAudioPlayer
             self.audio_player = WindowsAudioPlayer()
-
+            self.audio_player.bind_audio_manager(self)
         else:
             logger.error("No audio player loaded")
         
@@ -33,7 +34,7 @@ class AudioManager(AudioManagerUtils):
         app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
 
         self.alarm_is_triggered: bool = False
-        self.keep_alarming: bool = True
+        self.keep_alarming: bool | None = None
         self.audio_player.keep_alarming = self.keep_alarming
         self.current_alarm_path: str | None = None
         
@@ -57,32 +58,55 @@ class AudioManager(AudioManagerUtils):
     def trigger_alarm(self, *args, **kwargs):
         """
         Trigger the alarm for the given task.
+        Handles audio playback and vibration if enabled.
         """
-        import time
-        from datetime import datetime
-        logger.error(f"TIME IS: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         task = kwargs.get("task")
         if not task:
             logger.error("No task provided to trigger_alarm")
-            return
+            return False
         
         if not task.alarm_name:
-            return
+            logger.warning("Task has no alarm name set")
+            return False
         
+        # Stop any currently playing alarm first
+        if self.is_playing():
+            self.stop_playing_audio()
+        
+        self.keep_alarming = task.keep_alarming
+        
+        # Get alarm path and validate
+        alarm_path = self.get_audio_path(task.alarm_name)
+        if not alarm_path:
+            logger.error(f"Could not find alarm audio: {task.alarm_name}")
+            return False
+        
+        # Trigger vibration if enabled
         if task.vibrate:
             self.audio_player.vibrate()
         
+        # Set up alarm state
         self.alarm_is_triggered = True
-        self.current_alarm_path = self.get_audio_path(task.alarm_name)
-        self.start_playing_audio(self.current_alarm_path)
-        self.check_and_replay_alarm()
+        self.current_alarm_path = alarm_path
+        
+        # Start playing and schedule replay
+        if self.start_playing_audio(alarm_path):
+            from datetime import datetime
+            logger.info(f"Starting alarm: {datetime.now().strftime('%H:%M:%S')}")
+            self.check_and_replay_alarm()
+            return True
+        return False
     
     def check_and_replay_alarm(self, *args, **kwargs):
         """Check if the alarm has finished playing and schedule the next play."""
-        if self.is_playing():
-            Clock.schedule_once(self.check_and_replay_alarm, 2)
+        if not self.alarm_is_triggered or not self.keep_alarming:
+            logger.trace(f"{self.alarm_is_triggered=} {self.keep_alarming=}")
             return
         
+        if self.is_playing():
+            Clock.schedule_once(self.check_and_replay_alarm, 2)
+
+            return
         if self.keep_alarming:
             self.start_playing_audio(self.current_alarm_path)
             Clock.schedule_once(self.check_and_replay_alarm, 2)

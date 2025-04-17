@@ -11,6 +11,8 @@ from src.utils.logger import logger
 class AndroidAudioPlayer:
     """Android-specific audio implementation for recording and playback."""
     def __init__(self):
+        self.audio_manager = None
+
         self.recorder = None
         self.media_player = None
         self.recording = False
@@ -19,9 +21,9 @@ class AndroidAudioPlayer:
         # Cache for Java classes
         self._java_classes = {}
         self.vibrator = None
-
-        # AudioManager Attributes
-        self.keep_alarming: bool
+    
+    def bind_audio_manager(self, audio_manager):
+        self.audio_manager = audio_manager
         
     def _get_java_class(self, class_name):
         """Lazy load Java classes only when needed"""
@@ -161,7 +163,7 @@ class AndroidAudioPlayer:
             logger.error(f"Error releasing Android resources: {e}")
             return False
     
-    def vibrate(self) -> bool:
+    def vibrate(self, *args, **kwargs) -> bool:
         """Vibrate the device using Android's Vibrator service."""
         try:
             if not self.vibrator:
@@ -176,7 +178,7 @@ class AndroidAudioPlayer:
             if self.vibrator:
                 # Vibrate for 1 second (1000ms)
                 self.vibrator.vibrate(1000)
-                if self.keep_alarming:
+                if self.audio_manager.keep_alarming:
                     Clock.schedule_once(self.vibrate, 2)
                 return True
             

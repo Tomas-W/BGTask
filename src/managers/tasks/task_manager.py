@@ -1,7 +1,6 @@
 import json
 import time
-
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -43,23 +42,18 @@ class TaskManager(EventDispatcher):
         # Task attributes
         self.selected_date: datetime | None = None
         self.selected_time: datetime | None = None
-        self.vibrate: bool = False
+        self.selected_vibrate: bool = False
+        self.selected_keep_alarming: bool = False
         # Editing Task attributes
         self.task_to_edit: Task | None = None
 
         Clock.schedule_interval(self.check_task_expired, 1)
     
-    def get_task_(self):
-        today = datetime.now().date()
-        date_str = today.strftime("%Y-%m-%d")
-        tasks = self.tasks_by_date[date_str]
-        task = tasks[0]
-        return task
-    
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """
         Loads all Tasks from file, which are grouped by date.
         Returns a dictionary of date keys and lists of Task objects.
+        Rounds timestamps to the nearest minute when loading tasks.
         """
         start_time = time.time()
         try:
@@ -71,6 +65,8 @@ class TaskManager(EventDispatcher):
                 tasks_by_date[date_key] = []
                 for task_data in tasks_data:
                     task = Task.to_class(task_data)
+                    # Round timestamp to nearest minute by setting seconds and microseconds to 0
+                    task.timestamp = task.timestamp.replace(second=0, microsecond=0)
                     tasks_by_date[date_key].append(task)
             
             logger.trace(f"_load_tasks_by_date time: {time.time() - start_time:.4f}")
@@ -142,13 +138,16 @@ class TaskManager(EventDispatcher):
         Clock.schedule_once(self._save_tasks_to_json, 0.2)
     
     def add_task(self, message: str, timestamp: datetime,
-                 alarm_name: str, vibrate: bool) -> None:
+                 alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
         Adds Task to tasks_by_date, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
         task = Task(message=message, timestamp=timestamp,
-                    alarm_name=alarm_name, vibrate=vibrate)
+                    alarm_name=alarm_name, vibrate=vibrate, keep_alarming=keep_alarming)
+        
+        # Round timestamp for in-memory version only
+        task.timestamp = task.timestamp.replace(second=0, microsecond=0)
         
         # Get date key and add to appropriate date group
         date_key = task.get_date_key()
@@ -165,7 +164,7 @@ class TaskManager(EventDispatcher):
         Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
     
     def update_task(self, task_id: str, message: str,
-                    timestamp: datetime, alarm_name: str, vibrate: bool) -> None:
+                    timestamp: datetime, alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
         Updates existing Task by its ID.
         Updates tasks_by_date, saves the Task to file,
@@ -177,21 +176,27 @@ class TaskManager(EventDispatcher):
             return
         
         old_date_key = task.get_date_key()
-        # Update task properties
+        
+        # Create rounded timestamp for expiry checking and later in-memory storage
+        rounded_timestamp = timestamp.replace(second=0, microsecond=0)
+        # Update task properties with full precision timestamp
         task.timestamp = timestamp
         task.message = message
         task.alarm_name = alarm_name
         task.vibrate = vibrate
-        
-        # Update expired state
-        now = datetime.now()
-        if timestamp > now and task.expired:
+        task.keep_alarming = keep_alarming
+
+        # Update expired state using rounded timestamps
+        now = datetime.now().replace(second=0, microsecond=0)
+        now += timedelta(seconds=1)
+        if rounded_timestamp > now and task.expired:
             # Task from past to future, -> not expired
             task.expired = False
-        elif timestamp <= now and not task.expired:
+        elif rounded_timestamp <= now and not task.expired:
             # Task from future to past, -> expired
             task.expired = True
         
+        # If date will change, move Task to new date group
         new_date_key = task.get_date_key()
         
         # If date changed, move Task to new date group
@@ -208,7 +213,14 @@ class TaskManager(EventDispatcher):
                 self.tasks_by_date[new_date_key] = []
             self.tasks_by_date[new_date_key].append(task)
 
+        # Save full precision timestamp to JSON
         self.save_tasks_to_json()
+        
+        # After saving, update in-memory version to use rounded timestamp
+        task = self.get_task_by_id(task_id)  # Get fresh reference to be safe
+        if task:
+            task.timestamp = rounded_timestamp
+        
         # Notify to update the Task display
         self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
         # Notify to scroll to Task
@@ -233,7 +245,8 @@ class TaskManager(EventDispatcher):
             timestamp=task.timestamp,
             alarm_name=task.alarm_name,
             vibrate=task.vibrate,
-            expired=task.expired
+            expired=task.expired,
+            keep_alarming=task.keep_alarming
         )
         
         # Remove from memory
@@ -327,12 +340,25 @@ class TaskManager(EventDispatcher):
     def check_task_expired(self, dt: float) -> None:
         """
         Check if any Tasks are expired and trigger the alarm if so.
+        Compares rounded timestamps (to the minute) for consistent timing.
         """
+        if not self.sorted_active_tasks:
+            return
+            
         current_tasks = self.sorted_active_tasks[0]["tasks"]
+        if not current_tasks:
+            return
+            
+        # Round current time to nearest minute for comparison
+        now = datetime.now().replace(second=0, microsecond=0)
         for task in current_tasks:
-            if task.timestamp < datetime.now() and not task.expired:
+            if task.timestamp <= now and not task.expired:
+                # Mark as expired before triggering to prevent multiple triggers
+                task.expired = True
                 self.save_tasks_to_json()
                 self.set_expired_tasksbydate()
+                
+                # Trigger alarm and popup
                 self.dispatch("on_task_expired_trigger_alarm", task=task)
                 self.dispatch("on_task_expired_show_task_popup", task=task)
                 return

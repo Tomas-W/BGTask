@@ -12,6 +12,8 @@ from src.utils.logger import logger
 class WindowsAudioPlayer:
     """Windows-specific audio implementation for recording and playback."""
     def __init__(self):
+        self.audio_manager = None
+
         self.current_path: str | None = None
         self.recording: bool = False
         self.stream = None
@@ -26,6 +28,9 @@ class WindowsAudioPlayer:
         
         except Exception as e:
             logger.error(f"Error initializing PyAudio: {e}")
+    
+    def bind_audio_manager(self, audio_manager):
+        self.audio_manager = audio_manager
     
     def setup_recording(self, path: str) -> bool:
         """Configure the recorder for a new recording session."""        
@@ -173,6 +178,6 @@ class WindowsAudioPlayer:
             logger.error(f"Error releasing Windows audio resources: {e}")
             return False
     
-    def vibrate(self) -> bool:
+    def vibrate(self, *args, **kwargs) -> bool:
         """Stub implementation for Windows - vibration not supported"""
         return True

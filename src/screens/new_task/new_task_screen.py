@@ -106,6 +106,8 @@ class NewTaskScreen(BaseScreen):
         self.task_input_field.set_text("")
         self.task_manager.selected_date = None
         self.task_manager.selected_time = None
+        self.task_manager.selected_vibrate = False
+        self.task_manager.selected_keep_alarming = False
         self.date_display_field.set_text("")
         self.in_edit_task_mode = False
         self.task_manager.task_to_edit = None
@@ -166,22 +168,23 @@ class NewTaskScreen(BaseScreen):
         """        
         # Set editing mode
         self.in_edit_task_mode = True
-        
         self.task_manager.task_to_edit = task
 
         # Date and time
         self.task_manager.selected_date = task.timestamp.date()
         self.task_manager.selected_time = task.timestamp.time()
+
+        # Message
+        self.task_input_field.set_text(task.message)
         
         # Alarm
         self.audio_manager.selected_alarm_name = task.alarm_name
         self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name) if task.alarm_name else None
 
         # Vibrate
-        self.task_manager.vibrate = task.vibrate
-        
-        # Message
-        self.task_input_field.set_text(task.message)
+        self.task_manager.selected_vibrate = task.vibrate
+        # Keep alarming
+        self.task_manager.selected_keep_alarming = task.keep_alarming
         
         # Update UI
         self.update_datetime_display()
@@ -227,7 +230,8 @@ class NewTaskScreen(BaseScreen):
                 timestamp=task_datetime,
                 message=message,
                 alarm_name=self.audio_manager.selected_alarm_name,
-                vibrate=self.task_manager.vibrate
+                vibrate=self.task_manager.selected_vibrate,
+                keep_alarming=self.task_manager.selected_keep_alarming,
             )
             self.in_edit_task_mode = False
             self.task_manager.task_to_edit = None
@@ -236,7 +240,8 @@ class NewTaskScreen(BaseScreen):
                 timestamp=task_datetime,
                 message=message,
                 alarm_name=self.audio_manager.selected_alarm_name,
-                vibrate=self.task_manager.vibrate
+                vibrate=self.task_manager.selected_vibrate,
+                keep_alarming=self.task_manager.selected_keep_alarming,
             )
         
         self.clear_inputs()
@@ -249,7 +254,6 @@ class NewTaskScreen(BaseScreen):
         # Set up callback for when returning from the date selection screen
         select_date_screen.callback = self.on_datetime_selected
         
-        # Navigate to the select date screen
         self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
 
     def on_pre_enter(self) -> None:
@@ -268,21 +272,6 @@ class NewTaskScreen(BaseScreen):
         
         # Validate form state when entering screen
         self.validate_form()
-    
-    def test_cancel(self, instance=None) -> None:
-        """Test cancel"""
-        print("Test cancel")
-
-    def test_confirm(self, instance=None) -> None:
-        """Test confirm"""
-        print("Test confirm")
 
     def on_enter(self) -> None:
         super().on_enter()
-        # input_text = "recording_12-12-12 "
-        # self.show_text_popup(
-        #     header="recording_12-12-12 recording_12-12-12 recording_12-12-12 recording_12-12-12",
-        #     input_text=input_text,
-        #     on_confirm=self.test_confirm,
-        #     on_cancel=self.test_cancel
-        # )
