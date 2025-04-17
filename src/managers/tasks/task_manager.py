@@ -262,6 +262,26 @@ class TaskManager(EventDispatcher):
                 self.dispatch("on_tasks_expired_set_date_expired", 
                                       date=active_tasks["date"])
     
+    def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
+        """
+        Get a Task object by its timestamp.
+        Only compares date and hours/minutes, ignoring seconds and microseconds.
+        """
+        target_date_key = target_datetime.strftime("%Y-%m-%d")
+        target_time = target_datetime.time()
+        
+        # First check if we have any tasks on this date
+        if target_date_key not in self.tasks_by_date:
+            return None
+        
+        # Then check for time match on that date
+        for task in self.tasks_by_date[target_date_key]:
+            task_time = task.timestamp.time()
+            if task_time.hour == target_time.hour and task_time.minute == target_time.minute:
+                return task
+        
+        return None
+    
     def get_task_by_id(self, task_id: str) -> Task | None:
         """Get a Task object by its ID."""
         for date_key, tasks in self.tasks_by_date.items():
@@ -270,7 +290,29 @@ class TaskManager(EventDispatcher):
                     return task
         
         return None
-    
+        
+
+    def date_is_taken(self, target_datetime: datetime) -> bool:
+        """
+        Check if a date and time is taken by any Task.
+        First checks the date to avoid unnecessary time comparisons.
+        Only compares hours and minutes, ignoring seconds and microseconds.
+        """
+        target_date_key = target_datetime.strftime("%Y-%m-%d")
+        
+        # First check if we have any tasks on this date
+        if target_date_key not in self.tasks_by_date:
+            return False
+        
+        # Then check for time conflicts on that date, comparing only hours and minutes
+        target_time = target_datetime.time()
+        for task in self.tasks_by_date[target_date_key]:
+            task_time = task.timestamp.time()
+            if task_time.hour == target_time.hour and task_time.minute == target_time.minute:
+                return True
+        
+        return False
+
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""
         pass

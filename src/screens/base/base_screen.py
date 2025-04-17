@@ -10,7 +10,7 @@ from kivy.uix.screenmanager import Screen
 from src.widgets.bars import TopBarClosed, TopBarExpanded, BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
 from src.widgets.misc import Spacer
-from src.widgets.popups import ConfirmationPopup, TextInputPopup
+from src.widgets.popups import ConfirmationPopup, TextInputPopup, CustomPopup
 
 from src.utils.logger import logger
 
@@ -35,6 +35,14 @@ class BaseScreen(Screen):
         self.popup_text: str | None = None
 
         # Initialize popup instances with None callbacks
+        self.custom_popup = CustomPopup(
+            header="",
+            field_text="",
+            extra_info="",
+            confirm_text="",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
         self.confirmation_popup = ConfirmationPopup(
             header="",
             field_text="",
@@ -254,7 +262,7 @@ class BaseScreen(Screen):
             button.set_inactive_state()
             
         button.set_disabled(not enabled)
-    
+        
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""
         if self.callback:
@@ -265,6 +273,17 @@ class BaseScreen(Screen):
         if self.callback:
             text = self.text_input_popup.input_field.text if confirmed else None
             self.callback(text)
+    
+    def show_custom_popup(self, header: str, field_text: str, extra_info: str, confirm_text: str,
+                          on_confirm: Callable, on_cancel: Callable):
+        """Show a custom popup with a PartitionHeader (aligned center),
+        ConfirmButton and CancelButton."""
+        self.custom_popup.header.text = header
+        self.custom_popup.extra_info.text = extra_info
+        self.custom_popup.update_field_text(field_text)
+        self.custom_popup.confirm_button.set_text(confirm_text)
+        self.custom_popup.update_callbacks(on_confirm, on_cancel)
+        self.custom_popup.show_animation()
 
     def show_confirmation_popup(self, header: str, field_text: str,
                                  on_confirm: Callable, on_cancel: Callable):

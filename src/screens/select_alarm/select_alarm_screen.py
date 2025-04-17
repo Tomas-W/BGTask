@@ -229,7 +229,6 @@ class SelectAlarmScreen(BaseScreen):
     
     def deselect_alarm(self, instance) -> None:
         """Deselect the alarm and return to NewTaskScreen"""
-        logger.trace("Deselecting alarm")
         self.unschedule_audio_check()
         self.audio_manager.selected_alarm_name = None
         self.audio_manager.selected_alarm_path = None
@@ -309,7 +308,6 @@ class SelectAlarmScreen(BaseScreen):
         self.update_playback_partition_states()
         self.update_selected_alarm_text()
         self.update_button_states()
-        logger.trace(f"Updated screen state: {self.screen_state}")
 
     def unschedule_audio_check(self):
         """Unschedule the audio finished check."""

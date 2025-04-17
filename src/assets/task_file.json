@@ -223,7 +223,15 @@
     {
       "task_id": "f5772269-e3d4-4d21-8df9-c80d63d168d1",
       "timestamp": "2025-04-18T12:18:53.206067",
-      "message": "sdfsdf\nsdfsdfs\ndfsdf\nsdfsdf\nsdfsdfs\ndfsdfsd\nfsdfsd\nfsdfs\ndfsdf\nsdfsdf\nsdfsd\nfsdf\nsdfs\ndfsd\nfsdf\nsdf\nsdf\nsdfsd\nfsd\nfsd\nfsdf\nsdf\nsdfs",
+      "message": "sdf123123123123sdf\nsdfsdfs\ndfsdf\nsdfsdf\nsdfsdfs\ndfsdfsd\nfsdfsd\nfsdfs\ndfsdf\nsdfsdf\nsdfsd\nfsdf\nsdfs\ndfsd\nfsdf\nsdf\nsdf\nsdfsd\nfsd\nfsd\nfsdf\nsdf\nsdfs",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": false
+    },
+    {
+      "task_id": "f2f9589b-07b5-4cdc-aaee-dd02c4c38a24",
+      "timestamp": "2025-04-18T14:17:37.368808",
+      "message": "asdas",
       "alarm_name": null,
       "vibrate": false,
       "expired": false
@@ -303,6 +311,78 @@
       "timestamp": "2025-04-17T13:36:43.408193",
       "message": "dfg",
       "alarm_name": "scanner",
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "4eceb928-e832-472d-8222-c051c77c11b0",
+      "timestamp": "2025-04-17T14:23:53.772031",
+      "message": "111",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "b3f5d31c-a29e-4b9a-92e3-a246151cc1ce",
+      "timestamp": "2025-04-17T14:26:19.039325",
+      "message": "111",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "32203e4b-0a7b-437c-b4e2-a2e614192de5",
+      "timestamp": "2025-04-17T14:28:52.662342",
+      "message": "www",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "068e66e1-9fe3-4865-8e11-8be2ab6b2e29",
+      "timestamp": "2025-04-17T14:30:23.018064",
+      "message": "222",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "d9cadcda-120e-4f55-bd3b-29bb6a9e2b84",
+      "timestamp": "2025-04-17T14:31:46.204352",
+      "message": "111",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "52c8c403-6da2-4126-ac38-04a7a9aa6f95",
+      "timestamp": "2025-04-17T14:33:52.213731",
+      "message": "111",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "750def34-95fa-4035-8c29-00681947d2a9",
+      "timestamp": "2025-04-17T14:36:49.348378",
+      "message": "1111",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "1ba63cab-d06d-4b26-ae13-c4a94747aaeb",
+      "timestamp": "2025-04-17T14:54:51.938791",
+      "message": "111111111111111111122",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true
+    },
+    {
+      "task_id": "796cb2b9-4d99-44cb-a48c-840497443dfe",
+      "timestamp": "2025-04-17T15:11:32.972816",
+      "message": "dss3",
+      "alarm_name": null,
       "vibrate": false,
       "expired": true
     }
