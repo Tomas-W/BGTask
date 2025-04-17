@@ -261,7 +261,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time
         
-        self.task_manager.set_expired_tasks()
+        self.task_manager.set_expired_tasksbydate()
 
         # Fallback
         if not self.tasks_loaded:
@@ -275,7 +275,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         if not self.tasks_loaded:
             self.scroll_container.scroll_view.scroll_y = 1.0
             self.tasks_loaded = True
-
+    
     def on_leave(self):
         """Handle screen exit - deselect any task"""
         super().on_leave()

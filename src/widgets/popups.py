@@ -6,10 +6,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
+from src.screens.home.home_widgets import TaskHeader, TaskGroupContainer, TaskLabel, TimeLabel
+
 from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow
 from src.widgets.fields import TextField, CustomSettingsField
 from src.widgets.misc import Spacer
+
 
 from src.settings import COL, SPACE, FONT, STATE
 
@@ -64,7 +67,7 @@ class BasePopup(Popup):
             else:
                 return func(arg)
     
-    def show_animation(self):
+    def show_animation(self, *args):
         """Show popup with fade animation"""
         self.opacity = 0
         self.open()
@@ -77,6 +80,73 @@ class BasePopup(Popup):
         self.dismiss()
         if on_complete:
             on_complete()
+
+
+class TaskPopup(BasePopup):
+    """Popup with a Task and snooze/stop alarm buttons"""
+    def __init__(self, on_confirm: Callable, on_cancel: Callable, **kwargs):
+        super().__init__(**kwargs)
+        
+        # Header
+        self.header = TaskHeader(text="Task Expired!")
+        self.header.halign = "left"
+        self.header.bind(texture_size=self._update_label_height)
+        self.content_layout.add_widget(self.header)
+
+        # Task spacer
+        self.task_spacer = Spacer(height=SPACE.SPACE_L)
+        self.content_layout.add_widget(self.task_spacer)
+
+        # Task header
+        self.task_header = TaskHeader(text="")
+        self.content_layout.add_widget(self.task_header)
+        # Task container
+        self.task_container = TaskGroupContainer()
+        self.content_layout.add_widget(self.task_container)
+        # Timestamp
+        self.task_time = TimeLabel(text="")
+        self.task_container.add_widget(self.task_time)
+        # Task label
+        self.task_label = TaskLabel(text="")
+        self.task_container.add_widget(self.task_label)
+
+        # Button spacer
+        self.button_spacer = Spacer(height=SPACE.SPACE_L)
+        self.content_layout.add_widget(self.button_spacer)
+
+        # Button row
+        self.button_row = CustomButtonRow()
+        # Cancel button
+        self.cancel_button = CancelButton(text="Stop", width=2)
+        self.button_row.add_widget(self.cancel_button)
+        # Confirm button
+        self.confirm_button = ConfirmButton(text="Snooze", width=2)
+        self.button_row.add_widget(self.confirm_button)
+        # Add to layout
+        self.content_layout.add_widget(self.button_row)
+
+        self.update_callbacks(on_confirm, on_cancel)
+        self.bind(width=self._update_text_size)
+    
+    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
+        """Un- and re-bind callbacks"""
+        # Unbind callbacks
+        if self._confirm_handler:
+            self.confirm_button.unbind(on_release=self._confirm_handler)
+        if self._cancel_handler:
+            self.cancel_button.unbind(on_release=self._cancel_handler)
+        
+        # Create new handlers
+        self._confirm_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_confirm)
+        )
+        self._cancel_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
+        )
+        
+        # Bind new callbacks
+        self.confirm_button.bind(on_release=self._confirm_handler)
+        self.cancel_button.bind(on_release=self._cancel_handler)
 
 
 class CustomPopup(BasePopup):

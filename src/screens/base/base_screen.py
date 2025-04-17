@@ -10,7 +10,7 @@ from kivy.uix.screenmanager import Screen
 from src.widgets.bars import TopBarClosed, TopBarExpanded, BottomBar
 from src.widgets.containers import BaseLayout, ScrollContainer
 from src.widgets.misc import Spacer
-from src.widgets.popups import ConfirmationPopup, TextInputPopup, CustomPopup
+from src.widgets.popups import ConfirmationPopup, TextInputPopup, CustomPopup, TaskPopup
 
 from src.utils.logger import logger
 
@@ -27,6 +27,11 @@ class BaseScreen(Screen):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        from kivy.app import App
+        self.task_manager = App.get_running_app().task_manager
+        self.task_manager.bind(on_task_expired_show_task_popup=self.show_task_popup)
+
+
         self.top_bar_is_expanded = False  # TopBar or TopBarExpanded
         self.initial_scroll = True        # Prevent BottomBar untill user scrolls
         self.animating_spacer = False     # If spacer is animating
@@ -52,6 +57,10 @@ class BaseScreen(Screen):
         self.text_input_popup = TextInputPopup(
             header="",
             input_text="",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+        self.task_popup = TaskPopup(
             on_confirm=lambda: None,
             on_cancel=lambda: None
         )
@@ -307,6 +316,32 @@ class BaseScreen(Screen):
         self.text_input_popup.input_field.text = input_text
         self.text_input_popup.update_callbacks(on_confirm, on_cancel)
         self.text_input_popup.show_animation()
+    
+    def show_task_popup(self, *args, **kwargs):
+        """Show a task popup with a TaskHeader, TaskContainer, Timestamp, and TaskLabel."""
+        # Get task from either positional args or kwargs
+        task = kwargs.get("task") if "task" in kwargs else args[-1]
+        
+        # Ensure we're on the main thread and in a window context
+        def show_popup(dt):
+            # Set up the task popup
+            self.task_popup.task_header.text = task.timestamp.strftime("%A %d %B")
+            self.task_popup.task_time.text = task.timestamp.strftime("%H:%M")
+            self.task_popup.task_label.text = task.message
+            
+            # Force the popup to use the app's root window context
+            from kivy.app import App
+            app = App.get_running_app()
+            
+            # Close any existing popups
+            if hasattr(app, 'active_popup') and app.active_popup:
+                app.active_popup.dismiss()
+                
+            # Store reference and show
+            app.active_popup = self.task_popup
+            self.task_popup.show_animation()
+        
+        Clock.schedule_once(show_popup, 0)
 
     def show_error_popup(self, title, message):
         """

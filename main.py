@@ -27,6 +27,11 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Base widgets and custom - with extra options like borders / radius / etc
 
 
+# Popups
+# TODO: Fix popup inits - no params
+# TODO: Load popups background & connect later
+
+
 # TaskManager
 # TODO: Expired check only today
 # TODO: Check every minute for expired tasks and update Task
@@ -88,6 +93,9 @@ class TaskApp(App, EventDispatcher):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.register_event_type("on_start_screen_finished_load_app")
+        
+        # For handling popups in the app context
+        self.active_popup = None
     
     def build(self):
         """
@@ -269,7 +277,7 @@ class TaskApp(App, EventDispatcher):
         Check for any expired tasks that might have occurred while paused.
         """
         if hasattr(self, 'task_manager'):
-            self.task_manager.set_expired_tasks()
+            self.task_manager.set_expired_tasksbydate()
     
 
     def on_start(self):
