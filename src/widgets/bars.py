@@ -42,7 +42,7 @@ class TopBarClosed():
     
     def make_home_bar(self, top_left_callback, top_bar_callback):
         """Make the home bar"""
-        self.top_left_button.set_image(PATH.EDIT_IMG)
+        self.top_left_button.set_image(PATH.SCREENSHOT_IMG)
         self.top_left_button.unbind(on_release=self.top_left_callback)
         self.top_left_button.bind(on_release=top_left_callback)
         self.bar_title.set_symbol_font_size(FONT.TOP_BAR_SYMBOL)
@@ -97,7 +97,7 @@ class TopBarExpanded():
     
     def make_home_bar(self, top_left_callback):
         """Make the home bar"""
-        self.top_left_button.set_image(PATH.EDIT_IMG)
+        self.top_left_button.set_image(PATH.SCREENSHOT_IMG)
         self.top_left_button.unbind(on_release=self.top_left_callback)
         self.top_left_button.bind(on_release=top_left_callback)
 

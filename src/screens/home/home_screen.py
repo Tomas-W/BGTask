@@ -51,8 +51,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.widget_cache = {}
 
         # TopBar
-        top_left_callback = lambda instance: self.toggle_edit_delete(instance)
         top_bar_callback = self.navigate_to_new_task_screen
+        top_left_callback = lambda instance: self.navigation_manager.navigate_to(SCREEN.START)
         self.top_bar.make_home_bar(top_left_callback=top_left_callback, top_bar_callback=top_bar_callback)
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
