@@ -15,7 +15,7 @@ from src.widgets.popups import POPUP
 
 from src.utils.logger import logger
 
-from src.settings import SPACE, STATE, SCREEN
+from src.settings import SPACE, STATE, SCREEN, DATE
 
 
 if TYPE_CHECKING:
@@ -132,14 +132,14 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
             if not self.task_manager.selected_time:
                 now = datetime.now().time()
                 self.task_manager.selected_time = now
-                self.hours_input.set_text(now.strftime("%H"))
-                self.minutes_input.set_text(now.strftime("%M"))
+                self.hours_input.set_text(now.strftime(DATE.HOUR))
+                self.minutes_input.set_text(now.strftime(DATE.MINUTE))
                 
             # Highlight selected day
             self.update_calendar()
             
             # Update date label
-            date_str = selected_date.strftime("%A %d")
+            date_str = selected_date.strftime(DATE.CALENDAR_DAY)
             self.selected_date_label.set_text(f"{date_str}")
 
         except ValueError:
@@ -193,7 +193,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         if self.task_manager.date_is_taken(date):
             POPUP.show_custom_popup(
                 header="Existing task found for:",
-                field_text=f"{self.task_manager.selected_date} at {self.task_manager.selected_time.strftime('%H:%M')}",
+                field_text=f"{self.task_manager.selected_date} at {self.task_manager.selected_time.strftime(DATE.SELECTED_TIME)}",
                 extra_info="Cancel to resume selection\nEdit to update existing task",
                 confirm_text="Edit",
                 on_confirm=self.edit_existing_task,
@@ -245,12 +245,12 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         if not self.task_manager.selected_time:
             self.task_manager.selected_time = datetime.now().time()
 
-        self.hours_input.set_text(self.task_manager.selected_time.strftime("%H"))
-        self.minutes_input.set_text(self.task_manager.selected_time.strftime("%M"))
+        self.hours_input.set_text(self.task_manager.selected_time.strftime(DATE.HOUR))
+        self.minutes_input.set_text(self.task_manager.selected_time.strftime(DATE.MINUTE))
     
     def init_calendar_labels(self) -> None:
         """Initialize calendar labels"""
-        date_str = self.task_manager.selected_date.strftime("%A %d")
+        date_str = self.task_manager.selected_date.strftime(DATE.CALENDAR_DAY)
         self.selected_date_label.set_text(f"{date_str}")
 
         month_name = calendar.month_name[self.current_month]

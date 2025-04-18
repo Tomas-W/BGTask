@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 from functools import lru_cache
 
+from src.settings import DATE
 
 def is_widget_visible(widget, scroll_view):
     if not widget or not scroll_view:
@@ -39,12 +40,16 @@ def get_task_header_text(date_input) -> str:
     """
     today = datetime.now().date()
     
-    # Convert input to date object
+    # Convert input to date object []
     if isinstance(date_input, datetime):
         date = date_input.date()
+    
+    # Convert input to date object [21 Mar 2024]
     elif hasattr(date_input, 'day') and hasattr(date_input, 'month') and hasattr(date_input, 'year'):
         # This is a date object (has day, month, year attributes)
         date = date_input
+    
+    # Convert input to date object [21 Mar 2024]
     elif isinstance(date_input, str) and len(date_input.split()) >= 3:
         # Parse string in format "Monday 24 Mar"
         date_parts = date_input.split()
@@ -52,16 +57,20 @@ def get_task_header_text(date_input) -> str:
         month = date_parts[2]
         current_year = datetime.now().year
         date = datetime.strptime(f"{day} {month} {current_year}", "%d %b %Y").date()
+    
     else:
         # If we can't parse it, just return the input
         return str(date_input)
     
-    # Now format the date consistently
-    month_day = date.strftime("%B %d")
+    # Format [Today March 21]
+    month_day = date.strftime(DATE.MONTH_DAY)
     if date == today:
         return f"Today, {month_day}"
+    
     elif date == today - timedelta(days=1):
         return f"Yesterday, {month_day}"
+    
     elif date == today + timedelta(days=1):
         return f"Tomorrow, {month_day}"
-    return date.strftime("%A, %B %d, %Y")
+    
+    return date.strftime(DATE.TASK_HEADER)

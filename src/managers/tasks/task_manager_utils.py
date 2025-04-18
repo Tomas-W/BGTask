@@ -3,6 +3,8 @@ from functools import lru_cache
 
 from datetime import datetime
 
+from src.settings import DATE
+
 
 class Task:
     """
@@ -60,13 +62,13 @@ class Task:
     @staticmethod
     @lru_cache(maxsize=32)
     def to_date_str(timestamp: datetime) -> str:
-        """Get formatted date string [Day DD Month]."""
-        return timestamp.strftime("%A %d %b")
+        """Get formatted date string [# Thursday 21 Mar]."""
+        return timestamp.strftime(DATE.TASK_HEADER)
     
     @staticmethod
     def to_time_str(timestamp: datetime) -> str:
         """Get formatted time string [HH:MM]."""
-        return timestamp.strftime("%H:%M")
+        return timestamp.strftime(DATE.TASK_TIME)
 
     @lru_cache(maxsize=32)
     def get_date_str(self) -> str:

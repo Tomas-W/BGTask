@@ -1,4 +1,3 @@
-from kivy.animation import Animation, AnimationTransition
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.uix.button import Button

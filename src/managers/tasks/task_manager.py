@@ -1,5 +1,6 @@
 import json
 import time
+
 from datetime import datetime, timedelta
 
 from kivy.app import App
@@ -12,7 +13,7 @@ from src.managers.tasks.task_manager_utils import Task
 from src.utils.logger import logger
 
 
-from src.settings import PATH
+from src.settings import PATH, DATE
 
 
 class TaskManager(EventDispatcher):
@@ -39,7 +40,7 @@ class TaskManager(EventDispatcher):
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
         self.sorted_active_tasks: list[dict] = None
 
-        # Task attributes
+        # New/Edit Task attributes
         self.selected_date: datetime | None = None
         self.selected_time: datetime | None = None
         self.selected_vibrate: bool = False
@@ -53,7 +54,7 @@ class TaskManager(EventDispatcher):
         """
         Loads all Tasks from file, which are grouped by date.
         Returns a dictionary of date keys and lists of Task objects.
-        Rounds timestamps to the nearest minute when loading tasks.
+        Rounds timestamps down to the minute when loading tasks.
         """
         start_time = time.time()
         try:
@@ -65,7 +66,7 @@ class TaskManager(EventDispatcher):
                 tasks_by_date[date_key] = []
                 for task_data in tasks_data:
                     task = Task.to_class(task_data)
-                    # Round timestamp to nearest minute by setting seconds and microseconds to 0
+                    # Round timestamp down
                     task.timestamp = task.timestamp.replace(second=0, microsecond=0)
                     tasks_by_date[date_key].append(task)
             
@@ -87,7 +88,7 @@ class TaskManager(EventDispatcher):
         today = datetime.now().date()
         
         for date_key in self.tasks_by_date.keys():
-            # Skip dates that are earlier than today
+            # Skip dates <  today
             if datetime.strptime(date_key, "%Y-%m-%d").date() < today:
                 continue
             
@@ -278,7 +279,7 @@ class TaskManager(EventDispatcher):
             if task.timestamp < now and not task.expired:
                 task.expired = True
                 changed = True
-                logger.debug(f"Task {task.timestamp.strftime('%H:%M')} set to expired")
+                logger.debug(f"Task {task.timestamp.strftime(DATE.TASK_TIME)} set to expired")
         
         if changed:
             self.save_tasks_to_json()
@@ -292,7 +293,7 @@ class TaskManager(EventDispatcher):
         Get a Task object by its timestamp.
         Only compares date and hours/minutes, ignoring seconds and microseconds.
         """
-        target_date_key = target_datetime.strftime("%Y-%m-%d")
+        target_date_key = target_datetime.strftime(DATE.DATE_KEY)
         target_time = target_datetime.time()
         
         # First check if we have any tasks on this date
@@ -322,7 +323,7 @@ class TaskManager(EventDispatcher):
         First checks the date to avoid unnecessary time comparisons.
         Only compares hours and minutes, ignoring seconds and microseconds.
         """
-        target_date_key = target_datetime.strftime("%Y-%m-%d")
+        target_date_key = target_datetime.strftime(DATE.DATE_KEY)
         
         # First check if we have any tasks on this date
         if target_date_key not in self.tasks_by_date:

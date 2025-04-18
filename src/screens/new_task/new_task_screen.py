@@ -8,7 +8,7 @@ from src.widgets.containers import Partition, CustomButtonRow
 from src.widgets.fields import TextField, ButtonField
 
 from src.utils.logger import logger
-from src.settings import SCREEN, STATE, TEXT, SPACE
+from src.settings import SCREEN, STATE, TEXT, SPACE, DATE
 
 
 class NewTaskScreen(BaseScreen):
@@ -134,9 +134,9 @@ class NewTaskScreen(BaseScreen):
          or "No date selected".
         """
         if self.task_manager.selected_date is not None and self.task_manager.selected_time is not None:
-            date_str = self.task_manager.selected_date.strftime("%A, %B %d, %Y")
-            time_str = self.task_manager.selected_time.strftime("%H:%M")
-            self.date_display_field.set_text(f"{date_str} at {time_str}")
+            date_str = self.task_manager.selected_date.strftime(DATE.DATE_SELECTION)
+            time_str = self.task_manager.selected_time.strftime(DATE.TASK_TIME)
+            self.date_display_field.set_text(f"{date_str} @ {time_str}")
             self.date_display_field.hide_border()
         else:
             self.date_display_field.set_text(TEXT.NO_DATE)

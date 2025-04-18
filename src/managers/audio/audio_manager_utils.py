@@ -7,7 +7,7 @@ from src.managers.device_manager import DM
 
 from src.utils.logger import logger
 
-from src.settings import EXT
+from src.settings import EXT, DATE
 
 
 class AudioManagerUtils:
@@ -20,10 +20,10 @@ class AudioManagerUtils:
     def create_recording_path(self) -> tuple[str, str]:
         """
         Get the path and filename of a new recording.
-        Format: ../{recordings_dir}/recording_HH-MM-SS.wav
+        Format: ../{recordings_dir}/recording_HH_MM_SS.wav
         """
         name = "recording_"
-        timestamp = datetime.now().strftime('%H-%M-%S')
+        timestamp = datetime.now().strftime(DATE.RECORDING)
         while True:
             path = os.path.join(self.recordings_dir, name + timestamp + EXT.WAV)
             if os.path.exists(path):

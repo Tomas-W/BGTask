@@ -169,6 +169,44 @@ class Extensions:
     WAV = ".wav"
 
 
+class DateFormats:
+    """Date and time format patterns used throughout the application."""
+    DATE_KEY = "%Y-%m-%d"              # 2024-03-21
+    TIMESTAMP = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
+
+    TASK_HEADER = "%A %d %b"           # Thursday 21 Mar
+    TASK_TIME = "%H:%M"                # 14:30
+
+    SELECTED_TIME = "%H:%M"            # 14:30
+    CALENDAR_DAY = "%A %d"             # Thursday 21
+    HOUR = "%H"                        # 14
+    MINUTE = "%M"                      # 30
+
+    MONTH_DAY = "%b %d"          # March 21
+    DAY_MONTH_YEAR = "%d %b %Y"   # 21 Mar 2024
+
+    DATE_SELECTION = "%A, %b %d, %Y"        # Thursday, March 21, 2024
+
+    RECORDING = "%H_%M_%S"             # 14_30_45
+
+    # DATE_KEY = "%Y-%m-%d"              # 2024-03-21
+    # DATE_FULL = "%A, %B %d, %Y"        # Thursday, March 21, 2024
+    # DATE_SHORT = "%A %d"               # Thursday 21
+    # DATE_MEDIUM = "%A %d %b"           # Thursday 21 Mar
+    # DATE_MONTH = "%A %d %B"            # Thursday 21 March
+    
+    # # Time formats
+    # TIME = "%H:%M"                     # 14:30
+    # TIME_WITH_SECONDS = "%H:%M:%S"     # 14:30:45
+    # HOUR = "%H"                        # 14
+    # MINUTE = "%M"                      # 30
+    
+    # # Combined formats
+    # TIMESTAMP = "%Y%m%d_%H%M%S"        # 20240321_143045
+    # RECORDING = "%H-%M-%S"              # 14-30-45
+    # DISPLAY_DATETIME = "%A %d @ %H:%M"  # Thursday 21 @ 14:30
+
+
 class Loaded:
     START = False
     HOME = False
@@ -224,6 +262,7 @@ STYLE = Styles()
 TEXT = Text()
 SIZE = Sizes()
 EXT = Extensions()
+DATE = DateFormats()
 
 LOADED = Loaded()
 SCREEN = Screens

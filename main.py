@@ -40,6 +40,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Expired check only today
 # TODO: Check every minute for expired tasks and update Task
 # TODO: Set first expiring time and check at that time
+# TODO: Make all Tasks have a rounded timestamp
 
 
 # StartScreen

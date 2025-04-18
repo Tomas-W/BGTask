@@ -20,7 +20,7 @@ from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE
+from src.settings import COL, SPACE, FONT, STATE, DATE
 
 
 class BasePopup(Popup):
@@ -481,8 +481,8 @@ class PopupManager:
         task = kwargs.get("task") if "task" in kwargs else args[-1]
         
         def show_popup(dt):
-            self.task.task_header.text = task.timestamp.strftime("%A %d %B")
-            self.task.task_time.text = task.timestamp.strftime("%H:%M")
+            self.task.task_header.text = task.timestamp.strftime(DATE.TASK_HEADER)
+            self.task.task_time.text = task.timestamp.strftime(DATE.TASK_TIME)
             self.task.task_label.text = task.message
             
             from kivy.app import App

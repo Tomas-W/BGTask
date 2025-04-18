@@ -92,7 +92,7 @@ class AudioManager(AudioManagerUtils):
         # Start playing and schedule replay
         if self.start_playing_audio(alarm_path):
             from datetime import datetime
-            logger.info(f"Starting alarm: {datetime.now().strftime('%H:%M:%S')}")
+            logger.info(f"Starting alarm: {alarm_path}")
             self.check_and_replay_alarm()
             return True
         return False
@@ -100,13 +100,12 @@ class AudioManager(AudioManagerUtils):
     def check_and_replay_alarm(self, *args, **kwargs):
         """Check if the alarm has finished playing and schedule the next play."""
         if not self.alarm_is_triggered or not self.keep_alarming:
-            logger.trace(f"{self.alarm_is_triggered=} {self.keep_alarming=}")
             return
         
         if self.is_playing():
             Clock.schedule_once(self.check_and_replay_alarm, 2)
-
             return
+        
         if self.keep_alarming:
             self.start_playing_audio(self.current_alarm_path)
             Clock.schedule_once(self.check_and_replay_alarm, 2)
