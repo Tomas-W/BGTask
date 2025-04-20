@@ -1,3 +1,4 @@
+from kivy.effects.scroll import ScrollEffect
 from kivy.graphics import Color, Rectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
@@ -73,6 +74,7 @@ class StartContainer(BoxLayout):
             do_scroll_x=True,
             do_scroll_y=True,
             scroll_wheel_distance=60,
+            effect_cls=ScrollEffect,
         )
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
@@ -159,6 +161,7 @@ class ScrollContainer(BoxLayout):
             do_scroll_x=allow_scroll_x,
             do_scroll_y=allow_scroll_y,
             scroll_wheel_distance=80,
+            effect_cls=ScrollEffect,
         )
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)

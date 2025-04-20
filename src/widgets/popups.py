@@ -9,6 +9,8 @@ from kivy.graphics import Color, RoundedRectangle, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
+from kivy.effects.scroll import ScrollEffect
 
 from src.screens.home.home_widgets import (TaskHeader, TaskGroupContainer,
                                            TaskLabel, TimeLabel)
@@ -20,7 +22,7 @@ from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE, DATE
+from src.settings import COL, SPACE, FONT, STATE, DATE, SIZE
 
 
 class BasePopup(Popup):
@@ -92,6 +94,7 @@ class TaskPopup(BasePopup):
     """Popup with a Task and snooze/stop alarm buttons"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.min_message_height = SIZE.TASK_POPUP_HEIGHT
         # Header
         self.header = TaskHeader(text="Task Expired!")
         self.header.halign = "center"
@@ -102,18 +105,42 @@ class TaskPopup(BasePopup):
         self.task_spacer = Spacer(height=SPACE.SPACE_XL)
         self.content_layout.add_widget(self.task_spacer)
 
-        # Task header
-        self.task_header = TaskHeader(text="")
-        self.content_layout.add_widget(self.task_header)
         # Task container
         self.task_container = TaskGroupContainer()
+        self.task_container.spacing = 0
         self.content_layout.add_widget(self.task_container)
+        
         # Timestamp
         self.task_time = TimeLabel(text="")
         self.task_container.add_widget(self.task_time)
+        
+        # Container for scrollable Task label
+        self.task_label_container = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            height=self.min_message_height  # Bound to min(min_message_height, label_height)
+        )
+        
+        # ScrollView for Task label
+        self.scroll_view = ScrollView(
+            do_scroll_x=False,
+            do_scroll_y=True,
+            effect_cls=ScrollEffect,
+            size_hint=(1, None),
+            height=self.min_message_height  # Bound to min(min_message_height, label_height)
+        )
+        
         # Task label
         self.task_label = TaskLabel(text="")
-        self.task_container.add_widget(self.task_label)
+        self.task_label.bind(
+            texture_size=self._update_scroll_height,
+            size=lambda instance, size: setattr(instance, 'text_size', (size[0], None))
+        )
+        
+        # Add task label to scroll view
+        self.scroll_view.add_widget(self.task_label)
+        self.task_label_container.add_widget(self.scroll_view)
+        self.task_container.add_widget(self.task_label_container)
 
         # Button spacer
         self.button_spacer = Spacer(height=SPACE.SPACE_L)
@@ -132,6 +159,14 @@ class TaskPopup(BasePopup):
 
         self.bind(width=self._update_text_size)
     
+    def _update_scroll_height(self, instance, size):
+        """Update the height of both container and ScrollView based on label height"""
+        label_height = size[1]
+        new_height = min(self.min_message_height, label_height)
+        self.task_label_container.height = new_height
+        self.scroll_view.height = new_height
+        instance.height = label_height
+
     def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
         """Un- and re-bind callbacks"""
         # Unbind callbacks
@@ -472,7 +507,6 @@ class PopupManager:
         """
         Show a TaskPopup with a:
         - Header [aligned center]
-        - TaskHeader
         - TaskContainer
           |- TimeLabel
           |- TaskLabel
@@ -481,7 +515,6 @@ class PopupManager:
         task = kwargs.get("task") if "task" in kwargs else args[-1]
         
         def show_popup(dt):
-            self.task.task_header.text = task.timestamp.strftime(DATE.TASK_HEADER)
             self.task.task_time.text = task.timestamp.strftime(DATE.TASK_TIME)
             self.task.task_label.text = task.message
             

@@ -41,6 +41,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Check every minute for expired tasks and update Task
 # TODO: Set first expiring time and check at that time
 # TODO: Make all Tasks have a rounded timestamp
+# TODO: Afk for alarm popup
 
 
 # StartScreen
@@ -61,6 +62,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Only show tasks/edit/delete if visible
 # TODO: Save scroll value when going to new task screen
 # TODO: Floating Day label if many/long tasks
+# TODO: Swipe left/right to go to prev/next day
 
 
 # NewTaskScreen
@@ -282,8 +284,8 @@ class TaskApp(App, EventDispatcher):
         App is resumed from a paused state.
         Check for any expired tasks that might have occurred while paused.
         """
-        if hasattr(self, 'task_manager'):
-            self.task_manager.set_expired_tasksbydate()
+        # if hasattr(self, 'task_manager'):
+        #     self.task_manager.set_expired_tasksbydate()
     
 
     def on_start(self):

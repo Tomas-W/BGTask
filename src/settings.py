@@ -96,6 +96,8 @@ class Sizes:
     TASK_ITEM_HEIGHT = dp(40)
     TIME_LABEL_HEIGHT = dp(20)
 
+    TASK_POPUP_HEIGHT = sp(200)
+
     BUTTON_HEIGHT = dp(60)
     SETTINGS_BUTTON_HEIGHT = dp(40)
 
@@ -119,11 +121,11 @@ class Spacing:
     TASK_PADDING_X = dp(25)
     TASK_PADDING_Y = dp(20)
 
-    FIELD_PADDING_X = dp(20)       # Padding between bg color and text
-    FIELD_PADDING_Y = dp(10)       # Padding between bg color and text
-    SCREEN_PADDING_X = dp(20)      # Padding between fields and screen edge
-    SCREENSHOT_PADDING_X = dp(30)  # Padding between fields and screen edge
-    DAY_SPACING_Y = dp(20)         # Spacing between day groups
+    FIELD_PADDING_X = dp(20)
+    FIELD_PADDING_Y = dp(10)
+    SCREEN_PADDING_X = dp(20)
+    SCREENSHOT_PADDING_X = dp(30)
+    DAY_SPACING_Y = dp(20)
 
 
 class Fonts:
@@ -182,29 +184,12 @@ class DateFormats:
     HOUR = "%H"                        # 14
     MINUTE = "%M"                      # 30
 
-    MONTH_DAY = "%b %d"          # March 21
-    DAY_MONTH_YEAR = "%d %b %Y"   # 21 Mar 2024
+    MONTH_DAY = "%b %d"                # March 21
+    DAY_MONTH_YEAR = "%d %b %Y"        # 21 Mar 2024
 
-    DATE_SELECTION = "%A, %b %d, %Y"        # Thursday, March 21, 2024
+    DATE_SELECTION = "%A, %b %d, %Y"   # Thursday, March 21, 2024
 
     RECORDING = "%H_%M_%S"             # 14_30_45
-
-    # DATE_KEY = "%Y-%m-%d"              # 2024-03-21
-    # DATE_FULL = "%A, %B %d, %Y"        # Thursday, March 21, 2024
-    # DATE_SHORT = "%A %d"               # Thursday 21
-    # DATE_MEDIUM = "%A %d %b"           # Thursday 21 Mar
-    # DATE_MONTH = "%A %d %B"            # Thursday 21 March
-    
-    # # Time formats
-    # TIME = "%H:%M"                     # 14:30
-    # TIME_WITH_SECONDS = "%H:%M:%S"     # 14:30:45
-    # HOUR = "%H"                        # 14
-    # MINUTE = "%M"                      # 30
-    
-    # # Combined formats
-    # TIMESTAMP = "%Y%m%d_%H%M%S"        # 20240321_143045
-    # RECORDING = "%H-%M-%S"              # 14-30-45
-    # DISPLAY_DATETIME = "%A %d @ %H:%M"  # Thursday 21 @ 14:30
 
 
 class Loaded:

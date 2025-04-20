@@ -4,7 +4,7 @@ start_time = time_.time()
 import json
 import os
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
@@ -115,7 +115,15 @@ class StartScreen(Screen):
         else:
             # If no todays Tasks, get the earliest future date
             future_dates = [dk for dk in date_keys if dk >= today_key]
-            target_date_key = min(future_dates)
+            try:
+                target_date_key = min(future_dates)
+            except ValueError:
+                logger.debug("No future dates found")
+                start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
+                                  message="No upcoming tasks!",
+                                  expired=True)
+                self.day_header.text = get_task_header_text(start_task.get_date_str())
+                return [start_task.to_dict()]
 
         # Create Task objects and add to list
         for task_json in data[target_date_key]:
@@ -157,6 +165,7 @@ class StartScreen(Screen):
             
             # TimeContainer
             time_container = TimeContainer()
+            task_container.add_widget(time_container)
             # TimeLabel
             time = Task.to_time_str(task["timestamp"])
             start_time_label = TimeLabel(text=time)
@@ -172,10 +181,9 @@ class StartScreen(Screen):
             
             # TaskLabel
             task_message = TaskLabel(text=task["message"])
-            
-            # Add to container
-            task_container.add_widget(time_container)
             task_container.add_widget(task_message)
+            
+            # Add to layout
             self.tasks_container.add_widget(task_container)
             
             def update_text_size(instance, value):
@@ -187,6 +195,9 @@ class StartScreen(Screen):
             
             task_message.bind(size=update_text_size)
         
+        if all(task["expired"] for task in self.current_task_data):
+            self.tasks_container.set_expired(True)
+
         end_time = time_.time()
         logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
     
@@ -218,12 +229,7 @@ class StartScreen(Screen):
         else:
             self.current_task_data = self._init_current_task_data()
             
-        if self.current_task_data:
-            self._load_current_tasks_widgets()
-        else:
-            # No tasks to display
-            self.day_header.text = "No upcoming tasks"
-            self.tasks_container.clear_widgets()
+        self._load_current_tasks_widgets()
 
     def on_enter(self) -> None:
         """

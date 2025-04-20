@@ -106,6 +106,14 @@ class TaskManager(EventDispatcher):
         
         # Sort by date (earliest first)
         sorted_active_tasks.sort(key=lambda x: x["tasks"][0].timestamp if x["tasks"] else datetime.max)
+        if not sorted_active_tasks:
+            start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
+                              message="No upcoming tasks!\nPress + to add a new one.",
+                              expired=True)
+            sorted_active_tasks.append({
+                "date": start_task.get_date_str(),
+                "tasks": [start_task]
+            })
         self.sorted_active_tasks = sorted_active_tasks
 
     def _save_tasks_to_json(self, modified_task: Task = None) -> bool:
@@ -269,24 +277,34 @@ class TaskManager(EventDispatcher):
         If all Tasks in group are now expired, notify to update Task's appearance.
         """
         now = datetime.now()
-        active_tasks = self.sorted_active_tasks[0]
+        try:
+            active_tasks = self.sorted_active_tasks[0]
+        except IndexError:
+            return
+        
         if not active_tasks:
             return
         
-        # Check each Task for expired state
-        changed = False
-        for task in active_tasks["tasks"]:
-            if task.timestamp < now and not task.expired:
-                task.expired = True
-                changed = True
-                logger.debug(f"Task {task.timestamp.strftime(DATE.TASK_TIME)} set to expired")
-        
-        if changed:
-            self.save_tasks_to_json()
-            if all(task.expired for task in active_tasks["tasks"]):
+
+        if all(task.expired for task in active_tasks["tasks"]):
                 self.dispatch("on_tasks_expired_set_date_expired", 
                                       date=active_tasks["date"])
                 self.dispatch("on_tasks_changed_update_task_display") 
+
+        # Check each Task for expired state
+        # changed = False
+        # for task in active_tasks["tasks"]:
+        #     if task.timestamp < now and not task.expired:
+        #         task.expired = True
+        #         changed = True
+        #         logger.debug(f"Task {task.timestamp.strftime(DATE.TASK_TIME)} set to expired")
+        
+        # if changed:
+        #     # self.save_tasks_to_json()
+        #     if all(task.expired for task in active_tasks["tasks"]):
+        #         self.dispatch("on_tasks_expired_set_date_expired", 
+        #                               date=active_tasks["date"])
+        #         self.dispatch("on_tasks_changed_update_task_display") 
     
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """
@@ -354,10 +372,9 @@ class TaskManager(EventDispatcher):
         now = datetime.now().replace(second=0, microsecond=0)
         for task in current_tasks:
             if task.timestamp <= now and not task.expired:
-                # Mark as expired before triggering to prevent multiple triggers
                 task.expired = True
-                self.save_tasks_to_json()
                 self.set_expired_tasksbydate()
+                self.save_tasks_to_json()
                 
                 # Trigger alarm and popup
                 self.dispatch("on_task_expired_trigger_alarm", task=task)

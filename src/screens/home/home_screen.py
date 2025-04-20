@@ -261,7 +261,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time
         
-        self.task_manager.set_expired_tasksbydate()
+        # self.task_manager.set_expired_tasksbydate()
 
         # Fallback
         if not self.tasks_loaded:
