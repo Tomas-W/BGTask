@@ -116,7 +116,7 @@ class TaskManager(EventDispatcher):
             })
         self.sorted_active_tasks = sorted_active_tasks
 
-    def _save_tasks_to_json(self, modified_task: Task = None) -> bool:
+    def _save_tasks_to_json(self, dt) -> bool:
         """
         Saves all Tasks to the PATH.TASK_FILE file, grouped by date.
         Returns True if successful, False otherwise.
@@ -132,12 +132,86 @@ class TaskManager(EventDispatcher):
             
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
+            
+            # Update the background service with the first expiring task
+            self._update_first_expiring_task()
+            
             logger.error(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
             return True
         
         except Exception as e:
             logger.error(f"Error saving tasks to file: {e}")
             return False
+    
+    def _update_first_expired(self) -> None:
+        """
+        Updates test.json to mark the task as expired.
+        """
+        try:
+            with open(PATH.FIRST_TASK, "r") as f:
+                test_data = json.load(f)
+            
+            # Update the expired status for all tasks in the file
+            for date_tasks in test_data.values():
+                for task in date_tasks:
+                    task["expired"] = True
+            
+            with open(PATH.FIRST_TASK, "w") as f:
+                json.dump(test_data, f, indent=2)
+            
+            logger.info("Updated test.json task to expired state")
+        except Exception as e:
+            logger.error(f"Error updating test.json expired state: {e}")
+
+    def _update_first_expiring_task(self) -> None:
+        """
+        Updates test.json with the task closest to expiring.
+        This allows the background service to monitor the most relevant task.
+        """
+        if not self.sorted_active_tasks or not self.sorted_active_tasks[0]["tasks"]:
+            self._update_first_expired()
+            return
+        
+        # Get the first non-expired task
+        closest_task = None
+        now = datetime.now()
+        
+        for task_group in self.sorted_active_tasks:
+            for task in task_group["tasks"]:
+                if not task.expired and task.timestamp > now:
+                    if closest_task is None or task.timestamp < closest_task.timestamp:
+                        closest_task = task
+                    break
+            
+            if closest_task:
+                break
+        
+        # If no non-expired future tasks found, update with expired task
+        if not closest_task:
+            self._update_first_expired()
+            return
+        
+        # Create the data for test.json
+        test_data = {}
+        date_key = closest_task.get_date_key()
+        test_data[date_key] = [{
+            "task_id": closest_task.task_id,
+            "timestamp": closest_task.timestamp.isoformat(),
+            "message": closest_task.message,
+            "alarm_name": closest_task.alarm_name,
+            "vibrate": closest_task.vibrate,
+            "expired": closest_task.expired,
+            "keep_alarming": closest_task.keep_alarming
+        }]
+        
+        # Save to test.json
+        try:
+            with open(PATH.FIRST_TASK, "w") as f:
+                json.dump(test_data, f, indent=2)
+            
+            logger.info(f"Updated test.json with task {closest_task.task_id} at {closest_task.timestamp.strftime(DATE.TIMESTAMP)}")
+        except Exception as e:
+            logger.error(f"Error updating test.json: {e}")
     
     def save_tasks_to_json(self) -> None:
         """
@@ -266,6 +340,7 @@ class TaskManager(EventDispatcher):
                 del self.tasks_by_date[date_key]
         
         self.save_tasks_to_json()
+        
         # Notify to update Task display
         self.dispatch("on_tasks_changed_update_task_display", modified_task=task_copy)
 
@@ -276,7 +351,6 @@ class TaskManager(EventDispatcher):
         If changes, save to memory and file.
         If all Tasks in group are now expired, notify to update Task's appearance.
         """
-        now = datetime.now()
         try:
             active_tasks = self.sorted_active_tasks[0]
         except IndexError:
@@ -290,21 +364,6 @@ class TaskManager(EventDispatcher):
                 self.dispatch("on_tasks_expired_set_date_expired", 
                                       date=active_tasks["date"])
                 self.dispatch("on_tasks_changed_update_task_display") 
-
-        # Check each Task for expired state
-        # changed = False
-        # for task in active_tasks["tasks"]:
-        #     if task.timestamp < now and not task.expired:
-        #         task.expired = True
-        #         changed = True
-        #         logger.debug(f"Task {task.timestamp.strftime(DATE.TASK_TIME)} set to expired")
-        
-        # if changed:
-        #     # self.save_tasks_to_json()
-        #     if all(task.expired for task in active_tasks["tasks"]):
-        #         self.dispatch("on_tasks_expired_set_date_expired", 
-        #                               date=active_tasks["date"])
-        #         self.dispatch("on_tasks_changed_update_task_display") 
     
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """

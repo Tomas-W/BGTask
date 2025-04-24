@@ -74,6 +74,8 @@ class AudioManager(AudioManagerUtils):
             self.stop_playing_audio()
         
         self.keep_alarming = task.keep_alarming
+        task_manager = App.get_running_app().task_manager
+        task_manager._update_first_expiring_task()
         
         # Get alarm path and validate
         alarm_path = self.get_audio_path(task.alarm_name)
@@ -91,7 +93,6 @@ class AudioManager(AudioManagerUtils):
         
         # Start playing and schedule replay
         if self.start_playing_audio(alarm_path):
-            from datetime import datetime
             logger.info(f"Starting alarm: {alarm_path}")
             self.check_and_replay_alarm()
             return True

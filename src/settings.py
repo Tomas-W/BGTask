@@ -4,6 +4,15 @@ import enum
 from kivy.metrics import dp, sp
 
 
+# Android Permissions
+ANDROID_PERMISSIONS = [
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.WAKE_LOCK",
+    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED"
+]
+
+
 class Directories:
     PROFILER = os.path.join(os.getcwd(), "profiler")
 
@@ -13,6 +22,9 @@ class Directories:
 
     ALARMS = os.path.join(ASSETS, "alarms")
     RECORDINGS = os.path.join(ASSETS, "recordings")
+    
+    # Add path for background service data
+    BG_SERVICE = os.path.join(ASSETS, "background")
 
 
 class Paths(Directories):
@@ -39,6 +51,8 @@ class Paths(Directories):
     DELETE_INACTIVE_IMG = os.path.join(Directories.IMG, "delete_inactive_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
+    TEST_FILE = os.path.join(Directories.ASSETS, "test.json")
+    FIRST_TASK = os.path.join(Directories.ASSETS, "first_task.json")
 
     SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
 
