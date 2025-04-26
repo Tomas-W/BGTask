@@ -1,5 +1,7 @@
 import time
 import os
+import json
+from datetime import datetime
 start_kivy_time = time.time()
 
 from kivy.app import App
@@ -9,7 +11,7 @@ from kivy.event import EventDispatcher
 from kivy.core.window import Window
 from kivy.utils import platform
 
-from src.settings import SCREEN, PLATFORM, LOADED
+from src.settings import SCREEN, PLATFORM, LOADED, PATH, DATE
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -291,21 +293,54 @@ class TaskApp(App, EventDispatcher):
     def on_start(self):
         """
         App is being started.
-        Load the database to ensure data is loaded.
+        Start the background service.
         """
-        pass
-        # from src.managers.device_manager import start_profiler
-        # self.profile = start_profiler()
+        # Only start the service once the task manager is loaded
+        # Clock.schedule_once(lambda dt: self._start_service_when_ready(), 2)
     
+    def _start_service_when_ready(self):
+        """
+        Start the background service when the task manager is loaded.
+        """
+        if hasattr(self, "task_manager"):
+            # Start the background service
+            self.background_service = self.start_background_service()
+        else:
+            # Try again in 1 second
+            Clock.schedule_once(lambda dt: self._start_service_when_ready(), 1)
+
+    def start_background_service(self):
+        """
+        Start the simple background service that will restart the app.
+        """
+        if platform == PLATFORM.ANDROID:
+            try:
+                from android import AndroidService
+                
+                service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
+                service.start("BGTask service started")
+                self.logger.info("Started background service")
+                return service
+            except Exception as e:
+                self.logger.error(f"Error starting background service: {e}")
+        
+        return None
 
     def on_stop(self):
         """
         App is being stopped.
-        Save the database to ensure data is persisted.
+        Start the background service to ensure it can restart the app later.
         """
-        pass
-        # from src.managers.device_manager import stop_profiler
-        # stop_profiler(self.profile)
+        self.logger.info("App is stopping - starting background service")
+        
+        # Update the first_task.json file to ensure it exists in the correct location
+        if hasattr(self, "task_manager"):
+            self.logger.info("Updating first_task.json before stopping")
+            self.task_manager._update_first_expiring_task()
+        
+        self.background_service = self.start_background_service()
+        # Wait a moment to ensure service starts
+        time.sleep(1)
 
 
 if __name__ == "__main__":
