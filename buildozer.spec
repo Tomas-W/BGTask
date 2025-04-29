@@ -22,10 +22,8 @@ orientation = portrait
 fullscreen = 0
 
 # Add all required permissions for background service
-android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,SET_WALLPAPER,VIBRATE,FOREGROUND_SERVICE,RECEIVE_BOOT_COMPLETED,WAKE_LOCK,SYSTEM_ALERT_WINDOW
+android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,SET_WALLPAPER,VIBRATE,FOREGROUND_SERVICE,RECEIVE_BOOT_COMPLETED,WAKE_LOCK,SYSTEM_ALERT_WINDOW,FOREGROUND_SERVICE_SPECIAL_USE
 
-# Declare the service
-android.services = BGTaskService:service/main.py
 
 # Specify the main activity class
 android.entrypoint = org.kivy.android.PythonActivity

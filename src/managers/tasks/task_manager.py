@@ -14,7 +14,7 @@ from src.managers.tasks.task_manager_utils import Task
 from src.utils.logger import logger
 
 
-from src.settings import PATH, DATE
+from src.settings import PATH, DATE, TEXT
 
 
 class TaskManager(EventDispatcher):
@@ -206,7 +206,7 @@ class TaskManager(EventDispatcher):
                 task_data[now_date_key] = [{
                     "task_id": "no_task",
                     "timestamp": datetime.now().replace(second=0, microsecond=0).isoformat(),
-                    "message": "No active tasks",
+                    "message": TEXT.NO_TASKS,
                     "alarm_name": None,
                     "vibrate": False,
                     "keep_alarming": False,

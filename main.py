@@ -1,7 +1,6 @@
 import time
 import os
-import json
-from datetime import datetime
+
 start_kivy_time = time.time()
 
 from kivy.app import App
@@ -11,7 +10,7 @@ from kivy.event import EventDispatcher
 from kivy.core.window import Window
 from kivy.utils import platform
 
-from src.settings import SCREEN, PLATFORM, LOADED, PATH, DATE
+from src.settings import SCREEN, PLATFORM, LOADED, PATH
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -266,10 +265,7 @@ class TaskApp(App, EventDispatcher):
 
         LOADED.SELECT_DATE = True
         LOADED.SELECT_ALARM = True
-        LOADED.SAVED_ALARMS = True
 
-    
-    
     def _init_logger(self):
         from src.utils.logger import logger
         self.logger = logger
@@ -277,41 +273,39 @@ class TaskApp(App, EventDispatcher):
     def on_pause(self):
         """
         App is paused by the OS (e.g., user switches to another app).
-        Backup the database to ensure data is persisted.
+        Start the background service and backup the database.
         """
+        self.logger.debug("App is pausing - starting background service")
+        self.background_service = self.start_background_service()
         return True
     
     def on_resume(self):
         """
         App is resumed from a paused state.
-        Check for any expired tasks that might have occurred while paused.
+        Stop the background service and check for any expired tasks.
         """
-        # if hasattr(self, 'task_manager'):
-        #     self.task_manager.set_expired_tasksbydate()
-    
+        self.logger.debug("App is resuming - stopping background service")
+        create_stop_flag()
+        # Wait a moment to ensure service has time to stop
+        # time.sleep(1)
+        
+        # Check for any expired tasks that might have occurred while paused
+        if hasattr(self, "task_manager"):
+            self.task_manager.set_expired_tasksbydate()
 
     def on_start(self):
         """
         App is being started.
-        Start the background service.
+        Stop any existing background service.
         """
-        # Only start the service once the task manager is loaded
-        # Clock.schedule_once(lambda dt: self._start_service_when_ready(), 2)
-    
-    def _start_service_when_ready(self):
-        """
-        Start the background service when the task manager is loaded.
-        """
-        if hasattr(self, "task_manager"):
-            # Start the background service
-            self.background_service = self.start_background_service()
-        else:
-            # Try again in 1 second
-            Clock.schedule_once(lambda dt: self._start_service_when_ready(), 1)
+        print("App is starting - stopping any existing background service")
+        create_stop_flag()
+        # Wait a moment to ensure service has time to stop
+        # time.sleep(1)
 
     def start_background_service(self):
         """
-        Start the simple background service that will restart the app.
+        Start background service.
         """
         if platform == PLATFORM.ANDROID:
             try:
@@ -319,7 +313,7 @@ class TaskApp(App, EventDispatcher):
                 
                 service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
                 service.start("BGTask service started")
-                self.logger.info("Started background service")
+                self.logger.debug("Started background service")
                 return service
             except Exception as e:
                 self.logger.error(f"Error starting background service: {e}")
@@ -331,16 +325,40 @@ class TaskApp(App, EventDispatcher):
         App is being stopped.
         Start the background service to ensure it can restart the app later.
         """
-        self.logger.info("App is stopping - starting background service")
+        self.logger.debug("App is stopping - starting background service")
         
         # Update the first_task.json file to ensure it exists in the correct location
         if hasattr(self, "task_manager"):
-            self.logger.info("Updating first_task.json before stopping")
+            self.logger.debug("Updating first_task.json before stopping")
             self.task_manager._update_first_expiring_task()
         
+        start_time = time.time()
         self.background_service = self.start_background_service()
+        self.logger.error(f"Started background service in {time.time() - start_time:.4f}")
         # Wait a moment to ensure service starts
-        time.sleep(1)
+        time.sleep(0.5)
+
+
+def get_storage_path(path):
+    """Returns the app-specific storage path for the given path."""
+    app_dir = os.environ.get("ANDROID_PRIVATE", "")
+    return os.path.join(app_dir, path)
+
+def create_stop_flag():
+    """Create a flag file to signal the service to stop."""
+    if not PLATFORM.ANDROID:
+        return
+    
+    try:
+        SERVICE_FLAG_FILE = "app/src/assets/service_stop.flag"
+        stop_flag_path = get_storage_path(SERVICE_FLAG_FILE)
+        with open(stop_flag_path, "w") as f:
+            f.write("stop")
+        print("Created service stop flag")
+        print("Created service stop flag")
+    except Exception as e:
+        print(f"Error creating stop flag: {e}")
+        print(f"Error creating stop flag: {e}")
 
 
 if __name__ == "__main__":

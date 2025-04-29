@@ -1,13 +1,13 @@
 {
-  "2025-04-26": [
+  "2025-04-29": [
     {
-      "task_id": "44b65165-2336-470e-9d5c-76c43c2f780e",
-      "timestamp": "2025-04-26T14:33:00",
-      "message": "ase",
+      "task_id": "no_task",
+      "timestamp": "2025-04-29T15:38:00",
+      "message": "No upcoming tasks!\nPress + to add a new one.",
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
-      "expired": false
+      "expired": true
     }
   ]
 }

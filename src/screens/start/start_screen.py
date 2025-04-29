@@ -23,7 +23,7 @@ from src.widgets.labels import PartitionHeader
 
 from src.utils.misc import get_task_header_text
 
-from src.settings import PATH, SCREEN, STATE, LOADED
+from src.settings import PATH, SCREEN, STATE, LOADED, TEXT
 
 
 from src.utils.logger import logger
@@ -120,7 +120,7 @@ class StartScreen(Screen):
             except ValueError:
                 logger.debug("No future dates found")
                 start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
-                                  message="No upcoming tasks!",
+                                  message=TEXT.NO_TASKS,
                                   expired=True)
                 self.day_header.text = get_task_header_text(start_task.get_date_str())
                 return [start_task.to_dict()]
@@ -160,27 +160,35 @@ class StartScreen(Screen):
         # Clear existing Tasks
         self.tasks_container.clear_widgets()
         for task in self.current_task_data:
+            # No Task check
+            no_task = False
+            msg = task["message"]
+            if msg == TEXT.NO_TASKS:
+                no_task = True
+                msg = TEXT.NO_TASKS_SHORT
+            
             # TaskContainer
             task_container = TaskContainer()
             
-            # TimeContainer
-            time_container = TimeContainer()
-            task_container.add_widget(time_container)
-            # TimeLabel
-            time = Task.to_time_str(task["timestamp"])
-            start_time_label = TimeLabel(text=time)
-            time_container.add_widget(start_time_label)
-            # SoundIcon
-            if task["alarm_name"]:
-                sound_icon = TaskIcon(source=PATH.SOUND_IMG)
-                time_container.add_widget(sound_icon)
-            # VibrateIcon
-            if task["vibrate"]:
-                vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
-                time_container.add_widget(vibrate_icon)
+            if not no_task:
+                # TimeContainer
+                time_container = TimeContainer()
+                task_container.add_widget(time_container)
+                # TimeLabel
+                time = Task.to_time_str(task["timestamp"])
+                start_time_label = TimeLabel(text=time)
+                time_container.add_widget(start_time_label)
+                # SoundIcon
+                if task["alarm_name"]:
+                    sound_icon = TaskIcon(source=PATH.SOUND_IMG)
+                    time_container.add_widget(sound_icon)
+                # VibrateIcon
+                if task["vibrate"]:
+                    vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
+                    time_container.add_widget(vibrate_icon)
             
             # TaskLabel
-            task_message = TaskLabel(text=task["message"])
+            task_message = TaskLabel(text=msg)
             task_container.add_widget(task_message)
             
             # Add to layout
@@ -191,7 +199,10 @@ class StartScreen(Screen):
                 instance.text_size = (width, None)                
                 instance.texture_update()
                 instance.height = instance.texture_size[1]
-                task_container.height = start_time_label.height + instance.height
+                if not no_task:
+                    task_container.height = start_time_label.height + instance.height
+                else:
+                    task_container.height = instance.height
             
             task_message.bind(size=update_text_size)
         

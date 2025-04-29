@@ -22,9 +22,6 @@ class Directories:
 
     ALARMS = os.path.join(ASSETS, "alarms")
     RECORDINGS = os.path.join(ASSETS, "recordings")
-    
-    # Add path for background service data
-    BG_SERVICE = os.path.join(ASSETS, "background")
 
 
 class Paths(Directories):
@@ -51,8 +48,9 @@ class Paths(Directories):
     DELETE_INACTIVE_IMG = os.path.join(Directories.IMG, "delete_inactive_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
-    TEST_FILE = os.path.join(Directories.ASSETS, "test.json")
     FIRST_TASK = os.path.join(Directories.ASSETS, "first_task.json")
+    SERVICE_FLAG = "app/src/assets/service_stop.flag"
+    SERVICE_TASK_FILE = "app/src/assets/first_task.json"
 
     SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
 
@@ -176,7 +174,8 @@ class Text:
     TYPE_HINT = "Start typing.."
     TYPE_ERROR = "Input is required!"
 
-    NO_TASKS = "Create a new task by clicking the + button!"
+    NO_TASKS = "No upcoming tasks!\nPress + to add a new one."
+    NO_TASKS_SHORT = "No upcoming tasks!"
     NO_DATE = "No date selected"
     NO_ALARM = "No alarm set"
 
