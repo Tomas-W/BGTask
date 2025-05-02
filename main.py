@@ -73,6 +73,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 
 # SelectDateScreen
 # TODO: Optimize layout / widgets
+# TODO: Circle today
 
 # SelectAlarmScreen
 # TODO: Fix alarm name taken filename

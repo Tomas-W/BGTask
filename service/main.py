@@ -1,163 +1,244 @@
 import json
 import os
 import time
-from datetime import datetime
 
-from jnius import autoclass, cast
+from datetime import datetime, timedelta
+from jnius import autoclass   # type: ignore
 
 # Constants
 WAIT_TIME = 15  # seconds
 SERVICE_FLAG_FILE = "app/src/assets/service_stop.flag"
 SERVICE_TASK_FILE = "app/src/assets/first_task.json"
 
-# Import required Java classes
+# Java classes
 PythonActivity = autoclass("org.kivy.android.PythonActivity")
 PythonService = autoclass("org.kivy.android.PythonService")
-NotificationManager = autoclass("android.app.NotificationManager")
+AndroidNotificationManager = autoclass("android.app.NotificationManager")
 NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
 NotificationChannel = autoclass("android.app.NotificationChannel")
 NotificationCompatBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")
 BuildVersion = autoclass("android.os.Build$VERSION")
 Context = autoclass("android.content.Context")
 
-def get_storage_path(path):
-    """Returns the app-specific storage path for the given path."""
-    app_dir = os.environ.get("ANDROID_PRIVATE", "")
-    return os.path.join(app_dir, path)
+
+class NotificationChannels:
+    """Constants for notification channels"""
+    FOREGROUND_SERVICE = "task_channel"
+    EXPIRED_TASKS = "expired_task_channel"
 
 
-def is_task_expired(task_data):
-    if not task_data:
-        return False
-
-    timestamp_str = task_data.get("timestamp", "")
-    if not timestamp_str:
-        return False
-
-    try:
-        task_time = datetime.fromisoformat(timestamp_str)
-        return datetime.now() >= task_time
-    except Exception as e:
-        print(f"BGTaskService: Error parsing timestamp: {e}")
-        return False
+class NotificationPriority:
+    """Constants for notification priorities"""
+    DEFAULT = NotificationCompat.PRIORITY_DEFAULT
+    HIGH = NotificationCompat.PRIORITY_HIGH
 
 
-def check_task_file():
-    try:
-        first_task_path = get_storage_path(SERVICE_TASK_FILE)
-        print(f"BGTaskService: Looking for first_task.json at: {first_task_path}")
-
-        if not os.path.exists(first_task_path):
-            return False
-
-        with open(first_task_path, "r") as f:
-            data = json.load(f)
-
-        for date_key, tasks in data.items():
-            if tasks:
-                task = tasks[0]
-                if is_task_expired(task):
-                    return task.get("message", "A task has expired")
-        return False
-
-    except Exception as e:
-        print(f"BGTaskService: Error checking task file: {e}")
-        return False
+class NotificationImportance:
+    """Constants for notification channel importance"""
+    DEFAULT = AndroidNotificationManager.IMPORTANCE_DEFAULT
+    HIGH = AndroidNotificationManager.IMPORTANCE_HIGH
 
 
-def should_stop_service():
-    stop_flag_path = get_storage_path(SERVICE_FLAG_FILE)
-    return os.path.exists(stop_flag_path)
+class BGTaskServiceManager:
+    """Manages the background service functionality"""
+    
+    def __init__(self):
+        # Initialized in service loop if there is a Task to monitor
+        self.notification_manager = None
 
+        self._running = True
 
-def remove_stop_flag():
-    stop_flag_path = get_storage_path(SERVICE_FLAG_FILE)
-    if os.path.exists(stop_flag_path):
-        try:
-            os.remove(stop_flag_path)
-        except Exception as e:
-            print(f"BGTaskService: Error removing stop flag: {e}")
-
-
-def show_foreground_notification(title, text):
-    service = PythonService.mService
-    context = service
-
-    # Create notification channel for Android 8.0+
-    channel_id = "task_channel"
-    if BuildVersion.SDK_INT >= 26:
-        channel = NotificationChannel(
-            channel_id,
-            "Task Service",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        notification_manager = context.getSystemService(context.NOTIFICATION_SERVICE)
-        notification_manager.createNotificationChannel(channel)
-
-    # Build the notification
-    builder = NotificationCompatBuilder(context, channel_id)
-    builder.setContentTitle(title)
-    builder.setContentText(text)
-    builder.setSmallIcon(context.getApplicationInfo().icon)
-    builder.setDefaults(NotificationCompat.DEFAULT_ALL)
-    builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-    # Start foreground service
-    service.startForeground(1, builder.build())
-
-
-def show_notification(title, message):
-    print("BGTaskService: Showing notification")
-    try:
-        service = PythonService.mService
-        context = service
+        self.service_flag_file = self._get_storage_path(SERVICE_FLAG_FILE)
+        self.service_task_file = self._get_storage_path(SERVICE_TASK_FILE)
         
-        # Get notification manager
-        notification_manager = context.getSystemService(context.NOTIFICATION_SERVICE)
+        self._current_task = self._get_current_task()
+        self._snooze_time = 0
+    
+    def init_notification_manager(self):
+        """Initialize the NotificationManager"""
+        if self.notification_manager is None:
+            self.notification_manager = BGTaskNotificationManager()
+    
+    def run_service(self):
+        """
+        Main service loop.
+        - Checks if the service should stop (user opened the app)
+        - Checks if the Task is expired
+        - If the Task is expired, show notification.
+          Otherwise, sleeps for WAIT_TIME seconds.
+        """
+        print(f"BGTaskService: Current Task expiry: {self._current_task.get('timestamp')}")
 
-        # Create notification channel for Android 8.0+
-        channel_id = "expired_task_channel"
+        while self._running and self._current_task is not None:
+            if self._should_stop_service():
+                print("BGTaskService: Stop flag detected, stopping service")
+                break
+            
+            if self._is_task_expired():
+                print("BGTaskService: Task expired, showing notification")
+
+                self.notification_manager.show_task_notification(
+                    "Task Expired",
+                    self._current_task.get("message")
+                )
+            
+            time.sleep(WAIT_TIME)
+    
+    def _get_current_task(self):
+        """
+        Checks the first_task file and returns the Task if it is not expired.
+        If the task is expired, it returns None.
+        """
+        try:
+            path = self.service_task_file
+            print(f"BGTaskService: Looking for first_task.json at: {path}")
+
+            if not os.path.exists(path):
+                return None
+
+            with open(path, "r") as f:
+                data = json.load(f)
+
+            for date_key, tasks in data.items():
+                if tasks:
+                    task_time = datetime.fromisoformat(tasks[0].get("timestamp"))
+                    if task_time > datetime.now():
+                        return tasks[0]
+
+            return None
+
+        except Exception as e:
+            print(f"BGTaskService: Error checking task file: {e}")
+            return None
+    
+    def _is_task_expired(self):
+        """Returns True if the current Task is expired"""
+        try:
+            timestamp_str = self._current_task.get("timestamp")
+            task_time = datetime.fromisoformat(timestamp_str)
+
+            trigger_time = task_time + timedelta(seconds=self._snooze_time)
+            return datetime.now() >= trigger_time
+        
+        except Exception as e:
+            print(f"BGTaskService: Error parsing timestamp: {e}")
+            return False
+    
+    def _should_stop_service(self):
+        """Returns True if the service should stop"""
+        return os.path.exists(self.service_flag_file)
+    
+    def _reset_task_state(self):
+        """Reset the service state"""
+        self._current_task = None
+        self._snooze_time = None
+    
+    def remove_stop_flag(self):
+        """Removes the stop flag if it exists"""
+        if os.path.exists(self.service_flag_file):
+            try:
+                os.remove(self.service_flag_file)
+            except Exception as e:
+                print(f"BGTaskService: Error removing stop flag: {e}")
+    
+    def _show_startup_notification(self):
+        """Shows the initial foreground notification"""
+        self.notification_manager.show_foreground_notification(
+            "Task Monitor Active",
+            "Watching for expired Tasks..."
+        )
+    
+    @staticmethod
+    def _get_storage_path(path):
+        """Returns the storage path"""
+        app_dir = os.environ.get("ANDROID_PRIVATE", "")
+        return os.path.join(app_dir, path)
+
+
+class BGTaskNotificationManager:
+    """Handles all notification related functionality"""
+    
+    def __init__(self):
+        self.service = PythonService.mService
+        self.context = self.service
+        self.notification_manager = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
+
+        self._create_notification_channels()
+    
+    def _create_notification_channels(self):
+        """Creates notification channels for Android 8.0+"""
         if BuildVersion.SDK_INT >= 26:
-            channel = NotificationChannel(
-                channel_id,
-                "Expired Task Alerts",
-                NotificationManager.IMPORTANCE_HIGH
+            # Foreground service channel
+            service_channel = NotificationChannel(
+                NotificationChannels.FOREGROUND_SERVICE,
+                "Task Service",
+                NotificationImportance.DEFAULT
             )
-            notification_manager.createNotificationChannel(channel)
-
-        # Build the notification
-        builder = NotificationCompatBuilder(context, channel_id)
-        builder.setContentTitle(title or "Task Expired")
-        builder.setContentText(message or "An expired task needs your attention")
-        builder.setSmallIcon(context.getApplicationInfo().icon)
+            self.notification_manager.createNotificationChannel(service_channel)
+            
+            # Expired tasks channel
+            expired_channel = NotificationChannel(
+                NotificationChannels.EXPIRED_TASKS,
+                "Expired Task Alerts",
+                NotificationImportance.HIGH
+            )
+            self.notification_manager.createNotificationChannel(expired_channel)
+    
+    def _build_notification(self, channel_id, title, text, priority):
+        """Builds a notification with the given parameters"""
+        builder = NotificationCompatBuilder(self.context, channel_id)
+        builder.setContentTitle(title)
+        builder.setContentText(text)
+        builder.setSmallIcon(self.context.getApplicationInfo().icon)
         builder.setDefaults(NotificationCompat.DEFAULT_ALL)
-        builder.setPriority(NotificationCompat.PRIORITY_HIGH)
-
-        # Show the notification
-        notification_id = int(time.time())
-        notification_manager.notify(notification_id, builder.build())
-        print("BGTaskService: Notification sent successfully")
-
-    except Exception as e:
-        print(f"BGTaskService: Error in show_notification: {e}")
+        builder.setPriority(priority)
+        return builder.build()
+    
+    def show_foreground_notification(self, title, text):
+        """Shows a foreground service notification"""
+        try:
+            notification = self._build_notification(
+                NotificationChannels.FOREGROUND_SERVICE,
+                title,
+                text,
+                NotificationPriority.DEFAULT
+            )
+            self.service.startForeground(1, notification)
+            print("BGTaskService: Foreground notification shown")
+        except Exception as e:
+            print(f"BGTaskService: Error showing foreground notification: {e}")
+    
+    def show_task_notification(self, title, message):
+        """Shows a Task expired notification"""
+        try:
+            notification = self._build_notification(
+                NotificationChannels.EXPIRED_TASKS,
+                title or "Task Expired",
+                message or "An expired Task needs your attention",
+                NotificationPriority.HIGH
+            )
+            notification_id = int(time.time())
+            self.notification_manager.notify(notification_id, notification)
+            print("BGTaskService: Task notification sent successfully")
+        except Exception as e:
+            print(f"BGTaskService: Error showing task notification: {e}")
 
 
 if __name__ == "__main__":
     print("BGTaskService: Starting background service")
-
-    remove_stop_flag()
-
-    # Show the persistent foreground notification
-    show_foreground_notification("Task Monitor Active", "Watching for expired tasks...")
-
-    while True:
-        if should_stop_service():
-            print("BGTaskService: Stop flag detected, stopping service")
-            break
-
-        expired_message = check_task_file()
-        if expired_message:
-            print("BGTaskService: Found expired task")
-            show_notification("Task Expired", expired_message)
-
-        time.sleep(WAIT_TIME)
+    
+    service_manager = BGTaskServiceManager()
+    # Only run if there is a Task to monitor
+    if service_manager._current_task is not None:
+        
+        service_manager.init_notification_manager()
+    
+        service_manager.remove_stop_flag()
+        
+        # service_manager._show_startup_notification()
+        
+        print("BGTaskService: Starting main service loop")
+        # Main loop
+        service_manager.run_service()
+    
+    print("BGTaskService: No Task to monitor, exiting")
