@@ -164,6 +164,7 @@ class TaskApp(App, EventDispatcher):
         self._init_audio_manager()
         self._init_main_screens()
         self._init_secondary_screens()
+        self._init_permissions()
     
     def _build_home_screen(self):
         self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
@@ -265,6 +266,19 @@ class TaskApp(App, EventDispatcher):
 
         LOADED.SELECT_DATE = True
         LOADED.SELECT_ALARM = True
+    
+    def _init_permissions(self):
+        # Request runtime permissions for Android
+        if platform == "android":
+            from android.permissions import request_permissions, Permission
+            permissions = [
+                Permission.WRITE_EXTERNAL_STORAGE,
+                Permission.READ_EXTERNAL_STORAGE,
+                Permission.RECORD_AUDIO,
+                Permission.POST_NOTIFICATIONS
+            ]
+            request_permissions(permissions)
+
 
     def _init_logger(self):
         from src.utils.logger import logger

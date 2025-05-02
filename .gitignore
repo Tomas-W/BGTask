@@ -31,3 +31,5 @@ backups/
 *.db-wal
 
 playground.py
+info.txt
+info2.txt
