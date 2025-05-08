@@ -176,5 +176,47 @@
       "expired": false,
       "keep_alarming": false
     }
+  ],
+  "2025-05-08": [
+    {
+      "task_id": "4ef37c45-b7c8-4fb1-ac36-40c53c9857df",
+      "timestamp": "2025-05-08T14:00:00",
+      "message": "This is an example task that is expired. It has no alarm or vibration.",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": true,
+      "keep_alarming": false
+    },
+    {
+      "task_id": "d094a2f9-287b-4a0f-ae5a-f150ffb16e5d",
+      "timestamp": "2025-05-08T20:00:00",
+      "message": "This is an example task that is expired and has an alarm and vibration.",
+      "alarm_name": "scanner",
+      "vibrate": true,
+      "expired": true,
+      "keep_alarming": false
+    }
+  ],
+  "2025-05-09": [
+    {
+      "task_id": "ec93b982-52ad-45be-b77d-712fc1c2266c",
+      "timestamp": "2025-05-09T12:00:00",
+      "message": "This task is tomorrow.",
+      "alarm_name": null,
+      "vibrate": false,
+      "expired": false,
+      "keep_alarming": false
+    }
+  ],
+  "2025-05-15": [
+    {
+      "task_id": "2a0874f2-5ab1-43c9-bf18-1e3847496ddf",
+      "timestamp": "2025-05-15T11:00:00",
+      "message": "This task is next week.",
+      "alarm_name": null,
+      "vibrate": true,
+      "expired": false,
+      "keep_alarming": false
+    }
   ]
 }

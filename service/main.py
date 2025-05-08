@@ -4,7 +4,8 @@ import time
 
 from datetime import datetime, timedelta
 from jnius import autoclass, cast   # type: ignore
-from android.broadcast import BroadcastReceiver
+from android.broadcast import BroadcastReceiver   # type: ignore
+from service.utils import ACTION, PATH, CHANNEL, PRIORITY, IMPORTANCE
 
 # Constants
 WAIT_TIME = 15  # seconds
@@ -25,38 +26,6 @@ PendingIntent = autoclass("android.app.PendingIntent")
 AndroidString = autoclass("java.lang.String")
 Service = autoclass('android.app.Service')
 
-# Define notification actions and constants
-class NotificationActions:
-    """Constants for notification actions"""
-    OPEN_APP = "open_app"
-    SNOOZE = "snooze"
-    CANCEL = "cancel"
-
-    # Request codes for PendingIntents
-    REQUEST_OPEN_APP = 1001
-    REQUEST_SNOOZE = 1002
-    REQUEST_CANCEL = 1003
-
-
-class NotificationChannels:
-    """Constants for notification channels"""
-    FOREGROUND_SERVICE = "task_channel"
-    EXPIRED_TASKS = "expired_task_channel"
-
-
-class NotificationPriority:
-    """Constants for notification priorities"""
-    LOW = NotificationCompat.PRIORITY_LOW
-    DEFAULT = NotificationCompat.PRIORITY_DEFAULT
-    HIGH = NotificationCompat.PRIORITY_HIGH
-
-
-class NotificationImportance:
-    """Constants for notification channel importance"""
-    DEFAULT = AndroidNotificationManager.IMPORTANCE_DEFAULT
-    HIGH = AndroidNotificationManager.IMPORTANCE_HIGH
-
-
 class BGTaskServiceManager:
     """Manages the background service functionality"""
     
@@ -66,8 +35,8 @@ class BGTaskServiceManager:
 
         self._running = True
 
-        self.service_flag_file = self._get_storage_path(SERVICE_FLAG_FILE)
-        self.service_task_file = self._get_storage_path(SERVICE_TASK_FILE)
+        self.service_flag_file = PATH.SERVICE_FLAG
+        self.service_task_file = PATH.TASK_FILE
         
         self._current_task = self._get_current_task()
         self._snooze_time = 0
@@ -76,7 +45,8 @@ class BGTaskServiceManager:
     def init_notification_manager(self):
         """Initialize the NotificationManager"""
         if self.notification_manager is None:
-            self.notification_manager = BGTaskNotificationManager()
+            from service.notification_manager import NotificationManager  # type: ignore
+            self.notification_manager = NotificationManager(PythonService.mService)
     
     def handle_action(self, intent_or_action):
         """Handle notification actions"""
@@ -112,7 +82,12 @@ class BGTaskServiceManager:
             return Service.START_STICKY
 
         print(f"BGTaskService: Handling action: {action}")
-        if action == NotificationActions.SNOOZE:
+        
+        # Cancel all notifications before handling the action
+        if self.notification_manager:
+            self.notification_manager.cancel_all_notifications()
+        
+        if action.endswith(ACTION.SNOOZE_A):
             # Snooze for 1 minute
             self._snooze_time += 1 * 60  # 1 minute in seconds
             self._has_notified = False
@@ -120,7 +95,7 @@ class BGTaskServiceManager:
             # Stop the service and restart it to handle the snooze
             return Service.START_REDELIVER_INTENT
         
-        elif action == NotificationActions.CANCEL:
+        elif action.endswith(ACTION.STOP):
             # Cancel the current task
             self._current_task = None
             self._snooze_time = 0
@@ -150,7 +125,6 @@ class BGTaskServiceManager:
             
             if self._is_task_expired() and not self._has_notified:
                 print("BGTaskService: Task expired, showing notification")
-
                 self.notification_manager.show_task_notification(
                     "Task Expired",
                     self._current_task.get("message")
@@ -240,18 +214,18 @@ class BGTaskNotificationManager:
         if BuildVersion.SDK_INT >= 26:
             # Foreground service channel
             service_channel = NotificationChannel(
-                NotificationChannels.FOREGROUND_SERVICE,
+                CHANNEL.FOREGROUND,
                 AndroidString("Task Service"),
-                NotificationImportance.DEFAULT
+                IMPORTANCE.DEFAULT
             )
             service_channel.setDescription(AndroidString("Shows when the task monitor is active"))
             self.notification_manager.createNotificationChannel(service_channel)
             
             # Expired tasks channel
             expired_channel = NotificationChannel(
-                NotificationChannels.EXPIRED_TASKS,
+                CHANNEL.TASKS,
                 AndroidString("Expired Task Alerts"),
-                NotificationImportance.HIGH
+                IMPORTANCE.HIGH
             )
             expired_channel.setDescription(AndroidString("Alerts for expired tasks"))
             self.notification_manager.createNotificationChannel(expired_channel)
@@ -263,11 +237,11 @@ class BGTaskNotificationManager:
             package_name = context.getPackageName()
             
             # Create intent based on action
-            if action == NotificationActions.OPEN_APP:
+            if action.endswith(ACTION.OPEN_APP):
                 # Intent to open main activity
                 intent = context.getPackageManager().getLaunchIntentForPackage(package_name)
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                request_code = NotificationActions.REQUEST_OPEN_APP
+                request_code = ACTION.OPEN_APP
                 
                 # Create PendingIntent with proper flags
                 flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -282,9 +256,9 @@ class BGTaskNotificationManager:
                 intent.setPackage(package_name)  # Keep the broadcast within our app
                 
                 # Set request code based on action
-                request_code = (NotificationActions.REQUEST_SNOOZE 
-                              if action == NotificationActions.SNOOZE 
-                              else NotificationActions.REQUEST_CANCEL)
+                request_code = (ACTION.SNOOZE_A 
+                              if action.endswith(ACTION.SNOOZE_A) 
+                              else ACTION.STOP)
                 
                 # Create PendingIntent with proper flags
                 flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -308,17 +282,17 @@ class BGTaskNotificationManager:
         builder.setPriority(priority)
         
         # Add actions for expired task notifications
-        if channel_id == NotificationChannels.EXPIRED_TASKS:
+        if channel_id == CHANNEL.TASKS:
             print("BGTaskService: Building notification with action buttons")
             
             # Open app action (main action when clicking notification)
-            open_app_intent = self._create_pending_intent(NotificationActions.OPEN_APP)
+            open_app_intent = self._create_pending_intent(ACTION.OPEN_APP)
             if open_app_intent:
                 builder.setContentIntent(open_app_intent)
                 builder.setAutoCancel(True)  # Auto dismiss when clicked
             
             # Snooze action
-            snooze_intent = self._create_pending_intent(NotificationActions.SNOOZE)
+            snooze_intent = self._create_pending_intent(ACTION.SNOOZE_A)
             if snooze_intent:
                 # Use a standard icon for snooze (if available)
                 snooze_icon = 0  # 0 means no icon
@@ -329,7 +303,7 @@ class BGTaskNotificationManager:
                 print("BGTaskService: Added snooze button")
             
             # Cancel action
-            cancel_intent = self._create_pending_intent(NotificationActions.CANCEL)
+            cancel_intent = self._create_pending_intent(ACTION.STOP)
             if cancel_intent:
                 # Use a standard icon for cancel (if available)
                 cancel_icon = 0  # 0 means no icon
@@ -345,10 +319,10 @@ class BGTaskNotificationManager:
         """Shows a foreground service notification"""
         try:
             notification = self._build_notification(
-                NotificationChannels.FOREGROUND_SERVICE,
+                CHANNEL.FOREGROUND,
                 title,
                 text,
-                NotificationPriority.LOW
+                PRIORITY.LOW
             )
             self.service.startForeground(1, notification)
             print("BGTaskService: Foreground notification shown")
@@ -359,10 +333,10 @@ class BGTaskNotificationManager:
         """Shows a Task expired notification"""
         try:
             notification = self._build_notification(
-                NotificationChannels.EXPIRED_TASKS,
+                CHANNEL.TASKS,
                 title or "Task Expired",
                 message or "An expired Task needs your attention",
-                NotificationPriority.HIGH
+                PRIORITY.HIGH
             )
             notification_id = int(time.time())
             self.notification_manager.notify(notification_id, notification)
@@ -397,8 +371,8 @@ if __name__ == "__main__":
         
         # Create receiver with actions
         actions = [
-            f"{package_name}.{NotificationActions.SNOOZE}",
-            f"{package_name}.{NotificationActions.CANCEL}"
+            f"{package_name}.{ACTION.SNOOZE_A}",
+            f"{package_name}.{ACTION.STOP}"
         ]
         receiver = BroadcastReceiver(
             on_receive,
@@ -418,7 +392,8 @@ if __name__ == "__main__":
         # Show the startup notification
         service_manager.notification_manager.show_foreground_notification(
             "Task Monitor Active",
-            f"Monitoring task due at {service_manager._current_task.get('timestamp')}"
+            f"Monitoring task due at {service_manager._current_task.get('timestamp')}",
+            with_buttons=True
         )
         print("BGTaskService: Starting main service loop")
         # Main loop
@@ -430,7 +405,8 @@ if __name__ == "__main__":
         service_manager.init_notification_manager()
         service_manager.notification_manager.show_foreground_notification(
             "Task Monitor",
-            "No tasks to monitor"
+            "No tasks to monitor",
+            with_buttons=False
         )
     
     print("BGTaskService: Service stopping")

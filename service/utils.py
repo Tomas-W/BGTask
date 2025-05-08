@@ -27,7 +27,7 @@ class Paths:
 
 class NotificationChannels:
     """Constants for notification channels"""
-    FOREGROUND = "task_channel"
+    FOREGROUND = "foreground_channel"
     TASKS = "tasks_channel"
 
 class NotificationPriority:
