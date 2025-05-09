@@ -35,7 +35,7 @@ class Task:
     Represents a Task with a message and timestamp.
     """
     def __init__(self, task_id=None, message="", timestamp=None, alarm_name=None,
-                 vibrate=False, keep_alarming=False, expired=False):
+                 vibrate=False, keep_alarming=False, expired=False, snooze_time=False):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.message = message
         self.timestamp = timestamp if timestamp else datetime.now()
@@ -43,6 +43,7 @@ class Task:
         self.vibrate = vibrate
         self.keep_alarming = keep_alarming
         self.expired = expired
+        self.snooze_time = snooze_time
 
     def to_dict(self) -> dict:
         """Convert Task to dictionary for serialization."""
@@ -54,7 +55,8 @@ class Task:
             "alarm_name": self.alarm_name,
             "vibrate": self.vibrate,
             "keep_alarming": self.keep_alarming,
-            "expired": self.expired
+            "expired": self.expired,
+            "snooze_time": self.snooze_time
         }
     
     @classmethod
@@ -68,7 +70,8 @@ class Task:
             alarm_name=data["alarm_name"],
             vibrate=data["vibrate"],
             keep_alarming=keep_alarming,
-            expired=data["expired"]
+            expired=data["expired"],
+            snooze_time=data["snooze_time"]
         )
 
     def to_json(self) -> dict:
@@ -80,7 +83,8 @@ class Task:
             "alarm_name": self.alarm_name,
             "vibrate": self.vibrate,
             "keep_alarming": self.keep_alarming,
-            "expired": self.expired
+            "expired": self.expired,
+            "snooze_time": self.snooze_time
         }
 
     @staticmethod

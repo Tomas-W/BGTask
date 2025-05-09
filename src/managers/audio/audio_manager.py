@@ -74,9 +74,6 @@ class AudioManager(AudioManagerUtils):
             self.stop_playing_audio()
         
         self.keep_alarming = task.keep_alarming
-        task_manager = App.get_running_app().task_manager
-        task_manager._update_first_expiring_task()
-        
         # Get alarm path and validate
         alarm_path = self.get_audio_path(task.alarm_name)
         if not alarm_path:

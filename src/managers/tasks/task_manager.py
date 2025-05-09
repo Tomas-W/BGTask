@@ -36,8 +36,6 @@ class TaskManager(EventDispatcher):
         # File path
         self.task_file_path: str = DM.get_storage_path(PATH.TASK_FILE)
         DM.validate_file(self.task_file_path)
-        self.first_task_path: str = DM.get_storage_path(PATH.FIRST_TASK)
-        DM.validate_file(self.first_task_path)
 
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
@@ -136,71 +134,12 @@ class TaskManager(EventDispatcher):
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
             
-            # Update the background service with the first expiring task
-            self._update_first_expiring_task()
-            
             logger.error(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
             return True
         
         except Exception as e:
             logger.error(f"Error saving tasks to file: {e}")
             return False
-
-    def _update_first_expiring_task(self) -> None:
-        """
-        Updates first_task.json with the task closest to expiring.
-        This allows the background service to monitor the most relevant task.
-        """
-        try:
-            # Get the first non-expired task
-            closest_task = None
-            now = datetime.now()
-            
-            if self.sorted_active_tasks:
-                for task_group in self.sorted_active_tasks:
-                    for task in task_group["tasks"]:
-                        if not task.expired and task.timestamp > now:
-                            if closest_task is None or task.timestamp < closest_task.timestamp:
-                                closest_task = task
-                    
-                    if closest_task:
-                        break
-            
-            # Create the data structure for first_task.json
-            task_data = {}
-            
-            if closest_task:
-                date_key = closest_task.get_date_key()
-                task_data[date_key] = [{
-                    "task_id": closest_task.task_id,
-                    "timestamp": closest_task.timestamp.isoformat(),
-                    "message": closest_task.message,
-                    "alarm_name": closest_task.alarm_name if closest_task.alarm_name != "" else None,
-                    "vibrate": closest_task.vibrate,
-                    "keep_alarming": closest_task.keep_alarming,
-                    "expired": closest_task.expired
-                }]
-            else:
-                # Add a placeholder expired task if no tasks found
-                now_date_key = datetime.now().strftime(DATE.DATE_KEY)
-                task_data[now_date_key] = [{
-                    "task_id": "no_task",
-                    "timestamp": datetime.now().replace(second=0, microsecond=0).isoformat(),
-                    "message": TEXT.NO_TASKS,
-                    "alarm_name": None,
-                    "vibrate": False,
-                    "keep_alarming": False,
-                    "expired": True
-                }]
-            
-            # Save the data to the first_task file using the same approach as task_file
-            with open(self.first_task_path, "w") as f:
-                json.dump(task_data, f, indent=2)
-            
-            logger.debug(f"Updated first_task.json at {self.first_task_path}")
-            
-        except Exception as e:
-            logger.error(f"Error updating first_task.json: {e}")
     
     def save_tasks_to_json(self) -> None:
         """
@@ -216,7 +155,8 @@ class TaskManager(EventDispatcher):
          dispatches an event to update the Task display and scroll to the Task.
         """
         task = Task(message=message, timestamp=timestamp,
-                    alarm_name=alarm_name, vibrate=vibrate, keep_alarming=keep_alarming)
+                    alarm_name=alarm_name, vibrate=vibrate, keep_alarming=keep_alarming,
+                    snooze_time=0)
         
         # Round timestamp for in-memory version only
         task.timestamp = task.timestamp.replace(second=0, microsecond=0)
@@ -235,8 +175,8 @@ class TaskManager(EventDispatcher):
         # Notify to scroll to Task
         Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
     
-    def update_task(self, task_id: str, message: str,
-                    timestamp: datetime, alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+    def update_task(self, task_id: str, message: str, timestamp: datetime,
+                    alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
         Updates existing Task by its ID.
         Updates tasks_by_date, saves the Task to file,
@@ -252,7 +192,7 @@ class TaskManager(EventDispatcher):
         # Create rounded timestamp for expiry checking and later in-memory storage
         rounded_timestamp = timestamp.replace(second=0, microsecond=0)
         # Update task properties with full precision timestamp
-        task.timestamp = timestamp
+        task.timestamp = rounded_timestamp
         task.message = message
         task.alarm_name = alarm_name
         task.vibrate = vibrate
@@ -318,7 +258,8 @@ class TaskManager(EventDispatcher):
             alarm_name=task.alarm_name,
             vibrate=task.vibrate,
             keep_alarming=task.keep_alarming,
-            expired=task.expired
+            expired=task.expired,
+            snooze_time=task.snooze_time
         )
         
         # Remove from memory

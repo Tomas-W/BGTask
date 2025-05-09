@@ -33,8 +33,12 @@ class DateFormats:
 DATE = DateFormats()
 
 
-def get_service_timestamp(timestamp: datetime) -> str:
-    """Returns the timestamp in the format of the ServiceNotification"""
+def get_service_timestamp(task) -> str:
+    """
+    Returns the timestamp in the format of the ServiceNotification
+    This includes the snooze time
+    """
+    timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
     today = datetime.now().date()
     tomorrow = today + timedelta(days=1)
     if timestamp.date() == today:
@@ -53,7 +57,7 @@ def get_storage_path(path):
 
 class Paths:
     """Constants for paths"""
-    TASK_FILE = get_storage_path("app/src/assets/first_task.json")
+    TASK_FILE = get_storage_path("app/src/assets/task_file.json")
 
     SERVICE_FLAG = get_storage_path("app/service/service_stop.flag")
     SNOOZE_A_FLAG = get_storage_path("app/service/snooze_a.flag")

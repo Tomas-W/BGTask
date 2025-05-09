@@ -341,12 +341,7 @@ class TaskApp(App, EventDispatcher):
         Start the background service to ensure it can restart the app later.
         """
         self.logger.debug("App is stopping - starting background service")
-        
-        # Update the first_task.json file to ensure it exists in the correct location
-        if hasattr(self, "task_manager"):
-            self.logger.debug("Updating first_task.json before stopping")
-            self.task_manager._update_first_expiring_task()
-        
+
         start_time = time.time()
         self.background_service = self.start_background_service()
         self.logger.error(f"Started background service in {time.time() - start_time:.4f}")

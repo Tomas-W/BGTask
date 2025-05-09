@@ -46,7 +46,7 @@ def start_monitoring_service(service_manager):
     """Initializes and starts the monitoring service with active Task"""
     service_manager.init_notification_manager()
     task = service_manager.service_task_manager.current_task
-    timestamp = get_service_timestamp(task.timestamp)    
+    timestamp = get_service_timestamp(task)    
     # Startup notification
     service_manager.notification_manager.show_foreground_notification(
         "BGTask Service",
