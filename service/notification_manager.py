@@ -74,6 +74,28 @@ class NotificationManager:
             flags
         )
     
+    def create_app_open_intent(self):
+        """Create a PendingIntent to open the app's main activity"""
+        try:
+            # Get the launch intent for our package
+            intent = self.context.getPackageManager().getLaunchIntentForPackage(self.package_name)
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            
+            # Set proper flags based on Android version
+            flags = PendingIntent.FLAG_UPDATE_CURRENT
+            if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
+                flags |= PendingIntent.FLAG_IMMUTABLE
+            
+            return PendingIntent.getActivity(
+                self.context,
+                0,  # Request code
+                intent,
+                flags
+            )
+        except Exception as e:
+            print(f"NotificationManager: Error creating app open intent: {e}")
+            return None
+    
     def _get_icon_resource(self):
         """Get the notification icon resource ID"""
         try:
@@ -104,6 +126,12 @@ class NotificationManager:
             builder.setSmallIcon(icon_id)
             builder.setPriority(PRIORITY.LOW)
             builder.setOngoing(True)
+            
+            # Add click action to open app
+            app_intent = self.create_app_open_intent()
+            if app_intent:
+                builder.setContentIntent(app_intent)
+            
             if with_buttons:
                 # Add Snooze button
                 snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
@@ -148,6 +176,11 @@ class NotificationManager:
             builder.setPriority(PRIORITY.HIGH)
             builder.setAutoCancel(True)  # Auto-cancel when clicked
             
+            # Add click action to open app
+            app_intent = self.create_app_open_intent()
+            if app_intent:
+                builder.setContentIntent(app_intent)
+            
             # Add Snooze button
             snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
             if snooze_intent:
@@ -172,6 +205,10 @@ class NotificationManager:
             # Add to active notifications set
             self.active_notification_ids.add(self.current_notification_id)
             print(f"NotificationManager: Showed task notification with ID: {self.current_notification_id}")
+
+            from service.utils import AudioPlayer, PATH
+            audio_player = AudioPlayer()
+            audio_player.play(PATH.AUDIO_TASK_EXPIRED)
             
         except Exception as e:
             print(f"NotificationManager: Error showing task notification: {e}")
