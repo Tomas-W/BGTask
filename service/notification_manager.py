@@ -1,61 +1,65 @@
 import time
 
-from jnius import autoclass, cast  # type: ignore
-from service.utils import ACTION, CHANNEL, PRIORITY, IMPORTANCE
-# Android classes
-Context = autoclass("android.content.Context")
-PendingIntent = autoclass("android.app.PendingIntent")
-Intent = autoclass("android.content.Intent")
-NotificationBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")  # Changed to androidx
-NotificationManagerCompat = autoclass("androidx.core.app.NotificationManagerCompat")
-NotificationChannel = autoclass("android.app.NotificationChannel")
+from jnius import autoclass  # type: ignore
+
+from service.service_logger import logger
+from service.utils import ACTION, CHANNEL, IMPORTANCE, PRIORITY
+
 AndroidString = autoclass("java.lang.String")
 BuildVersion = autoclass('android.os.Build$VERSION')
+Context = autoclass("android.content.Context")
+Intent = autoclass("android.content.Intent")
+NotificationBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")  # Changed to androidx
+NotificationChannel = autoclass("android.app.NotificationChannel")
+PendingIntent = autoclass("android.app.PendingIntent")
+
 
 class NotificationManager:
     def __init__(self, service):
         self.service = service
         self.context = service.getApplicationContext()
-        try:
-            # Try androidx NotificationManagerCompat
-            self.notification_manager = NotificationManagerCompat.From(self.context)
-        except Exception as e:
-            print(f"NotificationManager: Error using NotificationManagerCompat: {e}")
-            # Fallback to standard NotificationManager
-            self.notification_manager = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
+        self.notification_manager = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
         
         self.package_name = self.context.getPackageName()
-        self._create_notification_channels()
-        # Track all active notification IDs
+        self._init_foreground_channel()
+        self._init_tasks_channel()
+        
+        # Track notification IDs
         self.active_notification_ids = set()
         self.current_notification_id = None
     
-    def _create_notification_channels(self):
-        """Create notification channels for Android 8.0+"""
-        if BuildVersion.SDK_INT >= 26:
-            # Foreground service channel
+    def _init_foreground_channel(self):
+        """Initialize the foreground channel"""
+        try:
             foreground_channel = NotificationChannel(
                 CHANNEL.FOREGROUND,
-                AndroidString("Task Service"),
+                AndroidString("BGTask Service"),
                 IMPORTANCE.LOW
             )
-            foreground_channel.setDescription(AndroidString("Shows when the task monitor is active"))
-            
-            # Tasks channel (for expired tasks)
+            foreground_channel.setDescription(AndroidString("Shows when BGTask is monitoring your Tasks"))
+            self.notification_manager.createNotificationChannel(foreground_channel)
+            logger.debug("NotificationManager: Created foreground channel")
+        
+        except Exception as e:
+            logger.error(f"NotificationManager: Error creating foreground channel: {e}")
+    
+    def _init_tasks_channel(self):
+        """Initialize the tasks channel"""
+        try:
             tasks_channel = NotificationChannel(
                 CHANNEL.TASKS,
-                AndroidString("Task Notifications"),
+                AndroidString("BGTask Notifications"),
                 IMPORTANCE.HIGH
             )
-            tasks_channel.setDescription(AndroidString("Shows notifications for expired tasks"))
+            tasks_channel.setDescription(AndroidString("Shows notifications for expired Tasks"))
             tasks_channel.enableVibration(True)
             tasks_channel.setShowBadge(True)
-            
-            # Register the channels
-            self.notification_manager.createNotificationChannel(foreground_channel)
             self.notification_manager.createNotificationChannel(tasks_channel)
-            print("NotificationManager: Created notification channels")
+            logger.debug("NotificationManager: Created tasks channel")
         
+        except Exception as e:
+            logger.error(f"NotificationManager: Error creating tasks channel: {e}")
+    
     def create_action_intent(self, action):
         """Create a broadcast intent for notification button actions"""
         intent = Intent()
@@ -93,7 +97,7 @@ class NotificationManager:
                 flags
             )
         except Exception as e:
-            print(f"NotificationManager: Error creating app open intent: {e}")
+            logger.error(f"NotificationManager: Error creating app open intent: {e}")
             return None
     
     def _get_icon_resource(self):
@@ -101,22 +105,23 @@ class NotificationManager:
         try:
             drawable = autoclass(f"{self.package_name}.R$drawable")
             return getattr(drawable, "notification_icon")
+
         except Exception as e:
-            print(f"NotificationManager: Error getting notification icon: {e}")
+            logger.error(f"NotificationManager: Error getting notification icon: {e}")
             try:
                 # Fallback to app icon
                 return self.context.getApplicationInfo().icon
+
             except Exception as e:
-                print(f"NotificationManager: Error getting app icon: {e}")
+                logger.error(f"NotificationManager: Error getting app icon: {e}")
                 return None
     
     def show_foreground_notification(self, title, message, with_buttons=True):
         """Show a foreground notification with optional action buttons"""
         try:
-            # Get icon first
             icon_id = self._get_icon_resource()
             if icon_id is None:
-                print("NotificationManager: No valid icon found, cannot show notification")
+                logger.error("NotificationManager: No valid icon found, cannot show notification")
                 return
             
             # Create notification builder with proper channel
@@ -154,18 +159,17 @@ class NotificationManager:
             # Build and show notification
             notification = builder.build()
             self.service.startForeground(1, notification)
-            print("NotificationManager: Showed foreground notification")
+            logger.debug("NotificationManager: Showed foreground notification")
             
         except Exception as e:
-            print(f"NotificationManager: Error showing notification: {e}")
+            logger.error(f"NotificationManager: Error showing notification: {e}")
     
     def show_task_notification(self, title, message):
         """Show a high-priority task notification with buttons"""
         try:
-            # Get icon first
             icon_id = self._get_icon_resource()
             if icon_id is None:
-                print("NotificationManager: No valid icon found, cannot show notification")
+                logger.error("NotificationManager: No valid icon found, cannot show notification")
                 return
             
             # Create notification builder with proper channel
@@ -204,14 +208,14 @@ class NotificationManager:
             self.notification_manager.notify(self.current_notification_id, builder.build())
             # Add to active notifications set
             self.active_notification_ids.add(self.current_notification_id)
-            print(f"NotificationManager: Showed task notification with ID: {self.current_notification_id}")
+            logger.debug(f"NotificationManager: Showed task notification with ID: {self.current_notification_id}")
 
-            from service.utils import AudioPlayer, PATH
-            audio_player = AudioPlayer()
-            audio_player.play(PATH.AUDIO_TASK_EXPIRED)
+            # from service.utils import AudioPlayer, PATH
+            # audio_player = AudioPlayer()
+            # audio_player.play(PATH.AUDIO_TASK_EXPIRED)
             
         except Exception as e:
-            print(f"NotificationManager: Error showing task notification: {e}")
+            logger.error(f"NotificationManager: Error showing task notification: {e}")
     
     def cancel_all_notifications(self):
         """Cancel all active notifications"""
@@ -220,33 +224,30 @@ class NotificationManager:
             for notification_id in self.active_notification_ids:
                 try:
                     self.notification_manager.cancel(notification_id)
-                    print(f"NotificationManager: Cancelled notification {notification_id}")
                 except Exception as e:
-                    print(f"NotificationManager: Error cancelling notification {notification_id}: {e}")
+                    logger.error(f"NotificationManager: Error cancelling notification {notification_id}: {e}")
             
             # Clear the active notifications set
             self.active_notification_ids.clear()
             self.current_notification_id = None
-            print("NotificationManager: All notifications cancelled")
         except Exception as e:
-            print(f"NotificationManager: Error in cancel_all_notifications: {e}")
+            logger.error(f"NotificationManager: Error cancelling all notifications: {e}")
     
     def cancel_current_notification(self):
         """Cancel the current task notification if it exists"""
         if self.current_notification_id is not None:
             try:
                 self.notification_manager.cancel(self.current_notification_id)
-                print(f"NotificationManager: Cancelled notification {self.current_notification_id}")
-                # Remove from active notifications set
                 self.active_notification_ids.discard(self.current_notification_id)
                 self.current_notification_id = None
+            
             except Exception as e:
-                print(f"NotificationManager: Error cancelling notification: {e}")
+                logger.error(f"NotificationManager: Error cancelling notification: {e}")
     
     def remove_notification(self):
         """Remove the foreground notification"""
         try:
             self.service.stopForeground(True)
-            print("NotificationManager: Removed foreground notification")
+        
         except Exception as e:
-            print(f"NotificationManager: Error removing notification: {e}") 
+            logger.error(f"NotificationManager: Error removing notification: {e}")

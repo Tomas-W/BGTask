@@ -1,9 +1,11 @@
 import json
-import os
+
 from datetime import datetime, timedelta
 from typing import Any
 
 from src.managers.tasks.task_manager_utils import Task
+
+from service.service_logger import logger
 from service.utils import PATH, ACTION
 
 
@@ -21,7 +23,7 @@ class ServiceTaskManager:
             return data
         
         except Exception as e:
-            print(f"Error getting task data: {e}")
+            logger.error(f"Error getting task data: {e}")
             return {}
     
     def _get_active_tasks(self) -> list[dict[str, Any]]:
@@ -85,7 +87,7 @@ class ServiceTaskManager:
             return None
 
         except Exception as e:
-            print(f"BGTaskService: Error checking task file: {e}")
+            logger.error(f"BGTaskService: Error checking task file: {e}")
             return None
     
     def refresh_current_task(self) -> None:
@@ -102,7 +104,7 @@ class ServiceTaskManager:
             return datetime.now() >= trigger_time
         
         except Exception as e:
-            print(f"BGTaskService: Error parsing timestamp: {e}")
+            logger.error(f"BGTaskService: Error parsing timestamp: {e}")
             return False
     
     def snooze_task(self, action: str) -> None:
@@ -110,18 +112,18 @@ class ServiceTaskManager:
         if action.endswith(ACTION.SNOOZE_A):
             # Snooze for 1 minute
             self.snooze_time += 1 * 60
-            print(f"BGTaskService: Task snoozed for 1 minute. Total snooze: {self.snooze_time/60:.1f}m")
+            logger.debug(f"BGTaskService: Task snoozed for 1 minute. Total snooze: {self.snooze_time/60:.1f}m")
         
         elif action.endswith(ACTION.SNOOZE_B):
             # Snooze for 2 minutes
             self.snooze_time += 2 * 60
-            print(f"BGTaskService: Task snoozed for 2 minutes. Total snooze: {self.snooze_time/60:.1f}m")
+            logger.debug(f"BGTaskService: Task snoozed for 2 minutes. Total snooze: {self.snooze_time/60:.1f}m")
         
         else:
-            print(f"BGTaskService: Invalid snooze action: {action}")
+            logger.error(f"BGTaskService: Invalid snooze action: {action}")
     
     def cancel_task(self) -> None:
         """Cancels the current task."""
-        self.current_task = None
+        self.current_task = self.get_current_task()
         self.snooze_time = 0
-        print("BGTaskService: Task cancelled")
+        logger.debug("BGTaskService: Task cancelled")
