@@ -7,6 +7,30 @@ NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
 AndroidNotificationManager = autoclass("android.app.NotificationManager")
 
 
+class DateFormats:
+    """Date and time format patterns used throughout the application."""
+    DATE_KEY = "%Y-%m-%d"              # 2024-03-21
+    TIMESTAMP = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
+
+    TASK_HEADER = "%A %d %b"           # Thursday 21 Mar
+    TASK_TIME = "%H:%M"                # 14:30
+
+    SELECTED_TIME = "%H:%M"            # 14:30
+    CALENDAR_DAY = "%A %d"             # Thursday 21
+    HOUR = "%H"                        # 14
+    MINUTE = "%M"                      # 30
+
+    MONTH_DAY = "%b %d"                # March 21
+    DAY_MONTH_YEAR = "%d %b %Y"        # 21 Mar 2024
+
+    DATE_SELECTION = "%A, %b %d, %Y"   # Thursday, March 21, 2024
+
+    RECORDING = "%H_%M_%S"             # 14_30_45
+
+
+DATE = DateFormats()
+
+
 def get_storage_path(path):
         """Returns the storage path"""
         app_dir = os.environ.get("ANDROID_PRIVATE", "")

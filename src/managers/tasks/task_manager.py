@@ -145,26 +145,6 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error saving tasks to file: {e}")
             return False
-    
-    def _update_first_expired(self) -> None:
-        """
-        Updates test.json to mark the task as expired.
-        """
-        try:
-            with open(PATH.FIRST_TASK, "r") as f:
-                first_task_data = json.load(f)
-            
-            # Update the expired status for all tasks in the file
-            for date in first_task_data.values():
-                for task in date:
-                    task["expired"] = True
-            
-            with open(PATH.FIRST_TASK, "w") as f:
-                json.dump(first_task_data, f, indent=2)
-            
-            logger.info("Updated test.json task to expired state")
-        except Exception as e:
-            logger.error(f"Error updating test.json expired state: {e}")
 
     def _update_first_expiring_task(self) -> None:
         """
@@ -337,8 +317,8 @@ class TaskManager(EventDispatcher):
             timestamp=task.timestamp,
             alarm_name=task.alarm_name,
             vibrate=task.vibrate,
-            expired=task.expired,
-            keep_alarming=task.keep_alarming
+            keep_alarming=task.keep_alarming,
+            expired=task.expired
         )
         
         # Remove from memory

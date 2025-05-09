@@ -3,7 +3,6 @@ import enum
 
 from kivy.metrics import dp, sp
 
-
 # Android Permissions
 ANDROID_PERMISSIONS = [
     "android.permission.FOREGROUND_SERVICE",
@@ -184,7 +183,7 @@ class Extensions:
     WAV = ".wav"
 
 
-class DateFormats:
+class DateFormats:  # Linked with task_manager_utils.py
     """Date and time format patterns used throughout the application."""
     DATE_KEY = "%Y-%m-%d"              # 2024-03-21
     TIMESTAMP = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
