@@ -12,6 +12,7 @@ from service.utils import PATH, ACTION
 class ServiceTaskManager:
     def __init__(self):
         self.task_file: str = PATH.TASK_FILE
+        self.monitoring_tasks: set[str] = set()
         self.active_tasks: list[dict[str, Any]] = self._get_active_tasks()
         self.current_task: Task | None = self.get_current_task()
 
@@ -81,34 +82,25 @@ class ServiceTaskManager:
                     expired=True)
 
     def get_current_task(self) -> Task | None:
-        """Returns the earliest active Task from the active_tasks list, considering snooze times."""
+        """Returns the first task that isn't being monitored and isn't expired"""
         try:
             if not self.active_tasks:
                 return None
             
-            now = datetime.now()
-            earliest_task = None
-            earliest_time = datetime.max
-            
-            # Check all tasks to find the earliest future task
+            # Check all tasks to find the first one that isn't being monitored and isn't expired
             for active_task in self.active_tasks:
                 for task in active_task["tasks"]:
-                    # Calculate effective time including snooze
-                    effective_time = task.timestamp + timedelta(seconds=getattr(task, "snooze_time", 0))
-                    if effective_time > now and effective_time < earliest_time:
-                        earliest_time = effective_time
-                        earliest_task = task
-                        logger.debug(f"Found earlier task: {task.task_id} at {effective_time}")
+                    # Skip if task is already being monitored or is expired
+                    if task.task_id in self.monitoring_tasks or task.expired:
+                        continue
+                    logger.debug(f"Selected task {task.task_id}")
+                    return task
 
-            if earliest_task:
-                logger.debug(f"Selected task {earliest_task.task_id} with effective time {earliest_time}")
-            else:
-                logger.debug("No future tasks found")
-            
-            return earliest_task
+            logger.debug("No tasks found")
+            return None
 
         except Exception as e:
-            logger.error(f"BGTaskService: Error checking task file: {e}")
+            logger.error(f"Error checking task file: {e}")
             return None
     
     def refresh_current_task(self) -> None:
@@ -125,7 +117,7 @@ class ServiceTaskManager:
             return datetime.now() >= trigger_time
         
         except Exception as e:
-            logger.error(f"BGTaskService: Error parsing timestamp: {e}")
+            logger.error(f"Error parsing timestamp: {e}")
             return False
     
     def snooze_task(self, action: str) -> None:
@@ -134,16 +126,22 @@ class ServiceTaskManager:
             # Snooze for 1 minute
             self.current_task.snooze_time += 1 * 60
             self._snooze_task(ACTION.SNOOZE_A)
-            logger.debug(f"BGTaskService: Task snoozed for 1 minute. Total snooze: {self.current_task.snooze_time/60:.1f}m")
+            # Remove from monitoring since we're snoozing it
+            if self.current_task:
+                self.monitoring_tasks.discard(self.current_task.task_id)
+            logger.debug(f"Task snoozed for 1 minute. Total snooze: {self.current_task.snooze_time/60:.1f}m")
         
         elif action.endswith(ACTION.SNOOZE_B):
             # Snooze for 2 minutes
             self.current_task.snooze_time += 2 * 60
             self._snooze_task(ACTION.SNOOZE_B)
-            logger.debug(f"BGTaskService: Task snoozed for 2 minutes. Total snooze: {self.current_task.snooze_time/60:.1f}m")
+            # Remove from monitoring since we're snoozing it
+            if self.current_task:
+                self.monitoring_tasks.discard(self.current_task.task_id)
+            logger.debug(f"Task snoozed for 2 minutes. Total snooze: {self.current_task.snooze_time/60:.1f}m")
         
         else:
-            logger.error(f"BGTaskService: Invalid snooze action: {action}")
+            logger.error(f"Invalid snooze action: {action}")
     
     def _snooze_task(self, action: str) -> None:
         """Updates task's snooze time in memory and file, then refreshes tasks"""
@@ -180,8 +178,47 @@ class ServiceTaskManager:
         except Exception as e:
             logger.error(f"Error updating task snooze time: {e}")
     
+    def _save_task_changes(self, task_id: str, changes: dict) -> None:
+        """Saves task changes to file"""
+        try:
+            task_data = self._get_task_data()
+            for date_tasks in task_data.values():
+                for task in date_tasks:
+                    if task["task_id"] == task_id:
+                        task.update(changes)
+                        with open(self.task_file, "w") as f:
+                            json.dump(task_data, f, indent=2)
+                        logger.debug(f"Saved changes for task {task_id}: {changes}")
+                        return
+        except Exception as e:
+            logger.error(f"Error saving task changes: {e}")
+
     def cancel_task(self) -> None:
         """Cancels the current task."""
+        if self.current_task:
+            # Mark as expired and remove from monitoring
+            self.current_task.expired = True
+            self.monitoring_tasks.discard(self.current_task.task_id)
+            logger.debug(f"Task {self.current_task.task_id} cancelled and marked as expired")
+            
+            # Save changes to file
+            self._save_task_changes(self.current_task.task_id, {"expired": True})
+        
         self.active_tasks = self._get_active_tasks()
         self.current_task = self.get_current_task()
-        logger.debug("BGTaskService: Task cancelled")
+
+    def handle_expired_task(self) -> None:
+        """Adds the current task to monitoring and gets the next task"""
+        if self.current_task:
+            self.monitoring_tasks.add(self.current_task.task_id)
+            logger.debug(f"Added task {self.current_task.task_id} to monitoring")
+            
+            # Save changes to file
+            self._save_task_changes(self.current_task.task_id, {"expired": True})
+            
+            self.current_task = self.get_current_task()
+
+    def clear_monitoring(self) -> None:
+        """Clears the monitoring tasks set"""
+        self.monitoring_tasks.clear()
+        logger.debug("Cleared monitoring tasks")

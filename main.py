@@ -271,7 +271,7 @@ class TaskApp(App, EventDispatcher):
     def _init_permissions(self):
         # Request runtime permissions for Android
         if platform == "android":
-            from android.permissions import request_permissions, Permission
+            from android.permissions import request_permissions, Permission  # type: ignore
             permissions = [
                 Permission.WRITE_EXTERNAL_STORAGE,
                 Permission.READ_EXTERNAL_STORAGE,
@@ -288,35 +288,34 @@ class TaskApp(App, EventDispatcher):
     def on_pause(self):
         """
         App is paused by the OS (e.g., user switches to another app).
-        Start the background service and backup the database.
+        Start the background service if it's not already running.
         """
-        self.logger.debug("App is pausing - starting background service")
+        self.logger.debug("App is pausing - ensuring background service is running")
         self.background_service = self.start_background_service()
         return True
     
     def on_resume(self):
         """
         App is resumed from a paused state.
-        Stop the background service and check for any expired tasks.
+        Check for any expired tasks that might have occurred while paused.
         """
-        self.logger.debug("App is resuming - stopping background service")
-        create_stop_flag()
-        # Wait a moment to ensure service has time to stop
-        # time.sleep(1)
-        
+        self.logger.debug("App is resuming - checking for expired tasks")
         # Check for any expired tasks that might have occurred while paused
         if hasattr(self, "task_manager"):
+            start_time = time.time()
+            # First reload tasks from file to ensure we have latest data
+            self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
+            # Then update expired tasks
             self.task_manager.set_expired_tasksbydate()
+            # Finally rebuild the display with updated data
+            self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
+            self.logger.critical(f"Reloading tasks took: {time.time() - start_time:.4f}")
 
     def on_start(self):
         """
         App is being started.
-        Stop any existing background service.
         """
-        print("App is starting - stopping any existing background service")
-        create_stop_flag()
-        # Wait a moment to ensure service has time to stop
-        # time.sleep(1)
+        pass
 
     def start_background_service(self):
         """
@@ -324,7 +323,7 @@ class TaskApp(App, EventDispatcher):
         """
         if platform == PLATFORM.ANDROID:
             try:
-                from android import AndroidService
+                from android import AndroidService  # type: ignore
                 
                 service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
                 service.start("BGTask service started")
@@ -338,37 +337,13 @@ class TaskApp(App, EventDispatcher):
     def on_stop(self):
         """
         App is being stopped.
-        Start the background service to ensure it can restart the app later.
+        Ensure the background service is running.
         """
-        self.logger.debug("App is stopping - starting background service")
-
-        start_time = time.time()
+        self.logger.debug("App is stopping - ensuring background service is running")
         self.background_service = self.start_background_service()
-        self.logger.error(f"Started background service in {time.time() - start_time:.4f}")
-        # Wait a moment to ensure service starts
-        time.sleep(0.5)
+        time.sleep(0.5)  # Give service time to start
 
 
-def get_storage_path(path):
-    """Returns the app-specific storage path for the given path."""
-    app_dir = os.environ.get("ANDROID_PRIVATE", "")
-    return os.path.join(app_dir, path)
-
-def create_stop_flag():
-    """Create a flag file to signal the service to stop."""
-    if not PLATFORM.ANDROID:
-        return
-    
-    try:
-        SERVICE_FLAG_FILE = "app/src/assets/service_stop.flag"
-        stop_flag_path = get_storage_path(SERVICE_FLAG_FILE)
-        with open(stop_flag_path, "w") as f:
-            f.write("stop")
-        print("Created service stop flag")
-        print("Created service stop flag")
-    except Exception as e:
-        print(f"Error creating stop flag: {e}")
-        print(f"Error creating stop flag: {e}")
 
 
 if __name__ == "__main__":

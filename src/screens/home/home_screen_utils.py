@@ -138,7 +138,7 @@ class HomeScreenUtils:
 
     def _full_rebuild_task_display(self) -> None:
         """
-        Initial build of the task display when app is launched.
+        Initial build of the task display when app is launched / resumed.
         Creates all task widgets and caches them for future use.
         """
         start_time = time.time()

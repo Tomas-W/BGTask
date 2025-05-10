@@ -24,8 +24,6 @@ class DateFormats:
 
     RECORDING = "%H_%M_%S"             # 14_30_45
 
-    SERVICE_NOTIFICATION = "%A, %b %d, %Y\n%H:%M"   # Thursday, March 21, 2024\n14:30
-
 
 DATE = DateFormats()
 

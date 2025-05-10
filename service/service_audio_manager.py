@@ -25,11 +25,11 @@ class AudioPlayer:
             self.media_player.setDataSource(path)
             self.media_player.prepare()
             self.media_player.start()
-            logger.debug(f"AudioPlayer: Started playback: {path}")
+            logger.debug(f"Started playback: {path}")
             return True
             
         except Exception as e:
-            logger.error(f"AudioPlayer: Error playing audio: {e}")
+            logger.error(f"Error playing audio: {e}")
             return False
     
     def stop(self):
@@ -46,7 +46,7 @@ class AudioPlayer:
             return True
             
         except Exception as e:
-            logger.error(f"AudioPlayer: Error stopping playback: {e}")
+            logger.error(f"Error stopping playback: {e}")
             return False
     
     def is_playing(self):
@@ -55,5 +55,5 @@ class AudioPlayer:
             return self.media_player and self.media_player.isPlaying()
         
         except Exception as e:
-            logger.error(f"AudioPlayer: Error checking playback status: {e}")
+            logger.error(f"Error checking playback status: {e}")
             return False
