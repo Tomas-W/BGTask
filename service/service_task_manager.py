@@ -6,7 +6,7 @@ from typing import Any
 from src.managers.tasks.task_manager_utils import Task
 
 from service.service_logger import logger
-from service.utils import PATH, ACTION
+from service.service_utils import PATH, ACTION
 
 
 class ServiceTaskManager:
@@ -136,29 +136,51 @@ class ServiceTaskManager:
         return self.expired_task
 
     def snooze_task(self, action: str) -> None:
-        """Snoozes the expired task."""
-        if not self.expired_task:
-            logger.error("No expired task to snooze")
+        """Snoozes the expired task or current task if no expired task exists."""
+        task_to_snooze = self.expired_task or self.current_task
+        if not task_to_snooze:
+            logger.error("No task to snooze")
             return
             
         # Update snooze time but don't mark as expired
         snooze_seconds = 60 if action.endswith(ACTION.SNOOZE_A) else 120
-        self.expired_task.snooze_time += snooze_seconds
+        
+        # Calculate the new timestamp after snooze
+        new_timestamp = task_to_snooze.timestamp + timedelta(seconds=task_to_snooze.snooze_time + snooze_seconds)
+        
+        # Check for overlaps with other tasks
+        if self._has_time_overlap(new_timestamp):
+            logger.debug(f"Task {task_to_snooze.task_id} would overlap with another task, adding 10 seconds")
+            snooze_seconds += 10
+        
+        task_to_snooze.snooze_time += snooze_seconds
         
         # Save changes to file (only update snooze time)
-        self._save_task_changes(self.expired_task.task_id, {
-            "snooze_time": self.expired_task.snooze_time
+        self._save_task_changes(task_to_snooze.task_id, {
+            "snooze_time": task_to_snooze.snooze_time
         })
         
-        logger.debug(f"Task {self.expired_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes. Total snooze: {self.expired_task.snooze_time/60:.1f}m")
+        logger.debug(f"Task {task_to_snooze.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {task_to_snooze.snooze_time/60:.1f}m")
         
-        # Clear expired task
-        self.expired_task = None
+        # If we snoozed an expired task, clear it
+        if task_to_snooze == self.expired_task:
+            self.expired_task = None
         
         # Refresh tasks from file and get new current task
         # The snoozed task will become current if its new time is earlier
         self.active_tasks = self._get_active_tasks()
         self.current_task = self.get_current_task()
+    
+    def _has_time_overlap(self, timestamp: datetime) -> bool:
+        for task_group in self.active_tasks:
+            for task in task_group["tasks"]:
+                task_to_check = self.expired_task or self.current_task
+                if task.task_id != task_to_check.task_id and not task.expired:
+                    task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
+                    if abs((timestamp - task_effective_time).total_seconds()) < 1:  # If timestamps are within 1 second
+                        return True
+        
+        return False
 
     def cancel_task(self) -> None:
         """Cancels the expired task if it exists, otherwise cancels current task."""

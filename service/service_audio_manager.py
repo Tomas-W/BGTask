@@ -3,10 +3,11 @@ import threading
 import time
 
 from jnius import autoclass  # type: ignore
-from kivy.clock import Clock
+from typing import Any
 
+from src.managers.tasks.task_manager_utils import Task
 from service.service_logger import logger
-from service.utils import PATH
+from service.service_utils import PATH
 
 __all__ = ["ServiceAudioManager"]
 
@@ -16,25 +17,29 @@ PythonService = autoclass("org.kivy.android.PythonService")
 class ServiceAudioManager:
     """Manages playing audio and vibrations for the service"""
     def __init__(self):
-        self.media_player = None
-        self._java_classes = {}
-        self.vibrator = None
+        self.media_player: Any | None = None
+        self._java_classes: dict[str, Any] = {}
+        self.vibrator: Any | None = None
         self.service = PythonService.mService
 
-        self.task = None
-        self.alarms_dir = PATH.ALARMS_DIR
-        self.recordings_dir = PATH.RECORDINGS_DIR
+        self.task: Task | None = None
+        self.alarms_dir: str = PATH.ALARMS_DIR
+        self.recordings_dir: str = PATH.RECORDINGS_DIR
         
-        # Separate thread control for alarm and vibration
-        self._alarm_running = False
-        self._vibrate_running = False
-        self._alarm_thread = None
-        self._vibrate_thread = None
+        # Thread synchronization lock
+        self._lock = threading.Lock()
+        
+        # Thread control using Events
+        self._alarm_stop_event = threading.Event()
+        self._vibrate_stop_event = threading.Event()
+        self._alarm_thread: threading.Thread | None = None
+        self._vibrate_thread: threading.Thread | None = None
     
-    def _get_java_class(self, class_name):
+    def _get_java_class(self, class_name: str) -> Any:
         """Lazy load Java classes"""
-        if class_name not in self._java_classes:
-            self._java_classes[class_name] = autoclass(class_name)
+        with self._lock:
+            if class_name not in self._java_classes:
+                self._java_classes[class_name] = autoclass(class_name)
         
         return self._java_classes[class_name]
     
@@ -103,7 +108,7 @@ class ServiceAudioManager:
     def _alarm_loop(self):
         """Background thread for continuously playing an alarm"""
         logger.debug("Starting alarm loop")
-        while self._alarm_running and self.task and self.task.keep_alarming:
+        while not self._alarm_stop_event.is_set() and self.task and self.task.keep_alarming:
             try:
                 if not self.is_playing():
                     path = self.get_audio_path(self.task.alarm_name)
@@ -113,7 +118,10 @@ class ServiceAudioManager:
                     else:
                         logger.error("Could not find alarm path")
                         break
-                time.sleep(2)
+                # Wait for stop event with timeout
+                if self._alarm_stop_event.wait(2):  # Returns True if event is set
+                    break
+            
             except Exception as e:
                 logger.error(f"Error in alarm loop: {e}")
                 break
@@ -122,10 +130,13 @@ class ServiceAudioManager:
     def _vibrate_loop(self):
         """Background thread for continuously vibrating the device"""
         logger.debug("Starting vibrate loop")
-        while self._vibrate_running and self.task and self.task.vibrate and self.task.keep_alarming:
+        while not self._vibrate_stop_event.is_set() and self.task and self.task.vibrate and self.task.keep_alarming:
             try:
                 self.vibrate(1000)
-                time.sleep(2)
+                # Wait for stop event with timeout
+                if self._vibrate_stop_event.wait(2):  # Returns True if event is set
+                    break
+            
             except Exception as e:
                 logger.error(f"Error in vibrate loop: {e}")
                 break
@@ -137,59 +148,60 @@ class ServiceAudioManager:
         self.stop_playing_alarm()
         self.stop_vibrating()
 
-        self.task = task
-        play_alarm = task.alarm_name
-        audio_path = self.get_audio_path(task.alarm_name)
-        vibrate = task.vibrate
-        keep_alarming = task.keep_alarming
-        
-        # Start alarm if needed
-        if play_alarm and keep_alarming:
-            self._alarm_running = True
-            self._alarm_thread = threading.Thread(target=self._alarm_loop)
-            self._alarm_thread.daemon = True
-            self._alarm_thread.start()
-            logger.debug("Started alarm thread")
-        # One-time alarm
-        elif audio_path:
-            self.play(audio_path)
-            logger.debug("Started one-time alarm playback")
-        
-        # Start vibration if needed
-        if vibrate and keep_alarming:
-            self._vibrate_running = True
-            self._vibrate_thread = threading.Thread(target=self._vibrate_loop)
-            self._vibrate_thread.daemon = True
-            self._vibrate_thread.start()
-            logger.debug("Started vibrate thread")
-        # One-time vibration
-        elif vibrate:
-            self.vibrate(2000)
-            logger.debug("Triggered one-time vibration")
+        with self._lock:
+            # Clear any existing stop events
+            self._alarm_stop_event.clear()
+            self._vibrate_stop_event.clear()
+            
+            self.task = task
+            play_alarm = task.alarm_name
+            audio_path = self.get_audio_path(task.alarm_name)
+            vibrate = task.vibrate
+            keep_alarming = task.keep_alarming
+            
+            # Start alarm if needed
+            if play_alarm and keep_alarming:
+                self._alarm_thread = threading.Thread(target=self._alarm_loop)
+                self._alarm_thread.daemon = True
+                self._alarm_thread.start()
+                logger.debug("Started alarm thread")
+            # One-time alarm
+            elif audio_path:
+                self.play(audio_path)
+                logger.debug("Started one-time alarm playback")
+            
+            # Start vibration if needed
+            if vibrate and keep_alarming:
+                self._vibrate_thread = threading.Thread(target=self._vibrate_loop)
+                self._vibrate_thread.daemon = True
+                self._vibrate_thread.start()
+                logger.debug("Started vibrate thread")
+            # One-time vibration
+            elif vibrate:
+                self.vibrate(2000)
+                logger.debug("Triggered one-time vibration")
     
     def stop_playing_alarm(self, *args, **kwargs):
         """Stop the alarm playback and cleanup resources"""
         logger.debug("Stopping alarm playback")
-        self._alarm_running = False
+        with self._lock:
+            self._alarm_stop_event.set()
         
-        # Wait for alarm thread to finish
         if self._alarm_thread and self._alarm_thread.is_alive():
             self._alarm_thread.join(timeout=1)
         
-        # Stop audio playback
         self.stop()
         logger.debug("Alarm playback stopped")
     
     def stop_vibrating(self, *args, **kwargs):
         """Stop vibration and cleanup vibrator resources"""
         logger.debug("Stopping vibration")
-        self._vibrate_running = False
+        with self._lock:
+            self._vibrate_stop_event.set()
         
-        # Wait for vibrate thread to finish
         if self._vibrate_thread and self._vibrate_thread.is_alive():
             self._vibrate_thread.join(timeout=1)
         
-        # Stop vibration
         try:
             if self.vibrator:
                 self.vibrator.cancel()
@@ -205,20 +217,17 @@ class ServiceAudioManager:
         """Stop both alarm and vibration"""
         logger.debug("Stopping all audio and vibration")
         
-        # First stop the threads
-        self._alarm_running = False
-        self._vibrate_running = False
+        with self._lock:
+            # Signal both threads to stop
+            self._alarm_stop_event.set()
+            self._vibrate_stop_event.set()
         
-        # Wait for threads to finish with a timeout
         if self._alarm_thread and self._alarm_thread.is_alive():
             self._alarm_thread.join(timeout=1)
         if self._vibrate_thread and self._vibrate_thread.is_alive():
             self._vibrate_thread.join(timeout=1)
         
-        # Stop audio playback
         self.stop()
-        
-        # Stop vibration
         try:
             if self.vibrator:
                 self.vibrator.cancel()
@@ -226,11 +235,12 @@ class ServiceAudioManager:
         except Exception as e:
             logger.error(f"Error stopping vibration: {e}")
         
-        # Clear task reference
-        self.task = None
+        with self._lock:
+            self.task = None
         
-        # Verify everything is stopped
-        if self._alarm_running or self._vibrate_running:
+        # Check if threads are still alive
+        if (self._alarm_thread and self._alarm_thread.is_alive()) or \
+           (self._vibrate_thread and self._vibrate_thread.is_alive()):
             logger.error("Failed to stop all alarms/vibrations")
         
         logger.debug("Alarm and vibration stopped")
@@ -252,5 +262,3 @@ class ServiceAudioManager:
             
         logger.error(f"Audio file not found for name: {name}")
         return None
-            
-

@@ -6,7 +6,7 @@ from jnius import autoclass  # type: ignore
 from service.service_audio_manager import ServiceAudioManager
 from service.service_logger import logger
 from service.service_task_manager import ServiceTaskManager
-from service.utils import ACTION, get_service_timestamp
+from service.service_utils import ACTION, get_service_timestamp
 
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass('android.app.Service')
