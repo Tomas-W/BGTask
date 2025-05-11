@@ -1,4 +1,5 @@
 import time
+import threading
 
 from jnius import autoclass  # type: ignore
 
@@ -49,7 +50,7 @@ class ServiceManager:
             self.service_task_manager.snooze_task(action)
             self._need_foreground_update = True
             # Stop playing alarm
-            self.audio_manager.stop_playing_alarm()
+            self.audio_manager.stop_alarm_vibrating()
             # Stop the service and restart it to handle the snooze
             return Service.START_REDELIVER_INTENT
         
@@ -57,12 +58,12 @@ class ServiceManager:
             self.service_task_manager.cancel_task()
             logger.debug("Task cancelled")
             self._need_foreground_update = True
-            self.audio_manager.stop_playing_alarm()
+            self.audio_manager.stop_alarm_vibrating()
             # Keep service running with START_STICKY
             return Service.START_STICKY
         else:
             logger.error(f"Unknown action: {action}")
-            self.audio_manager.stop_playing_alarm()
+            self.audio_manager.stop_alarm_vibrating()
         
         return Service.START_STICKY
     
@@ -128,9 +129,16 @@ class ServiceManager:
                 if self.service_task_manager.is_task_expired():
                     logger.debug("Task expired, showing notification")
                     
-                    # If we already have an expired task, clear its notification
+                    # If we already have an expired task, properly stop it first
                     if self.service_task_manager.expired_task:
+                        logger.debug("Stopping previous expired task")
+                        # Stop all alarms and vibrations
+                        self.audio_manager.stop_alarm_vibrating()
+                        # Cancel notifications
                         self.notification_manager.cancel_all_notifications()
+                        # Mark the previous expired task as cancelled
+                        self.service_task_manager.cancel_task()
+                        # Clear the expired task reference
                         self.service_task_manager.clear_expired_task()
                     
                     # Handle expiration and get the expired task
@@ -153,6 +161,7 @@ class ServiceManager:
                 task = self.service_task_manager.current_task if self.service_task_manager.current_task else None
                 task_log = task.timestamp if task else "No task"
                 logger.debug(f"Service check for {task_log}")
+            
             time.sleep(0.5)
         
-        self.audio_manager.stop_playing_alarm()
+        self.audio_manager.stop_alarm_vibrating()
