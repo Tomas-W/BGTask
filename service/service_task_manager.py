@@ -93,10 +93,8 @@ class ServiceTaskManager:
                     # Skip if task is expired or is the current expired task
                     if task.expired or (self.expired_task and task.task_id == self.expired_task.task_id):
                         continue
-                    logger.debug(f"Selected task {task.task_id}")
                     return task
 
-            logger.debug("No tasks found")
             return None
 
         except Exception as e:
@@ -202,6 +200,8 @@ class ServiceTaskManager:
         # Refresh tasks and get new current task
         self.active_tasks = self._get_active_tasks()
         self.current_task = self.get_current_task()
+
+        logger.debug(f"Cancelled task")
 
     def clear_expired_task(self) -> None:
         """Clears the expired task without saving changes."""

@@ -88,12 +88,16 @@ class ServiceNotificationManager:
             flags
         )
     
-    def create_app_open_intent(self):
+    def create_app_open_intent(self, is_foreground=False):
         """Create a PendingIntent to open the app's main activity"""
         try:
             # Get the launch intent
             intent = self.context.getPackageManager().getLaunchIntentForPackage(self.package_name)
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            
+            # For task notification, add action to stop alarm
+            if not is_foreground:
+                intent.setAction(f"{self.package_name}.{ACTION.OPEN_APP}")
             
             # Set proper flags based on Android version
             flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -144,8 +148,8 @@ class ServiceNotificationManager:
             builder.setAutoCancel(False)  # Prevent auto-cancellation
             builder.setOnlyAlertOnce(True)  # Prevent re-alerting
             
-            # Add click action to open app
-            app_intent = self.create_app_open_intent()
+            # Add click action to open app (without canceling task)
+            app_intent = self.create_app_open_intent(is_foreground=True)
             if app_intent:
                 builder.setContentIntent(app_intent)
             

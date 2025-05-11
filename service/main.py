@@ -29,7 +29,8 @@ def create_broadcast_receiver(service_manager):
         # Register actions to receiver
         actions = [
             f"{package_name}.{ACTION.SNOOZE_A}",
-            f"{package_name}.{ACTION.CANCEL}"
+            f"{package_name}.{ACTION.CANCEL}",
+            f"{package_name}.{ACTION.OPEN_APP}"
         ]
         
         receiver = BroadcastReceiver(on_receive, actions=actions)
@@ -70,7 +71,7 @@ def main():
     try:
         # Initialize notification manager and show appropriate notification
         service_manager.init_notification_manager()
-        service_manager.update_foreground_notification()
+        service_manager.update_foreground_notification_info()
         
         # Start monitoring if we have tasks
         if service_manager.service_task_manager.current_task is not None:

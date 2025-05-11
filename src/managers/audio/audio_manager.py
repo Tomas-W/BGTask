@@ -60,6 +60,10 @@ class AudioManager(AudioManagerUtils):
         Trigger the alarm for the given task.
         Handles audio playback and vibration if enabled.
         """
+        if 1 == 1:
+            print("1 IS INDEED EQUAL TO 1")
+            return
+        
         task = kwargs.get("task")
         if not task:
             logger.error("No task provided to trigger_alarm")
