@@ -12,9 +12,9 @@ from service.utils import PATH, ACTION
 class ServiceTaskManager:
     def __init__(self):
         self.task_file: str = PATH.TASK_FILE
-        self.monitoring_tasks: set[str] = set()
+        self.expired_task: Task | None = None  # Initialize expired_task first
         self.active_tasks: list[dict[str, Any]] = self._get_active_tasks()
-        self.current_task: Task | None = self.get_current_task()
+        self.current_task: Task | None = self.get_current_task()  # Now expired_task exists when this is called
 
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         try:
@@ -82,16 +82,16 @@ class ServiceTaskManager:
                     expired=True)
 
     def get_current_task(self) -> Task | None:
-        """Returns the first task that isn't being monitored and isn't expired"""
+        """Returns the first task that isn't expired and isn't the current expired task"""
         try:
             if not self.active_tasks:
                 return None
             
-            # Check all tasks to find the first one that isn't being monitored and isn't expired
+            # Check all tasks to find the first one that isn't expired
             for active_task in self.active_tasks:
                 for task in active_task["tasks"]:
-                    # Skip if task is already being monitored or is expired
-                    if task.task_id in self.monitoring_tasks or task.expired:
+                    # Skip if task is expired or is the current expired task
+                    if task.expired or (self.expired_task and task.task_id == self.expired_task.task_id):
                         continue
                     logger.debug(f"Selected task {task.task_id}")
                     return task
@@ -120,64 +120,73 @@ class ServiceTaskManager:
             logger.error(f"Error parsing timestamp: {e}")
             return False
     
+    def handle_expired_task(self) -> Task | None:
+        """Handles task expiration by setting it as the expired task and getting the next current task.
+        Returns the expired task for notifications/alarms."""
+        if not self.current_task:
+            return None
+            
+        # Set as expired task (but don't mark as expired yet - wait for user action)
+        self.expired_task = self.current_task
+        logger.debug(f"Set task {self.expired_task.task_id} as expired task")
+        
+        # Get next current task
+        self.current_task = self.get_current_task()
+        
+        return self.expired_task
+
     def snooze_task(self, action: str) -> None:
-        """Snoozes the current task for 1 minute."""
-        if action.endswith(ACTION.SNOOZE_A):
-            # Snooze for 1 minute
-            self.current_task.snooze_time += 1 * 60
-            self._snooze_task(ACTION.SNOOZE_A)
-            # Remove from monitoring since we're snoozing it
-            if self.current_task:
-                self.monitoring_tasks.discard(self.current_task.task_id)
-            logger.debug(f"Task snoozed for 1 minute. Total snooze: {self.current_task.snooze_time/60:.1f}m")
+        """Snoozes the expired task."""
+        if not self.expired_task:
+            logger.error("No expired task to snooze")
+            return
+            
+        # Update snooze time but don't mark as expired
+        snooze_seconds = 60 if action.endswith(ACTION.SNOOZE_A) else 120
+        self.expired_task.snooze_time += snooze_seconds
         
-        elif action.endswith(ACTION.SNOOZE_B):
-            # Snooze for 2 minutes
-            self.current_task.snooze_time += 2 * 60
-            self._snooze_task(ACTION.SNOOZE_B)
-            # Remove from monitoring since we're snoozing it
-            if self.current_task:
-                self.monitoring_tasks.discard(self.current_task.task_id)
-            logger.debug(f"Task snoozed for 2 minutes. Total snooze: {self.current_task.snooze_time/60:.1f}m")
+        # Save changes to file (only update snooze time)
+        self._save_task_changes(self.expired_task.task_id, {
+            "snooze_time": self.expired_task.snooze_time
+        })
         
-        else:
-            logger.error(f"Invalid snooze action: {action}")
-    
-    def _snooze_task(self, action: str) -> None:
-        """Updates task's snooze time in memory and file, then refreshes tasks"""
-        try:
-            if not self.current_task:
-                return
+        logger.debug(f"Task {self.expired_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes. Total snooze: {self.expired_task.snooze_time/60:.1f}m")
+        
+        # Clear expired task
+        self.expired_task = None
+        
+        # Refresh tasks from file and get new current task
+        # The snoozed task will become current if its new time is earlier
+        self.active_tasks = self._get_active_tasks()
+        self.current_task = self.get_current_task()
+
+    def cancel_task(self) -> None:
+        """Cancels the expired task if it exists, otherwise cancels current task."""
+        task_to_cancel = self.expired_task or self.current_task
+        if not task_to_cancel:
+            return
             
-            # Get current task data from file to ensure we have latest
-            task_data = self._get_task_data()
-            
-            # Find and update the task in the data
-            for date_tasks in task_data.values():
-                for task in date_tasks:
-                    if task["task_id"] == self.current_task.task_id:
-                        # Initialize snooze_time if it doesn't exist
-                        if "snooze_time" not in task:
-                            task["snooze_time"] = 0
-                        
-                        # Add snooze time based on action
-                        snooze_seconds = 60 if action == ACTION.SNOOZE_A else 120
-                        task["snooze_time"] += snooze_seconds
-                        
-                        # Save updated data back to file
-                        with open(self.task_file, "w") as f:
-                            json.dump(task_data, f, indent=2)
-                        
-                        logger.debug(f"Updated task {task['task_id']} snooze_time to {task['snooze_time']} seconds")
-                        break
-            
-            # Refresh tasks from file
-            self.active_tasks = self._get_active_tasks()
-            self.current_task = self.get_current_task()
-            
-        except Exception as e:
-            logger.error(f"Error updating task snooze time: {e}")
-    
+        # Mark as expired after user action
+        task_to_cancel.expired = True
+        logger.debug(f"Task {task_to_cancel.task_id} cancelled and marked as expired")
+        
+        # Save changes to file
+        self._save_task_changes(task_to_cancel.task_id, {"expired": True})
+        
+        # Clear expired task if it was cancelled
+        if task_to_cancel == self.expired_task:
+            self.expired_task = None
+        
+        # Refresh tasks and get new current task
+        self.active_tasks = self._get_active_tasks()
+        self.current_task = self.get_current_task()
+
+    def clear_expired_task(self) -> None:
+        """Clears the expired task without saving changes."""
+        if self.expired_task:
+            logger.debug(f"Clearing expired task {self.expired_task.task_id}")
+            self.expired_task = None
+
     def _save_task_changes(self, task_id: str, changes: dict) -> None:
         """Saves task changes to file"""
         try:
@@ -192,33 +201,3 @@ class ServiceTaskManager:
                         return
         except Exception as e:
             logger.error(f"Error saving task changes: {e}")
-
-    def cancel_task(self) -> None:
-        """Cancels the current task."""
-        if self.current_task:
-            # Mark as expired and remove from monitoring
-            self.current_task.expired = True
-            self.monitoring_tasks.discard(self.current_task.task_id)
-            logger.debug(f"Task {self.current_task.task_id} cancelled and marked as expired")
-            
-            # Save changes to file
-            self._save_task_changes(self.current_task.task_id, {"expired": True})
-        
-        self.active_tasks = self._get_active_tasks()
-        self.current_task = self.get_current_task()
-
-    def handle_expired_task(self) -> None:
-        """Adds the current task to monitoring and gets the next task"""
-        if self.current_task:
-            self.monitoring_tasks.add(self.current_task.task_id)
-            logger.debug(f"Added task {self.current_task.task_id} to monitoring")
-            
-            # Save changes to file
-            self._save_task_changes(self.current_task.task_id, {"expired": True})
-            
-            self.current_task = self.get_current_task()
-
-    def clear_monitoring(self) -> None:
-        """Clears the monitoring tasks set"""
-        self.monitoring_tasks.clear()
-        logger.debug("Cleared monitoring tasks")

@@ -1,13 +1,33 @@
+import os
+import threading
+import time
+
 from jnius import autoclass  # type: ignore
+from kivy.clock import Clock
 
 from service.service_logger import logger
+from service.utils import PATH
 
+__all__ = ["ServiceAudioManager"]
 
-class AudioPlayer:
+PythonService = autoclass("org.kivy.android.PythonService")
+
+class ServiceAudioManager:
     """Simple audio player for Android using MediaPlayer"""
     def __init__(self):
         self.media_player = None
         self._java_classes = {}
+        self.vibrator = None
+        self.service = PythonService.mService
+
+        self.task = None
+        self.alarms_dir = PATH.ALARMS_DIR
+        self.recordings_dir = PATH.RECORDINGS_DIR
+        
+        # Thread control
+        self._running = False
+        self._alarm_thread = None
+        self._vibrate_thread = None
     
     def _get_java_class(self, class_name):
         """Lazy load Java classes"""
@@ -58,3 +78,121 @@ class AudioPlayer:
         except Exception as e:
             logger.error(f"Error checking playback status: {e}")
             return False
+
+    def vibrate(self, duration=1000, repeat=False):
+        """Vibrate the device using Android's Vibrator service.
+        
+        Args:
+            duration: Vibration duration in milliseconds
+            repeat: Whether to keep vibrating every 2 seconds
+        """
+        try:
+            if not self.vibrator:
+                # Get the Android Context from the service
+                Context = self._get_java_class("android.content.Context")
+                # Use service context instead of activity
+                self.vibrator = self.service.getSystemService(Context.VIBRATOR_SERVICE)
+            
+            if self.vibrator and self.task:
+                self.task.vibrate = repeat
+                # Vibrate for specified duration
+                self.vibrator.vibrate(duration)
+                if self.task.vibrate:
+                    Clock.schedule_once(lambda dt: self.vibrate(duration, repeat), 2)
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error vibrating device: {e}")
+            return False
+    
+    def _alarm_loop(self):
+        """Background thread for continuous alarm checks"""
+        logger.debug("Starting alarm loop")
+        while self._running and self.task and self.task.keep_alarming:
+            try:
+                if not self.is_playing():
+                    path = self.get_audio_path(self.task.alarm_name)
+                    if path:
+                        self.play(path)
+                        logger.debug("Started alarm playback")
+                    else:
+                        logger.error("Could not find alarm path")
+                        break
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error in alarm loop: {e}")
+                break
+        logger.debug("Alarm loop ended")
+    
+    def _vibrate_loop(self):
+        """Background thread for continuous vibration checks"""
+        logger.debug("Starting vibrate loop")
+        while self._running and self.task and self.task.vibrate:
+            try:
+                self.vibrate()
+                logger.debug("Triggered vibration")
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error in vibrate loop: {e}")
+                break
+        logger.debug("Vibrate loop ended")
+    
+    def trigger_alarm(self, task, *args, **kwargs):
+        """Trigger the alarm for the current task"""
+        logger.debug("Triggering alarm for task")
+        # Stop any existing loops
+        self.stop_playing_alarm()
+        
+        self.task = task
+        self._running = True
+        
+        # Start alarm loop
+        if task.keep_alarming:
+            self._alarm_thread = threading.Thread(target=self._alarm_loop)
+            self._alarm_thread.daemon = True
+            self._alarm_thread.start()
+            logger.debug("Started alarm thread")
+        
+        # Start vibrate loop
+        if task.vibrate:
+            self._vibrate_thread = threading.Thread(target=self._vibrate_loop)
+            self._vibrate_thread.daemon = True
+            self._vibrate_thread.start()
+            logger.debug("Started vibrate thread")
+    
+    def stop_playing_alarm(self, *args, **kwargs):
+        """Cancel the alarm for the current task"""
+        logger.debug("Cancelling alarm")
+        self._running = False
+        
+        # Wait for threads to finish
+        if self._alarm_thread and self._alarm_thread.is_alive():
+            self._alarm_thread.join(timeout=1)
+        if self._vibrate_thread and self._vibrate_thread.is_alive():
+            self._vibrate_thread.join(timeout=1)
+        
+        self.stop()
+        self.task = None
+        logger.debug("Alarm cancelled")
+    
+    def get_audio_path(self, name: str) -> str | None:
+        """
+        Searches for the file in the alarms and recordings directories.
+        Returns the path if found, otherwise returns None.
+        """
+        # Check default alarms
+        alarm_path = os.path.join(self.alarms_dir, f"{name}.wav")
+        if os.path.exists(alarm_path):
+            return alarm_path
+        
+        # Check user recordings
+        recording_path = os.path.join(self.recordings_dir, f"{name}.wav")
+        if os.path.exists(recording_path):
+            return recording_path
+            
+        logger.error(f"Audio file not found for name: {name}")
+        return None
+            
+

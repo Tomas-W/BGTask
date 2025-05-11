@@ -58,12 +58,13 @@ class Paths:
     """Constants for paths"""
     TASK_FILE = get_storage_path("app/src/assets/task_file.json")
 
-    SERVICE_FLAG = get_storage_path("app/service/service_stop.flag")
     SNOOZE_A_FLAG = get_storage_path("app/service/snooze_a.flag")
     SNOOZE_B_FLAG = get_storage_path("app/service/snooze_b.flag")
     STOP_FLAG = get_storage_path("app/service/stop.flag")
 
     AUDIO_TASK_EXPIRED = get_storage_path("app/src/assets/alarms/rooster.wav")
+    ALARMS_DIR = get_storage_path("app/src/assets/alarms")
+    RECORDINGS_DIR = get_storage_path("app/src/assets/recordings")
 
 
 class NotificationChannels:

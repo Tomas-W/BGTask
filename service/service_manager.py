@@ -2,6 +2,7 @@ import time
 
 from jnius import autoclass  # type: ignore
 
+from service.service_audio_manager import ServiceAudioManager
 from service.service_logger import logger
 from service.service_task_manager import ServiceTaskManager
 from service.utils import ACTION, get_service_timestamp
@@ -20,6 +21,8 @@ class ServiceManager:
     def __init__(self):
         self.notification_manager = None  # Initialized in service loop
         self.service_task_manager = ServiceTaskManager()
+        self.audio_manager = ServiceAudioManager()
+
         self._running = True
         self._need_foreground_update = True
     
@@ -34,7 +37,7 @@ class ServiceManager:
         Handles notification button actions from foreground or Task notifications.
         Always returns START_STICKY to ensure the service keeps running.
         """
-        if not self.service_task_manager.current_task:
+        if not self.service_task_manager.current_task and not self.service_task_manager.expired_task:
             logger.debug("No current task to handle action for")
             return Service.START_STICKY
 
@@ -45,6 +48,8 @@ class ServiceManager:
         if action.endswith(ACTION.SNOOZE_A):
             self.service_task_manager.snooze_task(action)
             self._need_foreground_update = True
+            # Stop playing alarm
+            self.audio_manager.stop_playing_alarm()
             # Stop the service and restart it to handle the snooze
             return Service.START_REDELIVER_INTENT
         
@@ -52,10 +57,12 @@ class ServiceManager:
             self.service_task_manager.cancel_task()
             logger.debug("Task cancelled")
             self._need_foreground_update = True
+            self.audio_manager.stop_playing_alarm()
             # Keep service running with START_STICKY
             return Service.START_STICKY
         else:
             logger.error(f"Unknown action: {action}")
+            self.audio_manager.stop_playing_alarm()
         
         return Service.START_STICKY
     
@@ -111,7 +118,6 @@ class ServiceManager:
             
             # Ensure foreground notification is active
             self.force_foreground_notification()
-            
 
             # Update foreground notification if needed
             if self._need_foreground_update:
@@ -121,12 +127,24 @@ class ServiceManager:
             if self.service_task_manager.current_task is not None:
                 if self.service_task_manager.is_task_expired():
                     logger.debug("Task expired, showing notification")
-                    self.notification_manager.show_task_notification(
-                        "Task Expired",
-                        self.service_task_manager.current_task.message
-                    )
-                    # Add to monitoring and get next task
-                    self.service_task_manager.handle_expired_task()
+                    
+                    # If we already have an expired task, clear its notification
+                    if self.service_task_manager.expired_task:
+                        self.notification_manager.cancel_all_notifications()
+                        self.service_task_manager.clear_expired_task()
+                    
+                    # Handle expiration and get the expired task
+                    expired_task = self.service_task_manager.handle_expired_task()
+                    if expired_task:
+                        # Show notification for the expired task
+                        self.notification_manager.show_task_notification(
+                            "Task Expired",
+                            expired_task.message
+                        )
+                        
+                        # Trigger alarm with the expired task
+                        self.audio_manager.trigger_alarm(expired_task)
+                    
                     # Update foreground notification
                     self._need_foreground_update = True
             
@@ -136,3 +154,5 @@ class ServiceManager:
                 task_log = task.timestamp if task else "No task"
                 logger.debug(f"Service check for {task_log}")
             time.sleep(0.5)
+        
+        self.audio_manager.stop_playing_alarm()

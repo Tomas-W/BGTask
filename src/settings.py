@@ -47,7 +47,6 @@ class Paths(Directories):
     DELETE_INACTIVE_IMG = os.path.join(Directories.IMG, "delete_inactive_64.png")
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
-    SERVICE_FLAG = "app/src/assets/service_stop.flag"
     SERVICE_TASK_FILE = "app/src/assets/task_file.json"
 
     SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")

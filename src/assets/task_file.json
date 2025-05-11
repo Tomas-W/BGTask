@@ -32,5 +32,27 @@
       "expired": false,
       "snooze_time": 0
     }
+  ],
+  "2025-05-11": [
+    {
+      "task_id": "c6fef242-6cfc-4d5e-86bd-6b8b70fa25d3",
+      "timestamp": "2025-05-11T13:05:00",
+      "message": "sdfsdf",
+      "alarm_name": "scanner",
+      "vibrate": false,
+      "keep_alarming": false,
+      "expired": true,
+      "snooze_time": 0
+    },
+    {
+      "task_id": "95522f53-1724-45ae-9a22-a4b06a09887e",
+      "timestamp": "2025-05-11T13:23:00",
+      "message": "111111111",
+      "alarm_name": "scanner",
+      "vibrate": true,
+      "keep_alarming": true,
+      "expired": true,
+      "snooze_time": 0
+    }
   ]
 }
