@@ -3,13 +3,13 @@ from jnius import autoclass                      # type: ignore
 
 from service.service_manager import ServiceManager
 from service.service_logger import logger
-from service.utils import ACTION, get_service_timestamp
+from service.utils import ACTION
 
 PythonService = autoclass("org.kivy.android.PythonService")
 
 
 def create_broadcast_receiver(service_manager):
-    """Creates and starts a broadcast receiver for handling notification actions"""
+    """Creates a broadcast receiver for handling notification actions"""
     try:
         context = PythonService.mService.getApplicationContext()
         package_name = context.getPackageName()
@@ -22,19 +22,18 @@ def create_broadcast_receiver(service_manager):
                     pure_action = action.split(".")[-1]
                     logger.debug(f"Received broadcast action: {pure_action}")
                     service_manager.handle_action(pure_action)
+            
             except Exception as e:
                 logger.error(f"Error in broadcast receiver: {e}")
         
-        # Register actions the receiver should listen for
+        # Register actions to receiver
         actions = [
             f"{package_name}.{ACTION.SNOOZE_A}",
-            f"{package_name}.{ACTION.STOP}"
+            f"{package_name}.{ACTION.CANCEL}"
         ]
         
         receiver = BroadcastReceiver(on_receive, actions=actions)
-        receiver.start()
-        logger.debug("Registered action broadcast receiver")
-        
+        logger.debug("Created BroadcastReceiver")
         return receiver
         
     except Exception as e:
@@ -42,11 +41,19 @@ def create_broadcast_receiver(service_manager):
         return None
 
 
+def start_broadcast_receiver(receiver: BroadcastReceiver):
+    """Starts the broadcast receiver"""
+    try:
+        receiver.start()
+        logger.debug("Started BroadcastReceiver")
+    
+    except Exception as e:
+        logger.error(f"Error starting broadcast receiver: {e}")
+
+
 def start_monitoring_service(service_manager):
     """Initializes and starts the monitoring service with active Task"""
     service_manager.init_notification_manager()
-    
-    logger.debug("Starting main service loop")
     service_manager.run_service()
 
 
@@ -56,9 +63,9 @@ def main():
     
     # Initialize ServiceManager
     service_manager = ServiceManager()
-    
     # Set up broadcast receiver
     receiver = create_broadcast_receiver(service_manager)
+    start_broadcast_receiver(receiver)
     
     try:
         # Initialize notification manager and show appropriate notification
@@ -70,7 +77,6 @@ def main():
             start_monitoring_service(service_manager)
             
     finally:
-        # Stop receiver
         if receiver:
             receiver.stop()
         logger.debug("Service stopping")
@@ -78,4 +84,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    logger.debug("Service stopped")
+    logger.error("Service stopped")

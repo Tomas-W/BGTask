@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from jnius import autoclass  # type: ignore
 
-
 NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
 AndroidNotificationManager = autoclass("android.app.NotificationManager")
 
@@ -89,15 +88,14 @@ class NotificationActions:
     OPEN_APP = "open_app"
     SNOOZE_A = "snooze_a"
     SNOOZE_B = "snooze_b"
-    STOP = "stop"
-
+    CANCEL = "stop"
 
 class PendingIntents:
     """Constants for pending intents"""
     OPEN_APP = 11
     SNOOZE_A = 12
     SNOOZE_B = 13
-    STOP = 14
+    CANCEL = 14
 
 
 PATH = Paths()

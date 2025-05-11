@@ -9,12 +9,22 @@ AndroidString = autoclass("java.lang.String")
 BuildVersion = autoclass('android.os.Build$VERSION')
 Context = autoclass("android.content.Context")
 Intent = autoclass("android.content.Intent")
-NotificationBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")  # Changed to androidx
+NotificationBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")
 NotificationChannel = autoclass("android.app.NotificationChannel")
 PendingIntent = autoclass("android.app.PendingIntent")
 
 
 class ServiceNotificationManager:
+    """Manages all Android notifications for the background service.
+    - Foreground notification: Keeps the service alive and shows current Task status
+    - Task notifications: High-priority alerts for expired Tasks
+    
+    It:
+    - Creates and manages notification channels
+    - Handles notification creation and updates
+    - Manages notification actions (snooze, cancel)
+    - Tracks active notifications for proper cleanup
+    """
     def __init__(self, service):
         self.service = service
         self.context = service.getApplicationContext()
@@ -66,7 +76,7 @@ class ServiceNotificationManager:
         intent.setAction(f"{self.package_name}.{action}")
         intent.setPackage(self.package_name)
         
-        # Set proper flags based on Android version
+        # Set flags based on Android version
         flags = PendingIntent.FLAG_UPDATE_CURRENT
         if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
             flags |= PendingIntent.FLAG_IMMUTABLE
@@ -81,7 +91,7 @@ class ServiceNotificationManager:
     def create_app_open_intent(self):
         """Create a PendingIntent to open the app's main activity"""
         try:
-            # Get the launch intent for our package
+            # Get the launch intent
             intent = self.context.getPackageManager().getLaunchIntentForPackage(self.package_name)
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
             
@@ -124,13 +134,15 @@ class ServiceNotificationManager:
                 logger.error("No valid icon found, cannot show notification")
                 return
             
-            # Create notification builder with proper channel
+            # Create notification builder
             builder = NotificationBuilder(self.context, CHANNEL.FOREGROUND)
             builder.setContentTitle(AndroidString(title))
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
             builder.setPriority(PRIORITY.LOW)
-            builder.setOngoing(True)
+            builder.setOngoing(True)  # Make it persistent
+            builder.setAutoCancel(False)  # Prevent auto-cancellation
+            builder.setOnlyAlertOnce(True)  # Prevent re-alerting
             
             # Add click action to open app
             app_intent = self.create_app_open_intent()
@@ -148,7 +160,7 @@ class ServiceNotificationManager:
                     )
                 
                 # Add Cancel button
-                cancel_intent = self.create_action_intent(ACTION.STOP)
+                cancel_intent = self.create_action_intent(ACTION.CANCEL)
                 if cancel_intent:
                     builder.addAction(
                         0,  # No icon for buttons
@@ -172,13 +184,18 @@ class ServiceNotificationManager:
                 logger.error("No valid icon found, cannot show notification")
                 return
             
-            # Create notification builder with proper channel
+            # Create notification builder
             builder = NotificationBuilder(self.context, CHANNEL.TASKS)
             builder.setContentTitle(AndroidString(title))
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
             builder.setPriority(PRIORITY.HIGH)
-            builder.setAutoCancel(True)  # Auto-cancel when clicked
+            builder.setAutoCancel(True)  # Allow swiping away
+            
+            # Add delete intent to cancel task when notification is swiped
+            delete_intent = self.create_action_intent(ACTION.CANCEL)
+            if delete_intent:
+                builder.setDeleteIntent(delete_intent)
             
             # Add click action to open app
             app_intent = self.create_app_open_intent()
@@ -189,38 +206,34 @@ class ServiceNotificationManager:
             snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
             if snooze_intent:
                 builder.addAction(
-                    0,
+                    0,  # No icon for buttons
                     AndroidString("Snooze 1m"),
                     snooze_intent
                 )
             
             # Add Cancel button
-            cancel_intent = self.create_action_intent(ACTION.STOP)
+            cancel_intent = self.create_action_intent(ACTION.CANCEL)
             if cancel_intent:
                 builder.addAction(
-                    0,
+                    0,  # No icon for buttons
                     AndroidString("Cancel"),
                     cancel_intent
                 )
             
-            # Show the notification with a unique ID
+            # Show notification with a unique ID
             self.current_notification_id = int(time.time())
             self.notification_manager.notify(self.current_notification_id, builder.build())
             # Add to active notifications set
             self.active_notification_ids.add(self.current_notification_id)
             logger.debug(f"Showed task notification with ID: {self.current_notification_id}")
-
-            # from service.utils import AudioPlayer, PATH
-            # audio_player = AudioPlayer()
-            # audio_player.play(PATH.AUDIO_TASK_EXPIRED)
-            
+        
         except Exception as e:
             logger.error(f"Error showing task notification: {e}")
     
     def cancel_all_notifications(self):
         """Cancel all active notifications"""
         try:
-            # Cancel each active notification
+            # Cancel all active notifications
             for notification_id in self.active_notification_ids:
                 try:
                     self.notification_manager.cancel(notification_id)
@@ -230,11 +243,12 @@ class ServiceNotificationManager:
             # Clear the active notifications set
             self.active_notification_ids.clear()
             self.current_notification_id = None
+        
         except Exception as e:
             logger.error(f"Error cancelling all notifications: {e}")
     
     def cancel_current_notification(self):
-        """Cancel the current task notification if it exists"""
+        """Cancel the current Task notification if it exists"""
         if self.current_notification_id is not None:
             try:
                 self.notification_manager.cancel(self.current_notification_id)
@@ -251,3 +265,18 @@ class ServiceNotificationManager:
         
         except Exception as e:
             logger.error(f"Error removing notification: {e}")
+    
+    def _has_foreground_notification(self) -> bool:
+        """Check if the foreground notification is active"""
+        try:
+            return len(self.notification_manager.getActiveNotifications()) > 0
+        
+        except Exception as e:
+            logger.error(f"Error checking foreground status: {e}")
+            return False
+    
+    def ensure_foreground_notification(self, title, message, with_buttons=True) -> None:
+        """Ensure the foreground notification is active, show it if it's not"""
+        if not self._has_foreground_notification():
+            logger.debug("Foreground notification not active, restoring it")
+            self.show_foreground_notification(title, message, with_buttons)

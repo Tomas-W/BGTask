@@ -13,12 +13,13 @@ class AudioPlayer:
         """Lazy load Java classes"""
         if class_name not in self._java_classes:
             self._java_classes[class_name] = autoclass(class_name)
+        
         return self._java_classes[class_name]
     
     def play(self, path):
         """Play an audio file"""
         try:
-            self.stop()  # Stop any existing playback
+            self.stop()
             
             MediaPlayer = self._get_java_class("android.media.MediaPlayer")
             self.media_player = MediaPlayer()
