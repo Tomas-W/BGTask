@@ -1,28 +1,18 @@
 import time
+starting_time = time.time()
 
-def start_background_service():
-    """
-    Start background service.
-    """
-    from kivy.utils import platform
-    from src.settings import PLATFORM
-    if platform == PLATFORM.ANDROID:
-        try:
-            from android import AndroidService  # type: ignore
-            
-            service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
-            service.start("BGTask service started")
-            print("Started background service")
-        
-        except Exception as e:
-            print(f"Error starting background service: {e}")
-    
-    return None
+start_service_time = time.time()
+print("STARTING SERVICE")
+from src.utils.background_service import start_background_service
+import_time = time.time() - start_service_time
 
+start_service_time = time.time()
 start_background_service()
+service_time = time.time() - start_service_time
+print("FINISHED SERVICE")
 
 start_kivy_time = time.time()
-
+print("STARTING KIVY")
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
@@ -31,17 +21,14 @@ from kivy.core.window import Window
 from kivy.utils import platform
 
 from src.settings import SCREEN, PLATFORM, LOADED
+kivy_time = time.time() - start_kivy_time
+print(f"FINISHED KIVY")
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
     Window.dpi = 100
     Window.left = -386
     Window.top = 316
-
-total_kivy_time = time.time() - start_kivy_time
-print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
-print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
-
 
 
 # TODO: self.keep_alarming as Task attribute (select on select alarm screen)
@@ -115,6 +102,7 @@ print(f"LOADING KIVY TOOK: {total_kivy_time:.4f}")
 # TODO: Button feedback
 # TODO: Look at caching
 
+start_app_time = time.time()
 
 class TaskApp(App, EventDispatcher):
     """
@@ -124,8 +112,13 @@ class TaskApp(App, EventDispatcher):
         super().__init__(**kwargs)
         self.register_event_type("on_start_screen_finished_load_app")
         
-        # For handling popups in the app context
         self.active_popup = None
+        
+        self.starting_time = starting_time
+        self.import_time = import_time
+        self.service_time = service_time
+        self.kivy_time = kivy_time
+        self.start_app_time = start_app_time
     
     def build(self):
         """
@@ -134,8 +127,6 @@ class TaskApp(App, EventDispatcher):
         As soon as the start screen is shown, the rest of the app is loaded in the background.
         """
         self.title = "Task Manager"
-        self.start_kivy_time = start_kivy_time
-        self.total_kivy_time = total_kivy_time
 
         from kivy.uix.screenmanager import ScreenManager, SlideTransition
         self.screen_manager = ScreenManager(transition=SlideTransition())
@@ -328,7 +319,7 @@ class TaskApp(App, EventDispatcher):
             self.task_manager.set_expired_tasksbydate()
             # Finally rebuild the display with updated data
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
-            self.logger.critical(f"Reloading tasks took: {time.time() - start_time:.4f}")
+            self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
 
     def on_start(self):
         """
@@ -343,9 +334,7 @@ class TaskApp(App, EventDispatcher):
         """
         self.logger.debug("App is stopping - ensuring background service is running")
         start_background_service()
-        time.sleep(0.5)  # Give service time to start
-
-
+        time.sleep(0.2)
 
 
 if __name__ == "__main__":

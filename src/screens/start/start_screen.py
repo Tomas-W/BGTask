@@ -251,16 +251,24 @@ class StartScreen(Screen):
             import time
             self.on_enter_time = time.time()        
             self.start_screen_finished = True
-            finish_time = time.time()
-            from kivy.app import App
-            app = App.get_running_app()
-            total_time = finish_time - app.start_kivy_time
-            logger.warning(f"TOTAL TIME TO FIRST FRAME: {total_time:.4f}")
-            logger.warning(f"APP TIME TO FIRST FRAME: {total_time - app.total_kivy_time:.4f}")
+            
             if DM.is_android:
                 from android import loadingscreen  # type: ignore
                 # When you want to hide the splash screen:
                 loadingscreen.hide_loading_screen()
+            
+            finish_time = time.time()
+            from kivy.app import App
+            app = App.get_running_app()
+            import_service_time = app.import_time
+            service_time = app.service_time
+            kivy_time = app.kivy_time
+            total_time = finish_time - app.starting_time
+            logger.warning(f"IMPORT SERVICE TIME: {import_service_time:.4f}")
+            logger.warning(f"RUN SERVICE TIME: {service_time:.4f}")
+            logger.warning(f"KIVY TIME: {kivy_time:.4f}")
+            logger.warning(f"APP FIRST FRAME TIME: {finish_time - app.start_app_time:.4f}")
+            logger.warning(f"TOTAL FIRST FRAME TIME: {total_time:.4f}")\
     
     def navigate_to_home_screen(self, slide_direction: str):
         if not LOADED.HOME:
