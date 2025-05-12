@@ -1,6 +1,7 @@
 import time
 
 from jnius import autoclass  # type: ignore
+from typing import Any
 
 from service.service_logger import logger
 from service.service_utils import ACTION, CHANNEL, IMPORTANCE, PRIORITY
@@ -25,20 +26,19 @@ class ServiceNotificationManager:
     - Manages notification actions (snooze, cancel)
     - Tracks active notifications for proper cleanup
     """
-    def __init__(self, service):
-        self.service = service
-        self.context = service.getApplicationContext()
-        self.notification_manager = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
+    def __init__(self, service: Any):
+        self.service: Any = service
+        self.context: Any = service.getApplicationContext()
+        self.notification_manager: Any = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        self.package_name = self.context.getPackageName()
+        self.package_name: str = self.context.getPackageName()
+        self.active_notification_ids: set[int] = set()
+        self.current_notification_id: int | None = None
+        
         self._init_foreground_channel()
         self._init_tasks_channel()
-        
-        # Track notification IDs
-        self.active_notification_ids = set()
-        self.current_notification_id = None
     
-    def _init_foreground_channel(self):
+    def _init_foreground_channel(self) -> None:
         """Initialize the foreground channel"""
         try:
             foreground_channel = NotificationChannel(
@@ -53,7 +53,7 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error creating foreground channel: {e}")
     
-    def _init_tasks_channel(self):
+    def _init_tasks_channel(self) -> None:
         """Initialize the tasks channel"""
         try:
             tasks_channel = NotificationChannel(
@@ -70,7 +70,7 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error creating tasks channel: {e}")
     
-    def create_action_intent(self, action):
+    def create_action_intent(self, action: str) -> Any | None:
         """Create a broadcast intent for notification button actions"""
         intent = Intent()
         intent.setAction(f"{self.package_name}.{action}")
@@ -88,7 +88,7 @@ class ServiceNotificationManager:
             flags
         )
     
-    def create_app_open_intent(self, is_foreground=False):
+    def create_app_open_intent(self, is_foreground: bool = False) -> Any | None:
         """Create a PendingIntent to open the app's main activity"""
         try:
             # Get the launch intent
@@ -114,7 +114,7 @@ class ServiceNotificationManager:
             logger.error(f"Error creating app open intent: {e}")
             return None
     
-    def _get_icon_resource(self):
+    def _get_icon_resource(self) -> int | None:
         """Get the notification icon resource ID"""
         try:
             drawable = autoclass(f"{self.package_name}.R$drawable")
@@ -130,7 +130,7 @@ class ServiceNotificationManager:
                 logger.error(f"Error getting app icon: {e}")
                 return None
     
-    def show_foreground_notification(self, title, message, with_buttons=True):
+    def show_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
         """Show a foreground notification with optional action buttons"""
         try:
             icon_id = self._get_icon_resource()
@@ -144,8 +144,8 @@ class ServiceNotificationManager:
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
             builder.setPriority(PRIORITY.LOW)
-            builder.setOngoing(True)  # Make it persistent
-            builder.setAutoCancel(False)  # Prevent auto-cancellation
+            builder.setOngoing(True)        # Make persistent
+            builder.setAutoCancel(False)    # Prevent auto-cancellation
             builder.setOnlyAlertOnce(True)  # Prevent re-alerting
             
             # Add click action to open app (without canceling task)
@@ -180,7 +180,7 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error showing notification: {e}")
     
-    def show_task_notification(self, title, message):
+    def show_task_notification(self, title: str, message: str) -> None:
         """Show a high-priority task notification with buttons"""
         try:
             icon_id = self._get_icon_resource()
@@ -194,7 +194,7 @@ class ServiceNotificationManager:
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
             builder.setPriority(PRIORITY.HIGH)
-            builder.setAutoCancel(True)  # Allow swiping away
+            builder.setAutoCancel(True)  # Allow swiping to cancel
             
             # Add delete intent to cancel task when notification is swiped
             delete_intent = self.create_action_intent(ACTION.CANCEL)
@@ -234,8 +234,11 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error showing task notification: {e}")
     
-    def cancel_all_notifications(self):
+    def cancel_all_notifications(self) -> None:
         """Cancel all active notifications"""
+        if not self.active_notification_ids:
+            return
+        
         try:
             # Cancel all active notifications
             for notification_id in self.active_notification_ids:
@@ -251,7 +254,7 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error cancelling all notifications: {e}")
     
-    def cancel_current_notification(self):
+    def cancel_current_notification(self) -> None:
         """Cancel the current Task notification if it exists"""
         if self.current_notification_id is not None:
             try:
@@ -262,7 +265,7 @@ class ServiceNotificationManager:
             except Exception as e:
                 logger.error(f"Error cancelling notification: {e}")
     
-    def remove_notification(self):
+    def remove_notification(self) -> None:
         """Remove the foreground notification"""
         try:
             self.service.stopForeground(True)
@@ -279,7 +282,7 @@ class ServiceNotificationManager:
             logger.error(f"Error checking foreground status: {e}")
             return False
     
-    def ensure_foreground_notification(self, title, message, with_buttons=True) -> None:
+    def ensure_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
         """Ensure the foreground notification is active, show it if it's not"""
         if not self._has_foreground_notification():
             logger.debug("Foreground notification not active, restoring it")

@@ -22,6 +22,8 @@ class Directories:
     ALARMS = os.path.join(ASSETS, "alarms")
     RECORDINGS = os.path.join(ASSETS, "recordings")
 
+    SERVICE = os.path.join(os.getcwd(), "service")
+
 
 class Paths(Directories):
     BACK_IMG = os.path.join(Directories.IMG, "back_64.png")
@@ -48,6 +50,8 @@ class Paths(Directories):
     
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
     SERVICE_TASK_FILE = "app/src/assets/task_file.json"
+
+    TASKS_CHANGED_FLAG = os.path.join(Directories.SERVICE, "tasks_changed.flag")
 
     SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
 

@@ -6,14 +6,33 @@ version = 0.1
 
 # Source code and assets
 source.dir = .
-source.include_exts = py,png,json,wav
-source.exclude_exts = gitignore,md
-source.exclude_dirs = bin,.venv,__pycache__,.buildozer,.buildozer.venv
-source.include_patterns = service/*
-source.assets = assets/
+source.include_exts = 
+    py,
+    png,
+    json,
+    wav
+source.exclude_exts = 
+    gitignore,
+    md
+source.exclude_dirs = 
+    bin,
+    .venv,
+    __pycache__,
+    .buildozer,
+    .buildozer.venv
+source.include_patterns = 
+    service/*
+source.assets = 
+    assets/
 
 # Requirements
-requirements = kivy,pillow,jnius,plyer,loguru,android
+requirements = 
+    kivy,
+    pillow,
+    jnius,
+    plyer,
+    loguru,
+    android
 
 # Android specific configurations
 android.api = 33
@@ -30,15 +49,26 @@ fullscreen = 0
 presplash.filename = presplash.png
 android.presplash_color = #EDEDED
 
-
 # Android resources
-android.add_resources = res/drawable-mdpi/notification_icon.png:drawable-mdpi/notification_icon.png,
+android.add_resources = 
+    res/drawable-mdpi/notification_icon.png:drawable-mdpi/notification_icon.png,
     res/drawable-hdpi/notification_icon.png:drawable-hdpi/notification_icon.png,
     res/drawable-xhdpi/notification_icon.png:drawable-xhdpi/notification_icon.png,
     res/drawable-xxhdpi/notification_icon.png:drawable-xxhdpi/notification_icon.png
 
 # Android permissions
-android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,SET_WALLPAPER,VIBRATE,FOREGROUND_SERVICE,RECEIVE_BOOT_COMPLETED,WAKE_LOCK,POST_NOTIFICATIONS
+android.permissions = 
+    WRITE_EXTERNAL_STORAGE,
+    READ_EXTERNAL_STORAGE,
+    RECORD_AUDIO,
+    MODIFY_AUDIO_SETTINGS,
+    SET_WALLPAPER,
+    VIBRATE,
+    FOREGROUND_SERVICE,
+    RECEIVE_BOOT_COMPLETED,
+    WAKE_LOCK,
+    POST_NOTIFICATIONS,
+    START_FOREGROUND_SERVICE_FROM_BACKGROUND
 
 # Service configuration
 services = BGTaskService:service/main.py:foreground:sticky

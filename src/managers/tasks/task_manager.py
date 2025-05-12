@@ -11,8 +11,8 @@ from kivy.event import EventDispatcher
 from src.managers.device_manager import DM
 from src.managers.tasks.task_manager_utils import Task
 
+from src.utils.background_service import notify_service_of_tasks_update
 from src.utils.logger import logger
-
 
 from src.settings import PATH, DATE, TEXT
 
@@ -135,6 +135,9 @@ class TaskManager(EventDispatcher):
                 json.dump(tasks_json, f, indent=2)
             
             logger.error(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
+
+            # Notify the service that Tasks have been updated
+            notify_service_of_tasks_update()
             return True
         
         except Exception as e:

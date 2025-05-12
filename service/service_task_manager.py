@@ -12,9 +12,9 @@ from service.service_utils import PATH, ACTION
 class ServiceTaskManager:
     def __init__(self):
         self.task_file: str = PATH.TASK_FILE
-        self.expired_task: Task | None = None  # Initialize expired_task first
+        self.expired_task: Task | None = None
         self.active_tasks: list[dict[str, Any]] = self._get_active_tasks()
-        self.current_task: Task | None = self.get_current_task()  # Now expired_task exists when this is called
+        self.current_task: Task | None = self.get_current_task()
 
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         try:
@@ -47,7 +47,7 @@ class ServiceTaskManager:
             # Convert dicts to Task objects
             tasks = [Task.to_class(task_dict) for task_dict in tasks_data]
             if tasks:
-                # Sort tasks within each date group by effective time [earliest first]
+                # Sort Tasks within each date group by effective time [earliest first]
                 sorted_tasks = sorted(tasks, key=get_effective_time)
 
                 active_tasks.append({
@@ -67,7 +67,7 @@ class ServiceTaskManager:
         return active_tasks
 
     def _sort_tasks(self, tasks: list[dict[str, Any]]) -> None:
-        """Sorts the active task groups by the first task's effective timestamp (timestamp + snooze_time)."""
+        """Sorts the active Task groups by the first Task's effective timestamp (timestamp + snooze_time)."""
         def get_effective_time(task):
             # Get the effective time by adding snooze_time (if any) to timestamp
             snooze_seconds = getattr(task, "snooze_time", 0)
@@ -82,7 +82,7 @@ class ServiceTaskManager:
                     expired=True)
 
     def get_current_task(self) -> Task | None:
-        """Returns the first task that isn't expired and isn't the current expired task"""
+        """Returns the first Task that isn't expired and isn't the current expired Task"""
         try:
             if not self.active_tasks:
                 return None
@@ -98,11 +98,11 @@ class ServiceTaskManager:
             return None
 
         except Exception as e:
-            logger.error(f"Error checking task file: {e}")
+            logger.error(f"Error checking Task file: {e}")
             return None
     
     def refresh_current_task(self) -> None:
-        """Refreshes the current task."""
+        """Refreshes the current Task."""
         self.current_task = self.get_current_task()
     
     def is_task_expired(self) -> bool:
@@ -119,12 +119,12 @@ class ServiceTaskManager:
             return False
     
     def handle_expired_task(self) -> Task | None:
-        """Handles task expiration by setting it as the expired task and getting the next current task.
-        Returns the expired task for notifications/alarms."""
+        """Handles Task expiration by setting it as the expired Task and getting the next current Task.
+        Returns the expired Task for notifications/alarms."""
         if not self.current_task:
             return None
             
-        # Set as expired task (but don't mark as expired yet - wait for user action)
+        # Set as expired task (don't mark as expired - wait for user action)
         self.expired_task = self.current_task
         logger.debug(f"Set task {self.expired_task.task_id} as expired task")
         
@@ -134,10 +134,10 @@ class ServiceTaskManager:
         return self.expired_task
 
     def snooze_task(self, action: str) -> None:
-        """Snoozes the expired task or current task if no expired task exists."""
+        """Snoozes the expired Task or current Task if no expired Task exists."""
         task_to_snooze = self.expired_task or self.current_task
         if not task_to_snooze:
-            logger.error("No task to snooze")
+            logger.error("No Task to snooze")
             return
             
         # Update snooze time but don't mark as expired
@@ -160,22 +160,24 @@ class ServiceTaskManager:
         
         logger.debug(f"Task {task_to_snooze.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {task_to_snooze.snooze_time/60:.1f}m")
         
-        # If we snoozed an expired task, clear it
+        # If snoozed, clear expired Task
         if task_to_snooze == self.expired_task:
             self.expired_task = None
         
-        # Refresh tasks from file and get new current task
-        # The snoozed task will become current if its new time is earlier
+        # Refresh Tasks from file and get new current Task
+        # Snoozed Task becomes current if its new time is earlier
         self.active_tasks = self._get_active_tasks()
         self.current_task = self.get_current_task()
     
     def _has_time_overlap(self, timestamp: datetime) -> bool:
+        """Checks if the snoozed Task or current Task would overlap with another Task."""
         for task_group in self.active_tasks:
             for task in task_group["tasks"]:
                 task_to_check = self.expired_task or self.current_task
                 if task.task_id != task_to_check.task_id and not task.expired:
                     task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
-                    if abs((timestamp - task_effective_time).total_seconds()) < 1:  # If timestamps are within 1 second
+                    # Check within 1 second range
+                    if abs((timestamp - task_effective_time).total_seconds()) < 1:
                         return True
         
         return False
@@ -197,20 +199,20 @@ class ServiceTaskManager:
         if task_to_cancel == self.expired_task:
             self.expired_task = None
         
-        # Refresh tasks and get new current task
+        # Refresh Tasks and get new current Task
         self.active_tasks = self._get_active_tasks()
         self.current_task = self.get_current_task()
 
         logger.debug(f"Cancelled task")
 
     def clear_expired_task(self) -> None:
-        """Clears the expired task without saving changes."""
+        """Clears the expired Task without saving changes."""
         if self.expired_task:
-            logger.debug(f"Clearing expired task {self.expired_task.task_id}")
+            logger.debug(f"Clearing expired Task {self.expired_task.task_id}")
             self.expired_task = None
 
     def _save_task_changes(self, task_id: str, changes: dict) -> None:
-        """Saves task changes to file"""
+        """Saves Task changes to file"""
         try:
             task_data = self._get_task_data()
             for date_tasks in task_data.values():
@@ -219,7 +221,9 @@ class ServiceTaskManager:
                         task.update(changes)
                         with open(self.task_file, "w") as f:
                             json.dump(task_data, f, indent=2)
-                        logger.debug(f"Saved changes for task {task_id}: {changes}")
+                        
+                        logger.debug(f"Saved changes for Task {task_id}: {changes}")
                         return
+        
         except Exception as e:
-            logger.error(f"Error saving task changes: {e}")
+            logger.error(f"Error saving Task changes: {e}")

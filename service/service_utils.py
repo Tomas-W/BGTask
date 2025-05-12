@@ -1,6 +1,7 @@
 import os
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from jnius import autoclass  # type: ignore
 
@@ -32,71 +33,82 @@ class DateFormats:
 DATE = DateFormats()
 
 
-def get_service_timestamp(task) -> str:
+def get_service_timestamp(task: Any) -> str:
     """
     Returns the timestamp in the format of the ServiceNotification
     This includes the snooze time
     """
-    timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
-    today = datetime.now().date()
-    tomorrow = today + timedelta(days=1)
-    if timestamp.date() == today:
-        return f"Today @ {timestamp.strftime(DATE.TASK_TIME)}"
-    elif timestamp.date() == tomorrow:
-        return f"Tomorrow @ {timestamp.strftime(DATE.TASK_TIME)}"
-    else:
-        return f"{timestamp.strftime(DATE.MONTH_DAY)} @ {timestamp.strftime(DATE.TASK_TIME)}"
+    try:
+        timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
+        today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        if timestamp.date() == today:
+            return f"Today @ {timestamp.strftime(DATE.TASK_TIME)}"
+        
+        elif timestamp.date() == tomorrow:
+            return f"Tomorrow @ {timestamp.strftime(DATE.TASK_TIME)}"
+        
+        else:
+            return f"{timestamp.strftime(DATE.MONTH_DAY)} @ {timestamp.strftime(DATE.TASK_TIME)}"
+    
+    except Exception as e:
+        from service.service_logger import logger
+        logger.error(f"Error getting service timestamp: {e}")
+        return "00:00:00"
 
 
-def get_storage_path(path):
-        """Returns the storage path"""
-        app_dir = os.environ.get("ANDROID_PRIVATE", "")
-        return os.path.join(app_dir, path)
+def get_storage_path(path: str) -> str:
+    """Returns the storage path"""
+    app_dir = os.environ.get("ANDROID_PRIVATE", "")
+    return os.path.join(app_dir, path)
 
 
 class Paths:
     """Constants for paths"""
-    TASK_FILE = get_storage_path("app/src/assets/task_file.json")
+    TASK_FILE: str = get_storage_path("app/src/assets/task_file.json")
 
-    SNOOZE_A_FLAG = get_storage_path("app/service/snooze_a.flag")
-    SNOOZE_B_FLAG = get_storage_path("app/service/snooze_b.flag")
-    STOP_FLAG = get_storage_path("app/service/stop.flag")
+    SNOOZE_A_FLAG: str = get_storage_path("app/service/snooze_a.flag")
+    SNOOZE_B_FLAG: str = get_storage_path("app/service/snooze_b.flag")
+    STOP_FLAG: str = get_storage_path("app/service/stop.flag")
 
-    AUDIO_TASK_EXPIRED = get_storage_path("app/src/assets/alarms/rooster.wav")
-    ALARMS_DIR = get_storage_path("app/src/assets/alarms")
-    RECORDINGS_DIR = get_storage_path("app/src/assets/recordings")
+    TASKS_CHANGED_FLAG: str = get_storage_path("app/service/tasks_changed.flag")
+
+    AUDIO_TASK_EXPIRED: str = get_storage_path("app/src/assets/alarms/rooster.wav")
+    ALARMS_DIR: str = get_storage_path("app/src/assets/alarms")
+    RECORDINGS_DIR: str = get_storage_path("app/src/assets/recordings")
 
 
 class NotificationChannels:
     """Constants for notification channels"""
-    FOREGROUND = "foreground_channel"
-    TASKS = "tasks_channel"
+    FOREGROUND: str = "foreground_channel"
+    TASKS: str = "tasks_channel"
 
 class NotificationPriority:
     """Constants for notification priorities"""
-    LOW = NotificationCompat.PRIORITY_LOW
-    DEFAULT = NotificationCompat.PRIORITY_DEFAULT
-    HIGH = NotificationCompat.PRIORITY_HIGH
+    LOW: int = NotificationCompat.PRIORITY_LOW
+    DEFAULT: int = NotificationCompat.PRIORITY_DEFAULT
+    HIGH: int = NotificationCompat.PRIORITY_HIGH
 
 class NotificationImportance:
     """Constants for notification channel importance"""
-    LOW = AndroidNotificationManager.IMPORTANCE_LOW
-    DEFAULT = AndroidNotificationManager.IMPORTANCE_DEFAULT
-    HIGH = AndroidNotificationManager.IMPORTANCE_HIGH
+    LOW: int = AndroidNotificationManager.IMPORTANCE_LOW
+    DEFAULT: int = AndroidNotificationManager.IMPORTANCE_DEFAULT
+    HIGH: int = AndroidNotificationManager.IMPORTANCE_HIGH
 
 class NotificationActions:
     """Constants for notification actions"""
-    OPEN_APP = "open_app"
-    SNOOZE_A = "snooze_a"
-    SNOOZE_B = "snooze_b"
-    CANCEL = "stop"
+    OPEN_APP: str = "open_app"
+    SNOOZE_A: str = "snooze_a"
+    SNOOZE_B: str = "snooze_b"
+    CANCEL: str = "stop"
 
 class PendingIntents:
     """Constants for pending intents"""
-    OPEN_APP = 11
-    SNOOZE_A = 12
-    SNOOZE_B = 13
-    CANCEL = 14
+    OPEN_APP: int = 11
+    SNOOZE_A: int = 12
+    SNOOZE_B: int = 13
+    CANCEL: int = 14
 
 
 PATH = Paths()

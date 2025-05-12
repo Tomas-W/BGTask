@@ -1,5 +1,6 @@
 from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
+from typing import Any
 
 from service.service_manager import ServiceManager
 from service.service_logger import logger
@@ -8,18 +9,29 @@ from service.service_utils import ACTION
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
 
+
 # Global service manager instance
-service_manager = None
-receiver = None
+service_manager: ServiceManager | None = None
+receiver: BroadcastReceiver | None = None
 
-
-def create_broadcast_receiver(service_manager):
+def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
     """Creates a broadcast receiver for handling notification actions"""
+    if not service_manager:
+        logger.error("No service manager provided")
+        return None
+        
     try:
         context = PythonService.mService.getApplicationContext()
+        if not context:
+            logger.error("Failed to get application context")
+            return None
+            
         package_name = context.getPackageName()
+        if not package_name:
+            logger.error("Failed to get package name")
+            return None
         
-        def on_receive(context, intent):
+        def on_receive(context: Any, intent: Any) -> None:
             """Callback for handling received broadcast actions"""
             try:
                 action = intent.getAction()
@@ -47,7 +59,7 @@ def create_broadcast_receiver(service_manager):
         return None
 
 
-def start_broadcast_receiver(receiver: BroadcastReceiver):
+def start_broadcast_receiver(receiver: Any) -> None:
     """Starts the broadcast receiver"""
     try:
         receiver.start()
@@ -57,7 +69,7 @@ def start_broadcast_receiver(receiver: BroadcastReceiver):
         logger.error(f"Error starting broadcast receiver: {e}")
 
 
-def on_start_command(intent, flags, start_id):
+def on_start_command(intent: Any, flags: int, start_id: int) -> int:
     """Android service onStartCommand callback"""
     global service_manager, receiver
     
@@ -65,25 +77,41 @@ def on_start_command(intent, flags, start_id):
     
     try:
         # Enable auto-restart
+        if not PythonService.mService:
+            logger.error("PythonService not available")
+            return Service.START_STICKY
+            
         PythonService.mService.setAutoRestartService(True)
         
         # Initialize service components if not already running
         if service_manager is None:
-            service_manager = ServiceManager()
-            service_manager.init_notification_manager()
+            try:
+                service_manager = ServiceManager()
+                service_manager._init_notification_manager()
+                
+                # Show foreground notification immediately
+                service_manager.update_foreground_notification_info()
+                
+                # Set up broadcast receiver
+                receiver = create_broadcast_receiver(service_manager)
+                if receiver:
+                    start_broadcast_receiver(receiver)
+                else:
+                    logger.error("Failed to create broadcast receiver")
+                
+                # Start monitoring
+                service_manager.run_service()
             
-            # Show foreground notification immediately
-            service_manager.update_foreground_notification_info()
-            
-            # Set up broadcast receiver
-            receiver = create_broadcast_receiver(service_manager)
-            if receiver:
-                start_broadcast_receiver(receiver)
-            
-            # Start monitoring
-            service_manager.run_service()
+            except Exception as e:
+                logger.error(f"Error initializing service: {e}")
+                # Clean up on initialization failure
+                if service_manager:
+                    service_manager.stop_alarm_vibrate()
+                
+                service_manager = None
+                receiver = None
+                return Service.START_STICKY
         
-        # Always return START_STICKY to ensure service restarts
         return Service.START_STICKY
     
     except Exception as e:
@@ -91,7 +119,7 @@ def on_start_command(intent, flags, start_id):
         return Service.START_STICKY
 
 
-def on_destroy():
+def on_destroy() -> None:
     """Android service onDestroy callback"""
     global service_manager, receiver
     
@@ -102,10 +130,14 @@ def on_destroy():
         if receiver:
             try:
                 receiver.stop()
-            except:
-                pass
+                        
+            except Exception as e:
+                logger.error(f"Error stopping broadcast receiver: {e}")
         
         # Clean up state
+        if service_manager:
+            service_manager.stop_alarm_vibrate()
+        
         service_manager = None
         receiver = None
         
@@ -113,10 +145,15 @@ def on_destroy():
         logger.error(f"Error in onDestroy: {e}")
 
 
-def main():
+def main() -> None:
     """Main entry point for the background service"""
-    logger.debug("Starting background service")
-    on_start_command(None, 0, 1)
+    try:
+        logger.debug("Starting background service")
+        on_start_command(None, 0, 1)
+    
+    except Exception as e:
+        logger.error(f"Error in Service main: {e}")
+        on_destroy()
 
 
 if __name__ == "__main__":

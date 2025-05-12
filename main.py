@@ -1,4 +1,6 @@
 import time
+import os
+
 starting_time = time.time()
 
 start_service_time = time.time()
@@ -299,7 +301,7 @@ class TaskApp(App, EventDispatcher):
     def on_pause(self):
         """
         App is paused by the OS (e.g., user switches to another app).
-        Start the background service if it's not already running.
+        Creates a flag file to indicate Tasks need updating in the service.
         """
         self.logger.debug("App is pausing")
         return True
