@@ -6,6 +6,11 @@ from service.service_logger import logger
 from service.service_utils import ACTION
 
 PythonService = autoclass("org.kivy.android.PythonService")
+Service = autoclass("android.app.Service")
+
+# Global service manager instance
+service_manager = None
+receiver = None
 
 
 def create_broadcast_receiver(service_manager):
@@ -52,37 +57,67 @@ def start_broadcast_receiver(receiver: BroadcastReceiver):
         logger.error(f"Error starting broadcast receiver: {e}")
 
 
-def start_monitoring_service(service_manager):
-    """Initializes and starts the monitoring service with active Task"""
-    service_manager.init_notification_manager()
-    service_manager.run_service()
+def on_start_command(intent, flags, start_id):
+    """Android service onStartCommand callback"""
+    global service_manager, receiver
+    
+    logger.debug(f"Service onStartCommand: flags={flags}, startId={start_id}")
+    
+    try:
+        # Enable auto-restart
+        PythonService.mService.setAutoRestartService(True)
+        
+        # Initialize service components if not already running
+        if service_manager is None:
+            service_manager = ServiceManager()
+            service_manager.init_notification_manager()
+            
+            # Show foreground notification immediately
+            service_manager.update_foreground_notification_info()
+            
+            # Set up broadcast receiver
+            receiver = create_broadcast_receiver(service_manager)
+            if receiver:
+                start_broadcast_receiver(receiver)
+            
+            # Start monitoring
+            service_manager.run_service()
+        
+        # Always return START_STICKY to ensure service restarts
+        return Service.START_STICKY
+    
+    except Exception as e:
+        logger.error(f"Error in onStartCommand: {e}")
+        return Service.START_STICKY
+
+
+def on_destroy():
+    """Android service onDestroy callback"""
+    global service_manager, receiver
+    
+    logger.debug("Service onDestroy called")
+    
+    try:
+        # Clean up receiver
+        if receiver:
+            try:
+                receiver.stop()
+            except:
+                pass
+        
+        # Clean up state
+        service_manager = None
+        receiver = None
+        
+    except Exception as e:
+        logger.error(f"Error in onDestroy: {e}")
 
 
 def main():
     """Main entry point for the background service"""
     logger.debug("Starting background service")
-    
-    # Initialize ServiceManager
-    service_manager = ServiceManager()
-    # Set up broadcast receiver
-    receiver = create_broadcast_receiver(service_manager)
-    start_broadcast_receiver(receiver)
-    
-    try:
-        # Initialize notification manager and show appropriate notification
-        service_manager.init_notification_manager()
-        service_manager.update_foreground_notification_info()
-        
-        # Start monitoring if we have tasks
-        if service_manager.service_task_manager.current_task is not None:
-            start_monitoring_service(service_manager)
-            
-    finally:
-        if receiver:
-            receiver.stop()
-        logger.debug("Service stopping")
+    on_start_command(None, 0, 1)
 
 
 if __name__ == "__main__":
     main()
-    logger.error("Service stopped")

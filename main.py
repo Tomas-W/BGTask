@@ -1,5 +1,25 @@
 import time
-import os
+
+def start_background_service():
+    """
+    Start background service.
+    """
+    from kivy.utils import platform
+    from src.settings import PLATFORM
+    if platform == PLATFORM.ANDROID:
+        try:
+            from android import AndroidService  # type: ignore
+            
+            service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
+            service.start("BGTask service started")
+            print("Started background service")
+        
+        except Exception as e:
+            print(f"Error starting background service: {e}")
+    
+    return None
+
+start_background_service()
 
 start_kivy_time = time.time()
 
@@ -10,7 +30,7 @@ from kivy.event import EventDispatcher
 from kivy.core.window import Window
 from kivy.utils import platform
 
-from src.settings import SCREEN, PLATFORM, LOADED, PATH
+from src.settings import SCREEN, PLATFORM, LOADED
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -290,8 +310,7 @@ class TaskApp(App, EventDispatcher):
         App is paused by the OS (e.g., user switches to another app).
         Start the background service if it's not already running.
         """
-        self.logger.debug("App is pausing - ensuring background service is running")
-        self.background_service = self.start_background_service()
+        self.logger.debug("App is pausing")
         return True
     
     def on_resume(self):
@@ -317,30 +336,13 @@ class TaskApp(App, EventDispatcher):
         """
         pass
 
-    def start_background_service(self):
-        """
-        Start background service.
-        """
-        if platform == PLATFORM.ANDROID:
-            try:
-                from android import AndroidService  # type: ignore
-                
-                service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
-                service.start("BGTask service started")
-                self.logger.debug("Started background service")
-                return service
-            except Exception as e:
-                self.logger.error(f"Error starting background service: {e}")
-        
-        return None
-
     def on_stop(self):
         """
         App is being stopped.
         Ensure the background service is running.
         """
         self.logger.debug("App is stopping - ensuring background service is running")
-        self.background_service = self.start_background_service()
+        start_background_service()
         time.sleep(0.5)  # Give service time to start
 
 
