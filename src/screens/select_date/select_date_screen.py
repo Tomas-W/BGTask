@@ -5,11 +5,11 @@ from datetime import datetime, date
 
 from src.screens.base.base_screen import BaseScreen
 from .select_date_utils import SelectDateUtils
+from .select_date_widgets import TimeInputField
 
 from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow, Partition, CustomRow
 from src.widgets.labels import PartitionHeader
-from src.widgets.fields import InputField
 
 from src.widgets.popups import POPUP
 
@@ -76,21 +76,9 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         self.select_time_partition.add_widget(self.selected_date_label)
         # Time selection row
         self.select_time_row = CustomRow()
-        # Hours input
-        self.hours_input = InputField()
-        self.hours_input.text_input.input_filter = "int"
-        self.hours_input.text_input.bind(text=self.validate_hours)
-        # Colon separator
-        colon_label = PartitionHeader(text=":")
-        colon_label.size_hint_x = 0.2
-        # Minutes input
-        self.minutes_input = InputField()
-        self.minutes_input.text_input.input_filter = "int"
-        self.minutes_input.text_input.bind(text=self.validate_minutes)
-        # Apply time row
-        self.select_time_row.add_widget(self.hours_input)
-        self.select_time_row.add_widget(colon_label)
-        self.select_time_row.add_widget(self.minutes_input)
+        # Time input
+        self.time_input = TimeInputField()
+        self.select_time_row.add_widget(self.time_input)
         self.select_time_partition.add_widget(self.select_time_row)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.select_time_partition)
@@ -132,8 +120,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
             if not self.task_manager.selected_time:
                 now = datetime.now().time()
                 self.task_manager.selected_time = now
-                self.hours_input.set_text(now.strftime(DATE.HOUR))
-                self.minutes_input.set_text(now.strftime(DATE.MINUTE))
+                self.time_input.set_text(now)
                 
             # Highlight selected day
             self.update_calendar()
@@ -145,43 +132,35 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         except ValueError:
             pass
     
-    def validate_time(self, hours_input: str, minutes_input: str) -> bool:
-        """Validate hours and minutes input by checking type and range"""
-        valid = True
-        if hours_input and (not hours_input.isdigit() or int(hours_input) > 23 or int(hours_input) < 0):
-            self.hours_input.show_error_border()
-            valid = False
-        else:
-            self.hours_input.hide_border()
-
-        if minutes_input and (not minutes_input.isdigit() or int(minutes_input) > 59 or int(minutes_input) < 0):
-            self.minutes_input.show_error_border()
-            valid = False
-        else:
-            self.minutes_input.hide_border()
-
-        return valid
+    def validate_time(self) -> bool:
+        """Validate the time input"""
+        time_tuple = self.time_input.get_time()
+        if time_tuple is None:
+            self.time_input.show_error_border()
+            return False
+        
+        self.time_input.hide_border()
+        return True
     
-    def update_task_manager_time(self, hours_input: str, minutes_input: str) -> None:
-        """
-        Update the task manager's selected time after user selection.
-        """
+    def update_task_manager_time(self) -> bool:
+        """Update the task manager's selected time after user selection"""
         # Ensure we have a selected date
         if not self.task_manager.selected_date:
             self.task_manager.selected_date = datetime.now().date()
             
         # Update selected time in task_manager
         try:
+            time_tuple = self.time_input.get_time()
+            if time_tuple is None:
+                return False
+                
+            hours, minutes = time_tuple
             current_time = self.task_manager.selected_time or datetime.now().time()
-            updated_time = current_time.replace(
-                hour=int(hours_input) if hours_input else current_time.hour,
-                minute=int(minutes_input) if minutes_input else current_time.minute
-            )
+            updated_time = current_time.replace(hour=hours, minute=minutes)
             self.task_manager.selected_time = updated_time
+            return True
         except ValueError:
             return False
-        
-        return True
     
     def check_date_is_taken(self) -> bool:
         """
@@ -205,12 +184,10 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
     
     def confirm_date_selection(self, instance) -> None:
         """Return to new task screen, passing selected date"""
-        hours_input: str = self.hours_input.text_input.text.strip()
-        minutes_input: str = self.minutes_input.text_input.text.strip()
-        if not self.validate_time(hours_input, minutes_input):
+        if not self.validate_time():
             return
         
-        if not self.update_task_manager_time(hours_input, minutes_input):
+        if not self.update_task_manager_time():
             return
 
         if self.check_date_is_taken():
@@ -245,8 +222,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         if not self.task_manager.selected_time:
             self.task_manager.selected_time = datetime.now().time()
 
-        self.hours_input.set_text(self.task_manager.selected_time.strftime(DATE.HOUR))
-        self.minutes_input.set_text(self.task_manager.selected_time.strftime(DATE.MINUTE))
+        self.time_input.set_text(self.task_manager.selected_time)
     
     def init_calendar_labels(self) -> None:
         """Initialize calendar labels"""

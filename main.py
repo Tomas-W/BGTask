@@ -70,6 +70,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Save scroll value when going to new task screen
 # TODO: Floating Day label if many/long tasks
 # TODO: Swipe left/right to go to prev/next day
+# TODO: Add year to Tasks header when in next year
 
 
 # NewTaskScreen
