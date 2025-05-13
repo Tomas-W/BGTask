@@ -24,6 +24,7 @@ RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcess
 
 SERVICE_SLEEP_TIME = 0.5
 CHECK_TASK_REFRESH_TICK = 6
+FORCE_FOREGROUND_NOTIFICATION_TICK = 6
 
 class ServiceManager:
     """
@@ -64,52 +65,41 @@ class ServiceManager:
         self._init_settings_manager()
         
         update_task_tick = 0
+        notification_retry_tick = 0
         while self._running:
-            # Always show foreground notification
-            self.force_foreground_notification_display()
-            
-            # Check if app is in foreground
-            if self.is_app_in_foreground():
-                # If app is in foreground, stop any alarms and skip task monitoring
-                self.audio_manager.stop_alarm_vibrate()
-                time.sleep(SERVICE_SLEEP_TIME)
-                continue
-            
-            # Rest of the service loop (only runs when app is in background)
-            # Perioducally check for flag file
-            # if found: update Tasks and foreground notification
-            update_task_tick += 1
-            if update_task_tick >= CHECK_TASK_REFRESH_TICK:
-                update_task_tick = 0
-                if self.need_tasks_update():
-                    self._need_foreground_update = True
-            
-            # If a Task is updated or expired, update the foreground notification
-            if self._need_foreground_update:
-                self.update_foreground_notification_info()
-            
-            # No current Task
-            if not self.service_task_manager.current_task:
-                time.sleep(SERVICE_SLEEP_TIME)
-                continue
-
-            # No expired Task
-            if not self.service_task_manager.is_task_expired():
-                time.sleep(SERVICE_SLEEP_TIME)
-                continue
-
-            logger.debug("Task expired, showing notification")
-            # Clean up any previously expired Task
-            if self.service_task_manager.expired_task:
-                self.clean_up_previous_task()
-            
-            # Process newly expired Task
-            expired_task = self.service_task_manager.handle_expired_task()
-            if expired_task:
-                self.notify_user_of_expiry(expired_task)
-            
-            self._need_foreground_update = True
-            time.sleep(SERVICE_SLEEP_TIME)
+            try:
+                # Try to show foreground notification periodically
+                notification_retry_tick += 1
+                if notification_retry_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:  # Try every 6 seconds (12 * 0.5s)
+                    notification_retry_tick = 0
+                    self.force_foreground_notification_display()
+                
+                # Check if app is in foreground
+                if self.is_app_in_foreground():
+                    # If app is in foreground, stop any alarms and skip task monitoring
+                    self.audio_manager.stop_alarm_vibrate()
+                    time.sleep(SERVICE_SLEEP_TIME)
+                    continue
+                
+                # Rest of the service loop (only runs when app is in background)
+                update_task_tick += 1
+                if update_task_tick >= CHECK_TASK_REFRESH_TICK:
+                    update_task_tick = 0
+                    if self.need_tasks_update():
+                        self._need_foreground_update = True
+                
+                # If a Task is updated or expired, update the foreground notification
+                if self._need_foreground_update:
+                    self.update_foreground_notification_info()
+                
+                # No current Task
+                if not self.service_task_manager.current_task:
+                    time.sleep(SERVICE_SLEEP_TIME)
+                    continue
+                
+            except Exception as e:
+                logger.error(f"Error in service loop: {e}")
+                time.sleep(SERVICE_SLEEP_TIME)  # Keep running even if there's an error
         
         self.audio_manager.stop_alarm_vibrate()
     

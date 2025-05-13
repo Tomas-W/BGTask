@@ -174,9 +174,17 @@ class ServiceNotificationManager:
             
             # Build and show notification
             notification = builder.build()
-            self.service.startForeground(1, notification)
-            logger.debug("Showed foreground notification")
+            try:
+                self.service.startForeground(1, notification)
+                logger.debug("Showed foreground notification")
             
+            except Exception as e:
+                if "ForegroundServiceStartNotAllowedException" in str(e):
+                    logger.warning("Cannot start foreground service now, will retry later")
+                    # Don't raise the exception - let the service keep running
+                else:
+                    raise  # Re-raise other exceptions
+        
         except Exception as e:
             logger.error(f"Error showing notification: {e}")
     

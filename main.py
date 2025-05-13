@@ -1,20 +1,18 @@
 import time
-import os
 
 starting_time = time.time()
 
 start_service_time = time.time()
-print("STARTING SERVICE")
 from src.utils.background_service import start_background_service
 import_time = time.time() - start_service_time
+print(f"IMPORTING SERVICE TIME: {import_time:.4f}")
 
 start_service_time = time.time()
 start_background_service()
 service_time = time.time() - start_service_time
-print("FINISHED SERVICE")
+print(f"STARTING SERVICE TIME: {service_time:.4f}")
 
 start_kivy_time = time.time()
-print("STARTING KIVY")
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
@@ -24,7 +22,7 @@ from kivy.utils import platform
 
 from src.settings import SCREEN, PLATFORM, LOADED
 kivy_time = time.time() - start_kivy_time
-print(f"FINISHED KIVY")
+print(f"FINISHED KIVY TIME: {kivy_time:.4f}")
 
 if platform != PLATFORM.ANDROID:
     Window.size = (360, 736)
@@ -33,7 +31,6 @@ if platform != PLATFORM.ANDROID:
     Window.top = 316
 
 
-# TODO: self.keep_alarming as Task attribute (select on select alarm screen)
 # TODO: Trigger laarm dont change nbutton states
 
 
@@ -312,14 +309,14 @@ class TaskApp(App, EventDispatcher):
         Save last open time and ensure the background service is running.
         """
         self.logger.debug("App is stopping - saving last open time and ensuring background service")
-        # Save last open time when app is stopped
-        from src.managers.settings_manager import SettingsManager
-        settings_manager = SettingsManager()
-        settings_manager.save_last_open_time()
+
+        self.set_last_open_time()
         
-        # Ensure background service is running
-        start_background_service()
-        time.sleep(0.2)
+        # Only start service if not already running
+        if platform == "android":
+            from src.utils.background_service import start_background_service
+            start_background_service()
+            time.sleep(0.2)
     
     def on_resume(self):
         """
@@ -327,14 +324,13 @@ class TaskApp(App, EventDispatcher):
         Check for any expired tasks that might have occurred while paused.
         """
         self.logger.debug("App is resuming - checking for expired tasks")
-        if hasattr(self, "task_manager"):
-            # Check for any cancelled tasks that might have occurred while paused
-            self.task_manager.check_background_cancelled_tasks()
 
-            # Update last open time
-            from src.managers.settings_manager import SettingsManager
-            settings_manager = SettingsManager()
-            settings_manager.save_last_open_time()
+        self.set_last_open_time()
+
+        if hasattr(self, "task_manager"):
+            if platform == "android":
+                # Check for any cancelled Tasks that might have occurred while paused
+                self.task_manager.check_background_cancelled_tasks()
 
             # Reload tasks
             start_time = time.time()
@@ -345,6 +341,11 @@ class TaskApp(App, EventDispatcher):
             # Finally rebuild the display with updated data
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
             self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
+    
+    def set_last_open_time(self):
+        from src.managers.settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        settings_manager.save_last_open_time()
 
     def on_start(self):
         """

@@ -67,18 +67,24 @@ class SettingsManager:
     # Your specific methods using the above
     def save_last_open_time(self) -> None:
         """Save the current timestamp as the last time the app was open"""
-        current_time = int(datetime.now().timestamp() * 1000)  # milliseconds
-        self.set_int("last_open_time", current_time)
-    
+        current_time = str(int(datetime.now().timestamp() * 1000))  # milliseconds as string
+        self.set_string("last_open_time", current_time)
+
     def get_last_open_time(self) -> int:
         """Get the timestamp of when the app was last open in milliseconds"""
-        return self.get_int("last_open_time", 0)  # Default to 0 if never opened
-    
+        try:
+            return int(self.get_string("last_open_time", "0"))  # Convert string back to int
+        except ValueError:
+            return 0  # Default to 0 if conversion fails
+
     def did_task_expire_after_last_open(self, task_timestamp: datetime) -> bool:
         """Check if a task expired after the last time the app was open"""
-        last_open = self.get_last_open_time() / 1000  # Convert to seconds
-        task_time = task_timestamp.timestamp()
-        return task_time > last_open
+        try:
+            last_open = int(self.get_string("last_open_time", "0")) / 1000  # Convert to seconds
+            task_time = task_timestamp.timestamp()
+            return task_time > last_open
+        except ValueError:
+            return False  # If we can't parse the timestamp, assume task didn't expire
     
     def set_cancelled_task_id(self, task_id: str) -> None:
         """Store the ID of a task that was cancelled via notification swipe"""
