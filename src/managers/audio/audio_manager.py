@@ -61,7 +61,6 @@ class AudioManager(AudioManagerUtils):
         Handles audio playback and vibration if enabled.
         """
         if 1 == 1:
-            print("1 IS INDEED EQUAL TO 1")
             return
         
         task = kwargs.get("task")

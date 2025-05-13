@@ -120,49 +120,49 @@ class ServiceAudioManager:
         logger.debug("Vibrate loop ended")
     
     def stop_alarm_vibrate(self, *args: Any, **kwargs: Any) -> None:
-        """Stop both alarm and vibrate"""
-        logger.debug("Stopping alarm and vibrate")
-        with self._lock:
-            # Clear Task to break loops
-            self.task = None
-        
+        """Stop both alarm and vibrate if they are running"""
+        # Stop each independently if running
         self._stop_alarm_loop()
         self._stop_vibrate_loop()
         
-        # Check if everything stopped properly
+        # Clear Task to break loops if either was running
         if (self._alarm_thread and self._alarm_thread.is_alive()) or \
            (self._vibrate_thread and self._vibrate_thread.is_alive()):
-            logger.error("Failed to stop all alarms/vibrations")
-            return
-        
-        self._alarm_thread = None
-        self._vibrate_thread = None
-        logger.debug("Alarm and vibration stopped")
+            with self._lock:
+                self.task = None
     
     def _stop_alarm_loop(self, *args: Any, **kwargs: Any) -> None:
-        """Stop the alarm loop"""
+        """Stop the alarm loop if it's running"""
+        # Early return if no alarm thread or not running
+        if not self._alarm_thread or not self._alarm_thread.is_alive():
+            return
+        
         try:
             with self._lock:
                 self._alarm_stop_event.set()
             
-            if self._alarm_thread and self._alarm_thread.is_alive():
-                self._alarm_thread.join(timeout=1)
-            
+            self._alarm_thread.join(timeout=1)
             self.stop_audio()
+            self._alarm_thread = None
+            logger.debug("Alarm loop stopped")
         
         except Exception as e:
             logger.error(f"Error stopping alarm loop: {e}")
     
     def _stop_vibrate_loop(self, *args: Any, **kwargs: Any) -> None:
-        """Stop the vibrate loop"""
+        """Stop the vibrate loop if it's running"""
+        # Early return if no vibrate thread or not running
+        if not self._vibrate_thread or not self._vibrate_thread.is_alive():
+            return
+        
         try:
             with self._lock:
                 self._vibrate_stop_event.set()
             
-            if self._vibrate_thread and self._vibrate_thread.is_alive():
-                self._vibrate_thread.join(timeout=1)
-            
+            self._vibrate_thread.join(timeout=1)
             self.stop_vibrator()
+            self._vibrate_thread = None
+            logger.debug("Vibrate loop stopped")
         
         except Exception as e:
             logger.error(f"Error stopping vibrate loop: {e}")

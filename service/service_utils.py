@@ -68,13 +68,8 @@ class Paths:
     """Constants for paths"""
     TASK_FILE: str = get_storage_path("app/src/assets/task_file.json")
 
-    SNOOZE_A_FLAG: str = get_storage_path("app/service/snooze_a.flag")
-    SNOOZE_B_FLAG: str = get_storage_path("app/service/snooze_b.flag")
-    STOP_FLAG: str = get_storage_path("app/service/stop.flag")
-
     TASKS_CHANGED_FLAG: str = get_storage_path("app/service/tasks_changed.flag")
 
-    AUDIO_TASK_EXPIRED: str = get_storage_path("app/src/assets/alarms/rooster.wav")
     ALARMS_DIR: str = get_storage_path("app/src/assets/alarms")
     RECORDINGS_DIR: str = get_storage_path("app/src/assets/recordings")
 

@@ -18,6 +18,7 @@ PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
 Intent = autoclass("android.content.Intent")
 Context = autoclass("android.content.Context")
+RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcessInfo")
 
 
 SERVICE_SLEEP_TIME = 0.5
@@ -35,9 +36,15 @@ class ServiceManager:
         self.service_task_manager: ServiceTaskManager = ServiceTaskManager()
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
 
+        # Loop variables
         self._running: bool = True
         self._need_foreground_update: bool = True
         self._tasks_changed_flag: str = PATH.TASKS_CHANGED_FLAG
+
+        # ActivityManager
+        self._app_package_name = None
+        self._activity_manager = None
+        self._init_activity_manager()
     
     def run_service(self) -> None:
         """
@@ -51,10 +58,18 @@ class ServiceManager:
         logger.debug("Starting main service loop")
         update_task_tick = 0
         while self._running:
-            
+            # Always show foreground notification
             self.force_foreground_notification_display()
-
-            # Periodically check for flag file
+            
+            # Check if app is in foreground
+            if self.is_app_in_foreground():
+                # If app is in foreground, stop any alarms and skip task monitoring
+                self.audio_manager.stop_alarm_vibrate()
+                time.sleep(SERVICE_SLEEP_TIME)
+                continue
+            
+            # Rest of the service loop (only runs when app is in background)
+            # Perioducally check for flag file
             # if found: update Tasks and foreground notification
             update_task_tick += 1
             if update_task_tick >= CHECK_TASK_REFRESH_TICK:
@@ -108,6 +123,28 @@ class ServiceManager:
             message,
             with_buttons
         )
+    
+    def is_app_in_foreground(self) -> bool:
+        """Check if our app is in the foreground"""
+        try:
+            if not self._activity_manager or not self._app_package_name:
+                return False
+                
+            # Get running app processes
+            running_apps = self._activity_manager.getRunningAppProcesses()
+            if not running_apps:
+                return False
+                
+            # Check if our app is in foreground
+            for process in running_apps:
+                if (process.processName == self._app_package_name and 
+                    process.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND):
+                    return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error checking app state: {e}")
+            return False
     
     def need_tasks_update(self) -> bool:
         """
@@ -242,3 +279,14 @@ class ServiceManager:
             )
         
         self._need_foreground_update = False
+
+    def _init_activity_manager(self) -> None:
+        """Initialize ActivityManager and get package name"""
+        try:
+            context = PythonService.mService.getApplicationContext()
+            self._activity_manager = context.getSystemService(Context.ACTIVITY_SERVICE)
+            self._app_package_name = context.getPackageName()
+            logger.debug("Initialized ActivityManager")
+        
+        except Exception as e:
+            logger.error(f"Error initializing ActivityManager: {e}")
