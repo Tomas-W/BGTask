@@ -1,9 +1,6 @@
 import time
 
 from kivy.utils import platform
-from jnius import autoclass  # type: ignore
-
-Integer = autoclass("java.lang.Integer")
 
 
 def is_service_running() -> bool:
@@ -13,8 +10,9 @@ def is_service_running() -> bool:
         return False
         
     try:
+        from jnius import autoclass  # type: ignore
+        Integer = autoclass("java.lang.Integer")
         PythonService = autoclass("org.kivy.android.PythonService")
-        ActivityManager = autoclass("android.app.ActivityManager")
         Context = autoclass("android.content.Context")
         
         # Get the service context

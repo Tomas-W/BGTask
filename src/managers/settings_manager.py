@@ -1,6 +1,12 @@
-from datetime import datetime
-from jnius import autoclass  # type: ignore
 import time
+
+from datetime import datetime
+
+try:
+    from jnius import autoclass  # type: ignore
+except ImportError:
+    pass
+
 
 class SettingsManager:
     """Manages app settings with simple, type-safe methods"""

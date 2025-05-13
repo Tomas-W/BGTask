@@ -25,7 +25,8 @@ class TaskManager(EventDispatcher):
     def __init__(self):
         super().__init__()
         self.navigation_manager = App.get_running_app().navigation_manager
-        self.settings_manager = SettingsManager()
+        if DM.is_android:
+            self.settings_manager = SettingsManager()
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
@@ -379,6 +380,9 @@ class TaskManager(EventDispatcher):
         Check if there was a task that was cancelled via notification swipe.
         If found, show popup and clear the setting.
         """
+        if not DM.is_android:
+            return
+        
         # Get the cancelled task ID from settings
         cancelled_task_id = self.settings_manager.get_cancelled_task_id()
         if not cancelled_task_id:

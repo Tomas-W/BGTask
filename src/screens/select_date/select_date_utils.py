@@ -1,6 +1,7 @@
 import calendar
+from datetime import date, datetime
 
-from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.graphics import Rectangle
 from kivy.uix.label import Label
 
 
@@ -8,7 +9,7 @@ from .select_date_widgets import (DateTimeLabel, CalendarContainer,
                                   CalendarHeadersContainer, CalendarHeaderLabel,
                                   CalendarGrid)
 
-from src.settings import COL, SIZE, STYLE
+from src.settings import SIZE
 
 
 class SelectDateUtils:
@@ -49,7 +50,7 @@ class SelectDateUtils:
             last_week = cal[-1]
             if all(day == 0 for day in last_week):
                 cal = cal[:-1] 
-        
+
         # Add day buttons
         for week in cal:
             for day in week:
@@ -62,24 +63,35 @@ class SelectDateUtils:
                     )
                     self.calendar_grid.add_widget(empty_label)
                 else:
+                    # Check if this day has any tasks
+                    date_key = date(self.current_year, self.current_month, day).isoformat()
+                    has_tasks = date_key in self.task_manager.tasks_by_date
+                    
+                    # Check if this is the current day
+                    is_current_day = (day == datetime.now().day and 
+                                    self.current_month == datetime.now().month and 
+                                    self.current_year == datetime.now().year)
+                    
+                    # Check if this is the selected day
+                    is_selected = (self.task_manager.selected_date and
+                                 day == self.task_manager.selected_date.day and 
+                                 self.current_month == self.task_manager.selected_date.month and 
+                                 self.current_year == self.task_manager.selected_date.year)
+                    
+                    # Add underline markup if day has tasks
+                    text = f"[u]{day}[/u]" if has_tasks else str(day)
                     day_button = DateTimeLabel(
-                        text=str(day),
+                        text=text,
+                        markup=True
                     )
                     
-                    # Highlight the selected date if it exists
-                    if (self.task_manager.selected_date and
-                        day == self.task_manager.selected_date.day and 
-                        self.current_month == self.task_manager.selected_date.month and 
-                        self.current_year == self.task_manager.selected_date.year):
-                        with day_button.canvas.before:
-                            Color(*COL.FIELD_ACTIVE)
-                            RoundedRectangle(pos=day_button.pos,
-                                           size=day_button.size,
-                                           radius=[STYLE.RADIUS_S])
-                        day_button.color = COL.TEXT
-                        day_button.set_bold(True)
-                        day_button.bind(pos=self.update_selected_day, 
-                                       size=self.update_selected_day)
+                    # Set current day highlight if applicable
+                    if is_current_day:
+                        day_button.set_current_day(True)
+                    
+                    # Set selected state if applicable
+                    if is_selected:
+                        day_button.set_selected(True)
                     
                     day_button.bind(on_release=lambda btn, d=day: self.select_day(d))
                     self.calendar_grid.add_widget(day_button)
