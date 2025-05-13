@@ -43,6 +43,7 @@ class ServiceManager:
         self._running: bool = True
         self._need_foreground_update: bool = True
         self._tasks_changed_flag: str = PATH.TASKS_CHANGED_FLAG
+        self._in_foreground: bool = False
 
         # ActivityManager
         self._app_package_name = None
@@ -66,36 +67,90 @@ class ServiceManager:
         
         update_task_tick = 0
         notification_retry_tick = 0
+        log_tick = 0
+        
         while self._running:
             try:
                 # Try to show foreground notification periodically
                 notification_retry_tick += 1
-                if notification_retry_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:  # Try every 6 seconds (12 * 0.5s)
+                if notification_retry_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:
                     notification_retry_tick = 0
                     self.force_foreground_notification_display()
                 
                 # Check if app is in foreground
                 if self.is_app_in_foreground():
-                    # If app is in foreground, stop any alarms and skip task monitoring
-                    self.audio_manager.stop_alarm_vibrate()
+                    if not self._in_foreground:
+                        self.notification_manager.cancel_all_notifications()
+                        logger.debug("Cancelled all notifications")
+                        self._in_foreground = True
+                        
+                    if self.need_tasks_update():
+                        self._refresh_active_tasks()
+                        self._need_foreground_update = True
+                        
+                    
+                    # If app is in foreground, stop alarm
+                    update_task_tick += 1
+                    if update_task_tick >= CHECK_TASK_REFRESH_TICK:
+                        update_task_tick = 0
+                        self.audio_manager.stop_alarm_vibrate()
+                    
+                    # Update foreground notification if needed
+                    if self._need_foreground_update:
+                        self.update_foreground_notification_info()
+                    
                     time.sleep(SERVICE_SLEEP_TIME)
                     continue
                 
+                self._in_foreground = False
                 # Rest of the service loop (only runs when app is in background)
                 update_task_tick += 1
                 if update_task_tick >= CHECK_TASK_REFRESH_TICK:
                     update_task_tick = 0
                     if self.need_tasks_update():
+                        self._refresh_active_tasks()
+                        self._need_foreground_update = True
+                
+                # Check for expired Task
+                if self.service_task_manager.current_task is not None:
+                    if self.service_task_manager.is_task_expired():
+                        logger.debug("Task expired, showing notification")
+                        # If we already have an expired task, properly stop it first
+                        if self.service_task_manager.expired_task:
+                            logger.debug("Stopping previous expired task")
+                            # Stop all alarms and vibrations
+                            self.audio_manager.stop_alarm_vibrating()
+                            # Cancel notifications
+                            self.notification_manager.cancel_all_notifications()
+                            # Mark the previous expired task as cancelled
+                            self.service_task_manager.cancel_task()
+                            # Clear the expired task reference
+                            self.service_task_manager.clear_expired_task()
+                        # Handle expiration and get the expired task
+                        expired_task = self.service_task_manager.handle_expired_task()
+                        if expired_task:
+                            # Show notification for the expired task
+                            self.notification_manager.show_task_notification(
+                                "Task Expired",
+                                expired_task.message
+                            )
+                            # Trigger alarm with the expired task
+                            self.audio_manager.trigger_alarm(expired_task)
+                        # Update foreground notification
                         self._need_foreground_update = True
                 
                 # If a Task is updated or expired, update the foreground notification
                 if self._need_foreground_update:
                     self.update_foreground_notification_info()
                 
-                # No current Task
-                if not self.service_task_manager.current_task:
-                    time.sleep(SERVICE_SLEEP_TIME)
-                    continue
+                # Log service status periodically
+                log_tick += 1
+                if log_tick % 120 == 0:
+                    task = self.service_task_manager.current_task if self.service_task_manager.current_task else None
+                    task_log = task.timestamp if task else "No task"
+                    logger.debug(f"Service check for {task_log}")
+                
+                time.sleep(SERVICE_SLEEP_TIME)
                 
             except Exception as e:
                 logger.error(f"Error in service loop: {e}")
@@ -105,6 +160,9 @@ class ServiceManager:
     
     def force_foreground_notification_display(self) -> None:
         """Ensures the foreground notification is displayed with current Task info"""
+        if self.notification_manager and self.notification_manager._has_foreground_notification():
+            return
+        
         if self.service_task_manager.current_task:
             time_label = get_service_timestamp(self.service_task_manager.current_task)
             message = self.service_task_manager.current_task.message

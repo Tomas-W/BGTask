@@ -292,6 +292,5 @@ class ServiceNotificationManager:
     
     def ensure_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
         """Ensure the foreground notification is active, show it if it's not"""
-        if not self._has_foreground_notification():
-            logger.debug("Foreground notification not active, restoring it")
-            self.show_foreground_notification(title, message, with_buttons)
+        logger.debug("Foreground notification not active, restoring it")
+        self.show_foreground_notification(title, message, with_buttons)
