@@ -5,6 +5,7 @@ from jnius import autoclass  # type: ignore
 from typing import TYPE_CHECKING
 
 from src.managers.tasks.task_manager_utils import Task
+from src.managers.settings_manager import SettingsManager
 
 from service.service_audio_manager import ServiceAudioManager
 from service.service_logger import logger
@@ -35,6 +36,7 @@ class ServiceManager:
         self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
         self.service_task_manager: ServiceTaskManager = ServiceTaskManager()
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
+        self.settings_manager = None
 
         # Loop variables
         self._running: bool = True
@@ -56,6 +58,11 @@ class ServiceManager:
         - If the Task is expired, show notification and get next Task.
         """
         logger.debug("Starting main service loop")
+        
+        # Initialize settings after a small delay to ensure service context is ready
+        time.sleep(0.5)
+        self._init_settings_manager()
+        
         update_task_tick = 0
         while self._running:
             # Always show foreground notification
@@ -227,8 +234,17 @@ class ServiceManager:
             self._need_foreground_update = True
             return Service.START_REDELIVER_INTENT
         
-        # Clicked Cancel button
+        # Clicked Cancel button or swiped notification
         elif action.endswith(ACTION.CANCEL):
+            # Store the task ID if we have an expired task
+            # So in-app popup can be shown on app open
+            if self.service_task_manager.expired_task:
+                logger.debug(f"Storing cancelled task ID: {self.service_task_manager.expired_task.task_id}")
+                if self.settings_manager:
+                    self.settings_manager.set_cancelled_task_id(self.service_task_manager.expired_task.task_id)
+                else:
+                    logger.error("Settings manager not initialized, cannot store cancelled task ID")
+            
             self.service_task_manager.cancel_task()
             self._need_foreground_update = True
             self.audio_manager.stop_alarm_vibrate()
@@ -290,3 +306,15 @@ class ServiceManager:
         
         except Exception as e:
             logger.error(f"Error initializing ActivityManager: {e}")
+    
+    def _init_settings_manager(self) -> None:
+        """Initialize the SettingsManager with retries"""
+        if self.settings_manager is None:
+            try:
+                # Try up to 3 times with 0.2s delay between attempts
+                self.settings_manager = SettingsManager(max_retries=3, retry_delay=0.2)
+                logger.debug("Successfully initialized SettingsManager")
+            except Exception as e:
+                logger.error(f"Error initializing SettingsManager after retries: {e}")
+                # Don't raise here - we want the service to keep running even if settings fail
+                # The service will retry settings initialization on next loop

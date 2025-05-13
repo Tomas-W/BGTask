@@ -306,14 +306,37 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is pausing")
         return True
     
+    def on_stop(self):
+        """
+        App is being stopped.
+        Save last open time and ensure the background service is running.
+        """
+        self.logger.debug("App is stopping - saving last open time and ensuring background service")
+        # Save last open time when app is stopped
+        from src.managers.settings_manager import SettingsManager
+        settings_manager = SettingsManager()
+        settings_manager.save_last_open_time()
+        
+        # Ensure background service is running
+        start_background_service()
+        time.sleep(0.2)
+    
     def on_resume(self):
         """
         App is resumed from a paused state.
         Check for any expired tasks that might have occurred while paused.
         """
         self.logger.debug("App is resuming - checking for expired tasks")
-        # Check for any expired tasks that might have occurred while paused
         if hasattr(self, "task_manager"):
+            # Check for any cancelled tasks that might have occurred while paused
+            self.task_manager.check_background_cancelled_tasks()
+
+            # Update last open time
+            from src.managers.settings_manager import SettingsManager
+            settings_manager = SettingsManager()
+            settings_manager.save_last_open_time()
+
+            # Reload tasks
             start_time = time.time()
             # First reload tasks from file to ensure we have latest data
             self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
@@ -327,16 +350,17 @@ class TaskApp(App, EventDispatcher):
         """
         App is being started.
         """
-        pass
+        Clock.schedule_interval(self._check_background_cancelled_tasks, 0.2)
 
-    def on_stop(self):
+    def _check_background_cancelled_tasks(self, dt):
         """
-        App is being stopped.
-        Ensure the background service is running.
+        Check for any cancelled tasks that might have occurred while paused.
         """
-        self.logger.debug("App is stopping - ensuring background service is running")
-        start_background_service()
-        time.sleep(0.2)
+        if not self.task_manager:
+            return
+        
+        self.task_manager.check_background_cancelled_tasks()
+        Clock.unschedule(self._check_background_cancelled_tasks)
 
 
 if __name__ == "__main__":

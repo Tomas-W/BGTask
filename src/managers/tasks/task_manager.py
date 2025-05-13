@@ -9,12 +9,13 @@ from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
 from src.managers.device_manager import DM
+from src.managers.settings_manager import SettingsManager
 from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.background_service import notify_service_of_tasks_update
 from src.utils.logger import logger
 
-from src.settings import PATH, DATE, TEXT
+from src.settings import PATH, DATE
 
 
 class TaskManager(EventDispatcher):
@@ -24,7 +25,7 @@ class TaskManager(EventDispatcher):
     def __init__(self):
         super().__init__()
         self.navigation_manager = App.get_running_app().navigation_manager
-
+        self.settings_manager = SettingsManager()
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
@@ -372,6 +373,25 @@ class TaskManager(EventDispatcher):
                 self.dispatch("on_task_expired_trigger_alarm", task=task)
                 self.dispatch("on_task_expired_show_task_popup", task=task)
                 return
+    
+    def check_background_cancelled_tasks(self) -> None:
+        """
+        Check if there was a task that was cancelled via notification swipe.
+        If found, show popup and clear the setting.
+        """
+        # Get the cancelled task ID from settings
+        cancelled_task_id = self.settings_manager.get_cancelled_task_id()
+        if not cancelled_task_id:
+            return
+            
+        # Get the task
+        task = self.get_task_by_id(cancelled_task_id)
+        if task and task.expired:
+            # Show popup for this task
+            self.dispatch("on_task_expired_show_task_popup", task=task)
+        
+        # Clear the setting
+        self.settings_manager.clear_cancelled_task_id()
 
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""
