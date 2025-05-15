@@ -8,8 +8,6 @@ from src.managers.tasks.task_manager_utils import Task
 from service.service_logger import logger
 from service.service_utils import PATH
 
-__all__ = ["ServiceAudioManager"]
-
 PythonService = autoclass("org.kivy.android.PythonService")
 
 

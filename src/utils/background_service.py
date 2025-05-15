@@ -1,8 +1,9 @@
 import os
 import time
-from service.service_utils import PATH
 
 from kivy.utils import platform
+
+from service.service_utils import PATH
 
 
 def is_service_running():

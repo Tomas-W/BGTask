@@ -4,8 +4,8 @@ import time
 from src.utils.logger import logger
 
 
-from src.settings import PLATFORM
-
+ANDROID = "android"
+WINDOWS = "Windows"
 
 class DeviceManager:
     """
@@ -21,7 +21,7 @@ class DeviceManager:
     def _device_is_android(self):
         """Returns whether the app is running on Android."""
         from kivy.utils import platform
-        return platform == PLATFORM.ANDROID
+        return platform == ANDROID
     
     def get_storage_path(self, directory):
         """Returns the app-specific storage path for the given directory."""

@@ -3,10 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any
 
-from jnius import autoclass  # type: ignore
-
-NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
-AndroidNotificationManager = autoclass("android.app.NotificationManager")
+from kivy.utils import platform
 
 
 class DateFormats:
@@ -75,41 +72,49 @@ class Paths:
     RECORDINGS_DIR: str = get_storage_path("app/src/assets/recordings")
 
 
-class NotificationChannels:
-    """Constants for notification channels"""
-    FOREGROUND: str = "foreground_channel"
-    TASKS: str = "tasks_channel"
+if platform == "android":
+    class NotificationChannels:
+        """Constants for notification channels"""
+        FOREGROUND: str = "foreground_channel"
+        TASKS: str = "tasks_channel"
 
-class NotificationPriority:
-    """Constants for notification priorities"""
-    LOW: int = NotificationCompat.PRIORITY_LOW
-    DEFAULT: int = NotificationCompat.PRIORITY_DEFAULT
-    HIGH: int = NotificationCompat.PRIORITY_HIGH
+    class NotificationPriority:
+        """Constants for notification priorities"""
+        from jnius import autoclass  # type: ignore
+        NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
+        
+        LOW: int = NotificationCompat.PRIORITY_LOW
+        DEFAULT: int = NotificationCompat.PRIORITY_DEFAULT
+        HIGH: int = NotificationCompat.PRIORITY_HIGH
 
-class NotificationImportance:
-    """Constants for notification channel importance"""
-    LOW: int = AndroidNotificationManager.IMPORTANCE_LOW
-    DEFAULT: int = AndroidNotificationManager.IMPORTANCE_DEFAULT
-    HIGH: int = AndroidNotificationManager.IMPORTANCE_HIGH
+    class NotificationImportance:
+        """Constants for notification channel importance"""
+        from jnius import autoclass  # type: ignore
+        AndroidNotificationManager = autoclass("android.app.NotificationManager")
+        
+        LOW: int = AndroidNotificationManager.IMPORTANCE_LOW
+        DEFAULT: int = AndroidNotificationManager.IMPORTANCE_DEFAULT
+        HIGH: int = AndroidNotificationManager.IMPORTANCE_HIGH
 
-class NotificationActions:
-    """Constants for notification actions"""
-    OPEN_APP: str = "open_app"
-    SNOOZE_A: str = "snooze_a"
-    SNOOZE_B: str = "snooze_b"
-    CANCEL: str = "stop"
+    class NotificationActions:
+        """Constants for notification actions"""
+        OPEN_APP: str = "open_app"
+        SNOOZE_A: str = "snooze_a"
+        SNOOZE_B: str = "snooze_b"
+        CANCEL: str = "stop"
 
-class PendingIntents:
-    """Constants for pending intents"""
-    OPEN_APP: int = 11
-    SNOOZE_A: int = 12
-    SNOOZE_B: int = 13
-    CANCEL: int = 14
+    class PendingIntents:
+        """Constants for pending intents"""
+        OPEN_APP: int = 11
+        SNOOZE_A: int = 12
+        SNOOZE_B: int = 13
+        CANCEL: int = 14
 
 
 PATH = Paths()
-CHANNEL = NotificationChannels()
-PRIORITY = NotificationPriority()
-IMPORTANCE = NotificationImportance()
-ACTION = NotificationActions()
-INTENT = PendingIntents()
+if platform == "android":
+    CHANNEL = NotificationChannels()
+    PRIORITY = NotificationPriority()
+    IMPORTANCE = NotificationImportance()
+    ACTION = NotificationActions()
+    INTENT = PendingIntents()
