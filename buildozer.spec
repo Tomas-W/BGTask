@@ -71,7 +71,7 @@ android.permissions =
     START_FOREGROUND_SERVICE_FROM_BACKGROUND
 
 # Service configuration
-services = BGTaskService:service/main.py:foreground:sticky
+services = BGTaskService:service/main.py:foreground:sticky:ongoing
 
 # Activity and runtime settings
 android.entrypoint = org.kivy.android.PythonActivity
