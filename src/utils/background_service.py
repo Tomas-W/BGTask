@@ -1,64 +1,56 @@
+import os
 import time
+from service.service_utils import PATH
 
 from kivy.utils import platform
 
 
-def is_service_running() -> bool:
-    """Check if our background service is already running"""
-    start_time = time.time()
+def is_service_running():
+    """Check if the service has written a heartbeat recently"""
     if platform != "android":
         return False
         
     try:
-        from jnius import autoclass  # type: ignore
-        Integer = autoclass("java.lang.Integer")
-        PythonService = autoclass("org.kivy.android.PythonService")
-        Context = autoclass("android.content.Context")
+        # Check if heartbeat file exists
+        if not os.path.exists(PATH.SERVICE_HEARTBEAT_FLAG):
+            return False
+            
+        # Read timestamp from file - store content first, then convert
+        with open(PATH.SERVICE_HEARTBEAT_FLAG, "r") as f:
+            content = f.read().strip()
+            
+        # Handle empty file case
+        if not content:
+            return False
+            
+        # Convert to integer after reading
+        timestamp = int(content)
         
-        # Get the service context
-        context = PythonService.mService
-        if not context:
-            return False
-            
-        # Get activity manager
-        activity_manager = context.getSystemService(Context.ACTIVITY_SERVICE)
-        if not activity_manager:
-            return False
-            
-        # Get running services
-        running_services = activity_manager.getRunningServices(Integer.MAX_VALUE)
-        if not running_services:
-            return False
-            
-        # Check if our service is in the list
-        service_name = f"{context.getPackageName()}/org.kivy.android.PythonService"
-        for service in running_services:
-            if service.service.getClassName() == service_name:
-                print(f"IS_SERVICE_RUNNING TIME: {time.time() - start_time:.4f}")
-                return True
-                
-        return False
+        # Check if heartbeat is recent (within last 60 seconds)
+        current_time = int(time.time())
+        return (current_time - timestamp) <= 120
         
     except Exception as e:
-        print(f"Error checking service status: {e}")
+        print(f"Error checking service heartbeat: {str(e)}")
         return False
+
 
 def start_background_service():
     """Start background service if not already running"""
-    start_time = time.time()
     if platform != "android":
         return None
         
     try:
         # Only start if not already running
+        from src.utils.logger import logger
         if not is_service_running():
             from android import AndroidService  # type: ignore
             service = AndroidService("BGTask Background Service", "Task expiry monitoring service")
             service.start("BGTask service started")
-            print(f"START_BACKGROUND_SERVICE TIME: {time.time() - start_time:.4f}")
+            logger.critical("Service not running - starting service")
         
         else:
-            print("Background service already running")
+            logger.critical("Service already running")
     
     except Exception as e:
         print(f"Error starting background service: {e}")

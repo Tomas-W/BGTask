@@ -4,6 +4,8 @@ import os
 from jnius import autoclass  # type: ignore
 from typing import TYPE_CHECKING
 
+from kivy.utils import platform
+
 from src.managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
@@ -22,9 +24,10 @@ Context = autoclass("android.content.Context")
 RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcessInfo")
 
 
-SERVICE_SLEEP_TIME = 0.5
-CHECK_TASK_REFRESH_TICK = 6
-FORCE_FOREGROUND_NOTIFICATION_TICK = 6
+SERVICE_SLEEP_TIME = 2                    # = 1 second
+SERVICE_HEARTBEAT_TICK = 30               # = 60 seconds
+CHECK_TASK_REFRESH_TICK = 1               # = 2 seconds
+FORCE_FOREGROUND_NOTIFICATION_TICK = 150  # = 300 seconds
 
 class ServiceManager:
     """
@@ -62,15 +65,23 @@ class ServiceManager:
         logger.debug("Starting main service loop")
         
         # Initialize settings after a small delay to ensure service context is ready
-        time.sleep(0.5)
+        time.sleep(0.3)
         self._init_settings_manager()
         
+        service_heartbeat_tick = SERVICE_HEARTBEAT_TICK - 1
         update_task_tick = 0
         notification_retry_tick = 0
         log_tick = 0
         
         while self._running:
             try:
+                # Check if service is running
+                service_heartbeat_tick += 1
+                if service_heartbeat_tick >= SERVICE_HEARTBEAT_TICK:
+                    service_heartbeat_tick = 0
+                    self.flag_service_as_running()
+
+
                 # Try to show foreground notification periodically
                 notification_retry_tick += 1
                 if notification_retry_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:
@@ -157,6 +168,24 @@ class ServiceManager:
                 time.sleep(SERVICE_SLEEP_TIME)  # Keep running even if there's an error
         
         self.audio_manager.stop_alarm_vibrate()
+    
+    def flag_service_as_running(self) -> None:
+        """Service writes current timestamp to a file periodically"""
+        if platform != "android":
+            return
+            
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(PATH.SERVICE_HEARTBEAT_FLAG), exist_ok=True)
+            # Write current timestamp
+            with open(PATH.SERVICE_HEARTBEAT_FLAG, "w") as f:
+                f.write(str(int(time.time())))
+            from src.utils.logger import logger
+            logger.debug("Service heartbeat flag written")
+        
+        except Exception as e:
+            print(f"Error writing service heartbeat: {e}")
+
     
     def force_foreground_notification_display(self) -> None:
         """Ensures the foreground notification is displayed with current Task info"""
