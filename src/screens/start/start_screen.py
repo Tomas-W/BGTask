@@ -6,6 +6,7 @@ import os
 
 from datetime import datetime, timedelta
 
+from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.relativelayout import RelativeLayout
@@ -260,16 +261,30 @@ class StartScreen(Screen):
             finish_time = time.time()
             from kivy.app import App
             app = App.get_running_app()
-            import_service_time = app.import_time
-            service_time = app.service_time
             kivy_time = app.kivy_time
             total_time = finish_time - app.starting_time
-            logger.warning(f"IMPORT SERVICE TIME: {import_service_time:.4f}")
-            logger.warning(f"RUN SERVICE TIME: {service_time:.4f}")
             logger.warning(f"KIVY TIME: {kivy_time:.4f}")
             logger.warning(f"APP FIRST FRAME TIME: {finish_time - app.start_app_time:.4f}")
             logger.warning(f"TOTAL FIRST FRAME TIME: {total_time:.4f}")\
+            
+            Clock.schedule_once(self.check_need_to_start_service, 0.1)
     
+    def check_need_to_start_service(self, dt: float) -> None:
+        """
+        Checks if the service needs to be started.
+        """
+        # Only start service if not already running
+        from kivy.utils import platform
+        if platform == "android":
+            from src.utils.background_service import is_service_running
+            if not is_service_running():
+                from src.utils.background_service import start_background_service
+                start_background_service()
+                logger.critical("Service started")
+            else:
+                logger.critical("Service already running")
+        
+        
     def navigate_to_home_screen(self, slide_direction: str):
         if not LOADED.HOME:
             from src.utils.logger import logger

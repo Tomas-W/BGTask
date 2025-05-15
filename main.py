@@ -2,16 +2,6 @@ import time
 
 starting_time = time.time()
 
-start_service_time = time.time()
-from src.utils.background_service import start_background_service
-import_time = time.time() - start_service_time
-print(f"IMPORTING SERVICE TIME: {import_time:.4f}")
-
-start_service_time = time.time()
-start_background_service()
-service_time = time.time() - start_service_time
-print(f"STARTING SERVICE TIME: {service_time:.4f}")
-
 start_kivy_time = time.time()
 from kivy.app import App
 from kivy.clock import Clock
@@ -115,8 +105,6 @@ class TaskApp(App, EventDispatcher):
         self.active_popup = None
         
         self.starting_time = starting_time
-        self.import_time = import_time
-        self.service_time = service_time
         self.kivy_time = kivy_time
         self.start_app_time = start_app_time
     
@@ -312,12 +300,6 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is stopping - saving last open time and ensuring background service")
 
         self.set_last_open_time()
-        
-        # Only start service if not already running
-        if platform == "android":
-            from src.utils.background_service import start_background_service
-            start_background_service()
-            time.sleep(0.2)
     
     def on_resume(self):
         """
