@@ -23,6 +23,8 @@ if platform != PLATFORM.ANDROID:
 
 # TODO: Trigger laarm dont change nbutton states
 
+# TODO: Fix back button in  app
+
 
 # Widgets
 # TODO: Base widgets and custom - with extra options like borders / radius / etc
