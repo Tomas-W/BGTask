@@ -138,52 +138,87 @@ class ServiceNotificationManager:
                 logger.error("No valid icon found, cannot show notification")
                 return
             
-            # Create notification builder
-            builder = NotificationBuilder(self.context, CHANNEL.FOREGROUND)
-            builder.setContentTitle(AndroidString(title))
-            builder.setContentText(AndroidString(message))
-            builder.setSmallIcon(icon_id)
-            builder.setPriority(PRIORITY.LOW)
-            builder.setOngoing(True)        # Make persistent
-            builder.setAutoCancel(False)    # Prevent auto-cancellation
-            builder.setOnlyAlertOnce(True)  # Prevent re-alerting
+            try:
+                # Create notification builder
+                builder = NotificationBuilder(self.context, CHANNEL.FOREGROUND)
+                builder.setContentTitle(AndroidString(title))
+                builder.setContentText(AndroidString(message))
+                builder.setSmallIcon(icon_id)
+                builder.setPriority(PRIORITY.LOW)
+                builder.setOngoing(True)        # Make persistent
+                builder.setAutoCancel(False)    # Prevent auto-cancellation
+                builder.setOnlyAlertOnce(True)  # Prevent re-alerting
             
-            # Add click action to open app (without canceling task)
-            app_intent = self.create_app_open_intent(is_foreground=True)
-            if app_intent:
-                builder.setContentIntent(app_intent)
+            except Exception as e:
+                logger.error(f"Error creating notification builder: {e}")
+            
+            try:
+                # Add click action to open app (without canceling task)
+                app_intent = self.create_app_open_intent(is_foreground=True)
+                if app_intent:
+                    builder.setContentIntent(app_intent)
+            
+            except Exception as e:
+                logger.error(f"Error creating app open intent: {e}")
             
             if with_buttons:
-                # Add Snooze button
-                snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
-                if snooze_intent:
-                    builder.addAction(
-                        0,  # No icon for buttons
-                        AndroidString("Snooze 1m"),
-                        snooze_intent
-                    )
+                try:
+                    # Add Snooze button
+                    snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
+                    if snooze_intent:
+                        builder.addAction(
+                            0,  # No icon for buttons
+                            AndroidString("Snooze 1m"),
+                            snooze_intent
+                        )
                 
-                # Add Cancel button
-                cancel_intent = self.create_action_intent(ACTION.CANCEL)
-                if cancel_intent:
-                    builder.addAction(
-                        0,  # No icon for buttons
-                        AndroidString("Cancel"),
-                        cancel_intent
-                    )
+                except Exception as e:
+                    logger.error(f"Error adding snooze button: {e}")
+                
+                try:
+                    # Add Cancel button
+                    cancel_intent = self.create_action_intent(ACTION.CANCEL)
+                    if cancel_intent:
+                        builder.addAction(
+                            0,  # No icon for buttons
+                                AndroidString("Cancel"),
+                                cancel_intent
+                            )
+                
+                except Exception as e:
+                    logger.error(f"Error adding cancel button: {e}" )
             
-            # Build and show notification
-            notification = builder.build()
+            
             try:
+                # Build and show notification
+                notification = builder.build()
                 self.service.startForeground(1, notification)
                 logger.debug("Showed foreground notification")
             
             except Exception as e:
-                if "ForegroundServiceStartNotAllowedException" in str(e):
-                    logger.warning("Cannot start foreground service now, will retry later")
-                    # Don't raise the exception - let the service keep running
-                else:
-                    raise  # Re-raise other exceptions
+                logger.error(f"Cannot start foreground service now, will retry later: {str(e)}")
+                # IMPORTANT: Schedule a retry with increasing backoff
+                if not hasattr(self, '_retry_count'):
+                    self._retry_count = 0
+                self._retry_count += 1
+                
+                retry_delay = min(30, 2 ** self._retry_count)  # Exponential backoff
+                
+                # Use a Handler for delayed retry
+                Handler = autoclass('android.os.Handler')
+                Runnable = autoclass('java.lang.Runnable')
+                
+                class RetryRunnable(Runnable):
+                    def __init__(self, callback):
+                        super().__init__()
+                        self.callback = callback
+                        
+                    def run(self):
+                        self.callback()
+                
+                handler = Handler()
+                handler.postDelayed(RetryRunnable(lambda: self.show_foreground_notification(title, message, with_buttons)), 
+                                   retry_delay * 1000)
         
         except Exception as e:
             logger.error(f"Error showing notification: {e}")
