@@ -4,37 +4,38 @@ import os
 from jnius import autoclass  # type: ignore
 from typing import TYPE_CHECKING
 
-from kivy.utils import platform
-
 from src.managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
 from service.service_audio_manager import ServiceAudioManager
 from service.service_logger import logger
 from service.service_task_manager import ServiceTaskManager
-from service.service_utils import ACTION, get_service_timestamp, PATH
+from service.service_utils import (ACTION, PATH,
+                                   get_service_timestamp,
+                                   validate_path)
 
 if TYPE_CHECKING:
     from service.service_notification_manager import ServiceNotificationManager
 
-PythonService = autoclass("org.kivy.android.PythonService")
-Service = autoclass("android.app.Service")
-Intent = autoclass("android.content.Intent")
 Context = autoclass("android.content.Context")
+Intent = autoclass("android.content.Intent")
+PythonService = autoclass("org.kivy.android.PythonService")
 RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcessInfo")
+Service = autoclass("android.app.Service")
 
 
-SERVICE_SLEEP_TIME = 2                    # = 1 second
-SERVICE_HEARTBEAT_TICK = 30               # = 60 seconds
-CHECK_TASK_REFRESH_TICK = 1               # = 2 seconds
-FORCE_FOREGROUND_NOTIFICATION_TICK = 150  # = 300 seconds
+SERVICE_SLEEP_TIME = 10                   # = 10 second
+SERVICE_HEARTBEAT_TICK = 6                # = 60 seconds
+FORCE_FOREGROUND_NOTIFICATION_TICK = 6    # = 60 seconds
 
 class ServiceManager:
     """
     Manages the Android background service and Task monitoring, it:
     - Monitors the current Task for expiration
-    - Handles task actions (snooze, cancel) from notifications
-    - Continuous background operation with proper resource management
+    - Sends notification and triggers alarm when Task is expired
+    - Handles Task actions (snooze, cancel) from notifications
+    - Updates foreground and Task notifications
+    - Writes timestamp to flag file periodically
     """
     def __init__(self):
         self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
@@ -44,8 +45,9 @@ class ServiceManager:
 
         # Loop variables
         self._running: bool = True
-        self._need_foreground_update: bool = True
+        self._need_foreground_notification_update: bool = True
         self._tasks_changed_flag: str = PATH.TASKS_CHANGED_FLAG
+        validate_path(self._tasks_changed_flag)
         self._in_foreground: bool = False
 
         # ActivityManager
@@ -64,130 +66,103 @@ class ServiceManager:
         """
         logger.debug("Starting main service loop")
         
-        # Initialize settings after a small delay to ensure service context is ready
+        # Make sure service context is ready
         time.sleep(0.3)
+
         self._init_settings_manager()
         
         service_heartbeat_tick = SERVICE_HEARTBEAT_TICK - 1
-        update_task_tick = 0
-        notification_retry_tick = 0
-        log_tick = 0
+        force_notification_tick = 0
         
         while self._running:
             try:
-                # Check if service is running
-                service_heartbeat_tick += 1
-                if service_heartbeat_tick >= SERVICE_HEARTBEAT_TICK:
-                    service_heartbeat_tick = 0
-                    self.flag_service_as_running()
+                # ############### ALWAYS RUNS ###############
+                self.flag_service_as_running(service_heartbeat_tick)          # 60 seconds
 
-
-                # Try to show foreground notification periodically
-                notification_retry_tick += 1
-                if notification_retry_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:
-                    notification_retry_tick = 0
-                    self.force_foreground_notification_display()
+                self.force_foreground_notification(force_notification_tick)   # 60 seconds
                 
-                # Check if app is in foreground
+                if self._need_foreground_notification_update:
+                    self.update_foreground_notification_info()                # 1 second
+                
+
+                # ############### RUNS IN FOREGROUND ###############
                 if self.is_app_in_foreground():
+
+                    # Runs only once per app foregrounded
                     if not self._in_foreground:
                         self.notification_manager.cancel_all_notifications()
                         logger.debug("Cancelled all notifications")
-                        self._in_foreground = True
-                        
-                    if self.need_tasks_update():
-                        self._refresh_active_tasks()
-                        self._need_foreground_update = True
-                        
-                    
-                    # If app is in foreground, stop alarm
-                    update_task_tick += 1
-                    if update_task_tick >= CHECK_TASK_REFRESH_TICK:
-                        update_task_tick = 0
+
                         self.audio_manager.stop_alarm_vibrate()
-                    
-                    # Update foreground notification if needed
-                    if self._need_foreground_update:
-                        self.update_foreground_notification_info()
+                        logger.debug("Stopped alarm and vibrations")
+
+                        self._in_foreground = True
                     
                     time.sleep(SERVICE_SLEEP_TIME)
+                    # Dont run Task checks in foreground
                     continue
                 
-                self._in_foreground = False
-                # Rest of the service loop (only runs when app is in background)
-                update_task_tick += 1
-                if update_task_tick >= CHECK_TASK_REFRESH_TICK:
-                    update_task_tick = 0
-                    if self.need_tasks_update():
-                        self._refresh_active_tasks()
-                        self._need_foreground_update = True
-                
-                # Check for expired Task
-                if self.service_task_manager.current_task is not None:
-                    if self.service_task_manager.is_task_expired():
-                        logger.debug("Task expired, showing notification")
-                        # If we already have an expired task, properly stop it first
-                        if self.service_task_manager.expired_task:
-                            logger.debug("Stopping previous expired task")
-                            # Stop all alarms and vibrations
-                            self.audio_manager.stop_alarm_vibrating()
-                            # Cancel notifications
-                            self.notification_manager.cancel_all_notifications()
-                            # Mark the previous expired task as cancelled
-                            self.service_task_manager.cancel_task()
-                            # Clear the expired task reference
-                            self.service_task_manager.clear_expired_task()
-                        # Handle expiration and get the expired task
-                        expired_task = self.service_task_manager.handle_expired_task()
-                        if expired_task:
-                            # Show notification for the expired task
-                            self.notification_manager.show_task_notification(
-                                "Task Expired",
-                                expired_task.message
-                            )
-                            # Trigger alarm with the expired task
-                            self.audio_manager.trigger_alarm(expired_task)
-                        # Update foreground notification
-                        self._need_foreground_update = True
-                
-                # If a Task is updated or expired, update the foreground notification
-                if self._need_foreground_update:
-                    self.update_foreground_notification_info()
-                
-                # Log service status periodically
-                log_tick += 1
-                if log_tick % 120 == 0:
-                    task = self.service_task_manager.current_task if self.service_task_manager.current_task else None
-                    task_log = task.timestamp if task else "No task"
-                    logger.debug(f"Service check for {task_log}")
+
+                # ############### RUNS IN BACKGROUND ###############
+                else:
+                    # Runs only once per app backgrounded
+                    if self._in_foreground:
+                        # If tasks have changed [found flag], update tasks
+                        if self.need_tasks_update():
+                            self._refresh_active_tasks()
+                            self._need_foreground_notification_update = True
+                    
+                    if self.service_task_manager.current_task is not None:
+                        # Task expired
+                        if self.service_task_manager.is_task_expired():       # 10 seconds
+                            logger.debug("Task expired, showing notification")
+
+                            # If unhandled expired Task, cancel it first
+                            if self.service_task_manager.expired_task:
+                                self.clean_up_previous_task()
+                            
+                            # Handle expiration and get the expired Task
+                            expired_task = self.service_task_manager.handle_expired_task()
+                            if expired_task:
+                                self.notify_user_of_expiry(expired_task)
+                            
+                            # Signal to update foreground notification
+                            self._need_foreground_notification_update = True
+                    
+                    self._in_foreground = False
                 
                 time.sleep(SERVICE_SLEEP_TIME)
                 
             except Exception as e:
                 logger.error(f"Error in service loop: {e}")
-                time.sleep(SERVICE_SLEEP_TIME)  # Keep running even if there's an error
+                time.sleep(SERVICE_SLEEP_TIME)
         
         self.audio_manager.stop_alarm_vibrate()
     
-    def flag_service_as_running(self) -> None:
+    def flag_service_as_running(self, tick: int) -> None:
         """Service writes current timestamp to a file periodically"""
-        if platform != "android":
-            return
-            
+        if tick >= SERVICE_HEARTBEAT_TICK:
+            tick = 0
+            self._flag_service_as_running()
+    
+    def _flag_service_as_running(self) -> None:
+        """Service writes current timestamp to a file periodically"""
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(PATH.SERVICE_HEARTBEAT_FLAG), exist_ok=True)
             # Write current timestamp
             with open(PATH.SERVICE_HEARTBEAT_FLAG, "w") as f:
                 f.write(str(int(time.time())))
-            from src.utils.logger import logger
             logger.debug("Service heartbeat flag written")
         
         except Exception as e:
             print(f"Error writing service heartbeat: {e}")
 
-    
-    def force_foreground_notification_display(self) -> None:
+    def force_foreground_notification(self, tick: int) -> None:
+        """Ensures the foreground notification is displayed with current Task info"""
+        if tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:
+            tick = 0
+            self._force_foreground_notification()
+
+    def _force_foreground_notification(self) -> None:
         """Ensures the foreground notification is displayed with current Task info"""
         if self.notification_manager and self.notification_manager._has_foreground_notification():
             return
@@ -242,6 +217,18 @@ class ServiceManager:
             return True
         
         return False
+
+    def clean_up_previous_task(self) -> None:
+        """Cleans up the previous Task's alarm and notifications"""
+        # Stop all alarms and vibrations
+        self.audio_manager.stop_alarm_vibrating()
+        # Cancel notifications
+        self.notification_manager.cancel_all_notifications()
+        # Mark previous expired Task as cancelled
+        self.service_task_manager.cancel_task()
+        # Clear expired Task references
+        self.service_task_manager.clear_expired_task()
+        logger.debug("Cleaned up previous expired task")
     
     def _task_flag_exists(self) -> bool:
         return os.path.exists(self._tasks_changed_flag)
@@ -264,7 +251,7 @@ class ServiceManager:
                 (new_task.task_id != self.service_task_manager.current_task.task_id))):
             logger.debug(f"Found new task {new_task.task_id}, updating current task")
             self.service_task_manager.current_task = new_task
-            self._need_foreground_update = True
+            self._need_foreground_notification_update = True
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""
@@ -308,7 +295,7 @@ class ServiceManager:
         if action.endswith(ACTION.SNOOZE_A):
             self.service_task_manager.snooze_task(action)
             self.audio_manager.stop_alarm_vibrate()
-            self._need_foreground_update = True
+            self._need_foreground_notification_update = True
             return Service.START_REDELIVER_INTENT
         
         # Clicked Cancel button or swiped notification
@@ -323,14 +310,14 @@ class ServiceManager:
                     logger.error("Settings manager not initialized, cannot store cancelled task ID")
             
             self.service_task_manager.cancel_task()
-            self._need_foreground_update = True
+            self._need_foreground_notification_update = True
             self.audio_manager.stop_alarm_vibrate()
             return Service.START_STICKY
         
         # Clicked notification to open app
         elif action.endswith(ACTION.OPEN_APP):
             self.service_task_manager.cancel_task()
-            self._need_foreground_update = True
+            self._need_foreground_notification_update = True
             self.audio_manager.stop_alarm_vibrate()
             self._open_app()
         
@@ -371,7 +358,7 @@ class ServiceManager:
                 with_buttons=False
             )
         
-        self._need_foreground_update = False
+        self._need_foreground_notification_update = False
 
     def _init_activity_manager(self) -> None:
         """Initialize ActivityManager and get package name"""

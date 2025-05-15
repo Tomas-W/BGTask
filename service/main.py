@@ -16,10 +16,6 @@ receiver: BroadcastReceiver | None = None
 
 def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
     """Creates a broadcast receiver for handling notification actions"""
-    if not service_manager:
-        logger.error("No service manager provided")
-        return None
-        
     try:
         context = PythonService.mService.getApplicationContext()
         if not context:

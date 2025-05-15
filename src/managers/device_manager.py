@@ -48,21 +48,21 @@ class DeviceManager:
                 logger.error(f"OS error while creating {dir_path}: {e}")
                 return False
 
-    def validate_file(self, file_path: str) -> bool:
+    def validate_file(self, path: str) -> bool:
         """Validate and create a file if it doesn't exist."""
-        if not os.path.isfile(file_path):
+        if not os.path.isfile(path):
             try:
-                with open(file_path, "r") as f:
+                with open(path, "r") as f:
                     return True
 
             except PermissionError:
-                logger.error(f"Permission denied: Cannot create file {file_path}. Check app permissions.")
+                logger.error(f"Permission denied: Cannot create file {path}. Check app permissions.")
                 return False
             except FileNotFoundError:
-                logger.error(f"Invalid path: {file_path} does not exist.")
+                logger.error(f"Invalid path: {path} does not exist.")
                 return False
             except OSError as e:
-                logger.error(f"OS error while creating {file_path}: {e}")
+                logger.error(f"OS error while creating {path}: {e}")
                 return False
 
     def check_recording_permission(self) -> bool:

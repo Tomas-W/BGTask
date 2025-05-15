@@ -5,6 +5,8 @@ from typing import Any
 
 from kivy.utils import platform
 
+from service.service_logger import logger
+
 
 class DateFormats:
     """Date and time format patterns used throughout the application."""
@@ -59,6 +61,21 @@ def get_storage_path(path: str) -> str:
     """Returns the storage path"""
     app_dir = os.environ.get("ANDROID_PRIVATE", "")
     return os.path.join(app_dir, path)
+
+
+def validate_path(path: str) -> None:
+    """Validate and create a file if it doesn't exist."""
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        if not os.path.exists(path):
+            with open(path, "w") as f:
+                pass
+
+    except PermissionError:
+        logger.error(f"Permission denied: Cannot create file {path}. Check app permissions.")
+    except Exception as e:
+        logger.error(f"Error while creating {path}: {e}")
 
 
 class Paths:
