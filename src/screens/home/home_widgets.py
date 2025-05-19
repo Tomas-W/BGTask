@@ -241,6 +241,37 @@ class TaskIcon(Image):
             opacity=1,
             **kwargs
         )
+        # Try prevent black img
+        self._source = source
+        self._app = None
+    
+    # Try prevent black img
+    def on_parent(self, *args):
+        """Called when widget is added to parent"""
+        if self.parent and not self._app:
+            self._app = App.get_running_app()
+            if self._app:
+                self._app.bind(on_resume=self._on_app_resume)
+    
+    # Try prevent black img
+    def _on_app_resume(self, *args):
+        """Called when app resumes from background"""
+        if self._source:
+            # Force reload the image
+            self.source = ""  # Clear current source
+            Clock.schedule_once(lambda dt: self._reload_image(), 0.1)
+
+    # Try prevent black img
+    def _reload_image(self):
+        """Reload the image from source"""
+        if self._source:
+            self.source = self._source
+
+    # Try prevent black img
+    def __del__(self):
+        """Clean up bindings when widget is destroyed"""
+        if self._app:
+            self._app.unbind(on_resume=self._on_app_resume)
 
     def set_opacity(self, opacity: int):
         """Set the opacity of the icon (0 for hidden, 1 for visible)"""
