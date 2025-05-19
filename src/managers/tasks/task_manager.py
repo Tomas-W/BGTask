@@ -33,6 +33,7 @@ class TaskManager(EventDispatcher):
         self.register_event_type("on_tasks_expired_set_date_expired")
         self.register_event_type("on_task_expired_trigger_alarm")
         self.register_event_type("on_task_expired_show_task_popup")
+        self.register_event_type("on_task_cancelled_stop_alarm")
 
         # File path
         self.task_file_path: str = DM.get_storage_path(PATH.TASK_FILE)
@@ -50,6 +51,7 @@ class TaskManager(EventDispatcher):
         # Editing Task attributes
         self.task_to_edit: Task | None = None
 
+        self._checked_background_cancelled_tasks: bool = False
         Clock.schedule_interval(self.check_task_expired, 1)
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
@@ -354,47 +356,48 @@ class TaskManager(EventDispatcher):
         Check if any Tasks are expired and trigger the alarm if so.
         Compares rounded timestamps (to the minute) for consistent timing.
         """
+        if not self._checked_background_cancelled_tasks:
+            self.check_background_cancelled_tasks()
+            self._checked_background_cancelled_tasks = True
+            return
+
         if not self.sorted_active_tasks:
             return
-            
+        
         current_tasks = self.sorted_active_tasks[0]["tasks"]
         if not current_tasks:
             return
-            
-        # Round current time to nearest minute for comparison
-        now = datetime.now().replace(second=0, microsecond=0)
+        
+        now = datetime.now()
         for task in current_tasks:
             if task.timestamp <= now and not task.expired:
                 task.expired = True
                 self.set_expired_tasksbydate()
                 self.save_tasks_to_json()
-                
-                # Trigger alarm and popup
                 self.dispatch("on_task_expired_trigger_alarm", task=task)
+                # Trigger popup
                 self.dispatch("on_task_expired_show_task_popup", task=task)
                 return
     
-    def check_background_cancelled_tasks(self) -> None:
+    def check_background_cancelled_tasks(self, *args, **kwargs) -> None:
         """
-        Check if there was a task that was cancelled via notification swipe.
-        If found, show popup and clear the setting.
+        Check if there were tasks that were cancelled via notification.
+        Handles both alarm cancellation and popup display.
         """
+        logger.critical("Checking for background cancelled tasks")
         if not DM.is_android:
             return
         
-        # Get the cancelled task ID from settings
+        # If user interacted through notification, stop alarm and show popup
         cancelled_task_id = self.settings_manager.get_cancelled_task_id()
-        if not cancelled_task_id:
-            return
+        if cancelled_task_id:
+            task = self.get_task_by_id(cancelled_task_id)
+            logger.critical(f"Found task: {task.task_id if task else None}")
+            if task:
+                self.dispatch("on_task_cancelled_stop_alarm")
+                self.dispatch("on_task_expired_show_task_popup", task=task)
             
-        # Get the task
-        task = self.get_task_by_id(cancelled_task_id)
-        if task and task.expired:
-            # Show popup for this task
-            self.dispatch("on_task_expired_show_task_popup", task=task)
-        
-        # Clear the setting
-        self.settings_manager.clear_cancelled_task_id()
+            Clock.schedule_once(lambda dt: self.settings_manager.clear_cancelled_task_id(), 5)
 
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""
@@ -418,4 +421,8 @@ class TaskManager(EventDispatcher):
 
     def on_task_expired_show_task_popup(self, *args, **kwargs):
         """Default handler for on_task_expired_show_task_popup event"""
+        pass
+
+    def on_task_cancelled_stop_alarm(self, *args, **kwargs):
+        """Default handler for on_task_cancelled_stop_alarm event"""
         pass

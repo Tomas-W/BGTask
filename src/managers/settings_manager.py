@@ -1,4 +1,5 @@
 import time
+import os
 
 from datetime import datetime
 
@@ -7,6 +8,10 @@ try:
 except ImportError:
     pass
 
+from src.managers.device_manager import DM
+
+from src.utils.logger import logger
+
 
 class SettingsManager:
     """Manages app settings with simple, type-safe methods"""
@@ -14,6 +19,9 @@ class SettingsManager:
         self.context = None
         self.prefs = None
         self._init_context(max_retries, retry_delay)
+
+        self.cancelled_task_path = DM.get_storage_path("cancelled_task_id.txt")
+        # DM.validate_file(self.cancelled_task_path)
         
         if not self.context:
             from src.utils.logger import logger
@@ -53,7 +61,8 @@ class SettingsManager:
     
     # Simple, type-specific methods that are easy to use and extend
     def set_string(self, key: str, value: str) -> None:
-        self._get_editor().putString(key, value).apply()
+        """Set a string value with synchronous commit"""
+        self._get_editor().putString(key, value).commit()  # Use commit() instead of apply()
     
     def get_string(self, key: str, default: str = "") -> str:
         return self.prefs.getString(key, default)
@@ -69,37 +78,37 @@ class SettingsManager:
     
     def get_int(self, key: str, default: int = 0) -> int:
         return self.prefs.getInt(key, default)
-    
-    # Your specific methods using the above
-    def save_last_open_time(self) -> None:
-        """Save the current timestamp as the last time the app was open"""
-        current_time = str(int(datetime.now().timestamp() * 1000))  # milliseconds as string
-        self.set_string("last_open_time", current_time)
 
-    def get_last_open_time(self) -> int:
-        """Get the timestamp of when the app was last open in milliseconds"""
-        try:
-            return int(self.get_string("last_open_time", "0"))  # Convert string back to int
-        except ValueError:
-            return 0  # Default to 0 if conversion fails
-
-    def did_task_expire_after_last_open(self, task_timestamp: datetime) -> bool:
-        """Check if a task expired after the last time the app was open"""
-        try:
-            last_open = int(self.get_string("last_open_time", "0")) / 1000  # Convert to seconds
-            task_time = task_timestamp.timestamp()
-            return task_time > last_open
-        except ValueError:
-            return False  # If we can't parse the timestamp, assume task didn't expire
-    
     def set_cancelled_task_id(self, task_id: str) -> None:
-        """Store the ID of a task that was cancelled via notification swipe"""
-        self.set_string("cancelled_task_id", task_id)
-    
+        """Store the ID of a task that was cancelled via notification swipe/cancel button"""
+        logger.critical(f"Setting cancelled task ID: {task_id}")
+        try:
+            with open(self.cancelled_task_path, "w") as f:
+                f.write(task_id)
+            logger.critical(f"Wrote cancelled task ID to file: {task_id}")
+        
+        except Exception as e:
+            logger.error(f"Error writing cancelled task ID to file: {e}")
+
     def get_cancelled_task_id(self) -> str:
-        """Get the ID of a task that was cancelled via notification swipe"""
-        return self.get_string("cancelled_task_id", "")
-    
-    def clear_cancelled_task_id(self) -> None:
-        """Clear the cancelled task ID after handling it"""
-        self.set_string("cancelled_task_id", "")
+        """Get the ID of a task that was cancelled via notification swipe/cancel button"""
+        try:
+            if os.path.exists(self.cancelled_task_path):
+                with open(self.cancelled_task_path, "r") as f:
+                    task_id = f.read().strip()
+                logger.critical(f"Read cancelled task ID from file: {task_id}")
+                return task_id
+        
+        except Exception as e:
+            logger.error(f"Error reading cancelled task ID from file: {e}")
+        return ""
+
+    def clear_cancelled_task_id(self, *args, **kwargs) -> None:
+        """Clear the cancelled task ID after handling"""
+        try:
+            if os.path.exists(self.cancelled_task_path):
+                os.remove(self.cancelled_task_path)
+                logger.critical("Removed cancelled task ID file")
+        
+        except Exception as e:
+            logger.error(f"Error removing cancelled task ID file: {e}")

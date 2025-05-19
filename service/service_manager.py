@@ -376,11 +376,11 @@ class ServiceManager:
         # Clicked Cancel button or swiped notification
         elif action.endswith(ACTION.CANCEL):
             # Store the task ID if we have an expired task
-            # So in-app popup can be shown on app open
             if self.service_task_manager.expired_task:
-                logger.debug(f"Storing cancelled task ID: {self.service_task_manager.expired_task.task_id}")
+                task_id = self.service_task_manager.expired_task.task_id
                 if self.settings_manager:
-                    self.settings_manager.set_cancelled_task_id(self.service_task_manager.expired_task.task_id)
+                    # Notify app to stop alarm and show popup
+                    self.settings_manager.set_cancelled_task_id(task_id)
                 else:
                     logger.error("Settings manager not initialized, cannot store cancelled task ID")
             
@@ -391,6 +391,16 @@ class ServiceManager:
         
         # Clicked notification to open app
         elif action.endswith(ACTION.OPEN_APP):
+            if self.service_task_manager.expired_task:
+                task_id = self.service_task_manager.expired_task.task_id
+                logger.debug(f"Storing cancelled task ID: {task_id}")
+                
+                if self.settings_manager:
+                    # Notify app to stop alarm and show popup
+                    self.settings_manager.set_cancelled_task_id(task_id)
+                else:
+                    logger.error("Settings manager not initialized, cannot store cancelled task ID")
+            
             self.service_task_manager.cancel_task()
             self._need_foreground_notification_update = True
             self.audio_manager.stop_alarm_vibrate()
