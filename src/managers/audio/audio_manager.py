@@ -2,8 +2,10 @@ import os
 
 from kivy.app import App
 from kivy.clock import Clock
+
 from src.managers.device_manager import DM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
+from src.managers.settings_manager import SettingsManager
 
 from src.utils.logger import logger
 
@@ -32,6 +34,9 @@ class AudioManager(AudioManagerUtils):
         
         app = App.get_running_app()
         app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
+        app.bind(on_resume=self.stop_alarm)
+
+        self.settings_manager = SettingsManager()
 
         self.alarm_is_triggered: bool = False
         self.keep_alarming: bool | None = None
@@ -55,17 +60,27 @@ class AudioManager(AudioManagerUtils):
         self.is_recording: bool = False
         self.has_recording_permission: bool = DM.check_recording_permission()
     
+    def _user_canceled_alarm(self):
+        """Returns True if user stopped the alarm through notification."""
+        cancelled_task_id = self.settings_manager.get_cancelled_task_id()
+        if not cancelled_task_id:
+            return False
+        
+        self.settings_manager.clear_cancelled_task_id()
+        return True
+    
     def trigger_alarm(self, *args, **kwargs):
         """
         Trigger the alarm for the given task.
         Handles audio playback and vibration if enabled.
         """
-        if 1 == 1:
-            return
-        
         task = kwargs.get("task")
         if not task:
             logger.error("No task provided to trigger_alarm")
+            return False
+        
+        if self._user_canceled_alarm():
+            logger.info("No alarm triggered - user canceled through notification")
             return False
         
         if not task.alarm_name:
@@ -228,6 +243,13 @@ class AudioManager(AudioManagerUtils):
             logger.error(f"Error playing alarm: {e}")
             return False
 
+    def stop_alarm(self):
+        """Stop the alarm and reset alarm state."""
+        self.keep_alarming = False
+        self.stop_playing_audio()
+        self.current_alarm_path = None
+        self.alarm_is_triggered = False
+    
     def stop_playing_audio(self) -> bool:
         """
         Stops any currently playing audio.
