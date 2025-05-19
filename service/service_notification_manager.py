@@ -254,8 +254,8 @@ class ServiceNotificationManager:
             if delete_intent:
                 builder.setDeleteIntent(delete_intent)
             
-            # Add click action to open app
-            app_intent = self.create_app_open_intent()
+            # Add click action to open app via broadcast
+            app_intent = self.create_action_intent(ACTION.OPEN_APP)
             if app_intent:
                 builder.setContentIntent(app_intent)
             
