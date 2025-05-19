@@ -68,7 +68,8 @@ android.permissions =
     RECEIVE_BOOT_COMPLETED,
     WAKE_LOCK,
     POST_NOTIFICATIONS,
-    START_FOREGROUND_SERVICE_FROM_BACKGROUND
+    START_FOREGROUND_SERVICE_FROM_BACKGROUND,
+    USE_FULL_SCREEN_INTENT
 
 # Service configuration
 services = BGTaskService:service/main.py:foreground:sticky:ongoing

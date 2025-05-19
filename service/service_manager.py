@@ -29,7 +29,7 @@ SERVICE_HEARTBEAT_TICK = 6               # = 60 seconds
 FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
 TASK_EXPIRED_CHECK_TICK = 1              # = 10 seconds
 LOOP_SYNC_TICK = 3600                    # = 1 hour
-LOOP_DEVIATION = 4                       # = 4 seconds
+MAX_LOOP_DEVIATION = 4                       # = 4 seconds
 
 
 class ServiceManager:
@@ -184,7 +184,7 @@ class ServiceManager:
             current_seconds = time.localtime().tm_sec
             seconds_from_boundary = current_seconds % 10
             
-            if seconds_from_boundary > LOOP_DEVIATION:
+            if seconds_from_boundary > MAX_LOOP_DEVIATION:
                 seconds_to_wait = ((current_seconds + 9) // 10 * 10 + 1) - current_seconds
                 logger.debug(f"Loop drift detected: {seconds_from_boundary}s from boundary. "
                             f"Resynchronizing: waiting {seconds_to_wait} seconds")
@@ -326,7 +326,7 @@ class ServiceManager:
         except Exception as e:
             logger.error(f"Error removing tasks flag file: {e}")
     
-    def is_task_expired(self, tick: int) -> bool:
+    def is_task_expired(self) -> bool:
         """Returns True if the current Task is expired"""
         if self.task_expired_tick >= TASK_EXPIRED_CHECK_TICK:
             self.task_expired_tick = 0

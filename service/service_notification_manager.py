@@ -12,7 +12,9 @@ Context = autoclass("android.content.Context")
 Intent = autoclass("android.content.Intent")
 NotificationBuilder = autoclass("androidx.core.app.NotificationCompat$Builder")
 NotificationChannel = autoclass("android.app.NotificationChannel")
+NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
 PendingIntent = autoclass("android.app.PendingIntent")
+PowerManager = autoclass("android.os.PowerManager")
 
 
 class ServiceNotificationManager:
@@ -236,8 +238,16 @@ class ServiceNotificationManager:
             builder.setContentTitle(AndroidString(title))
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
-            builder.setPriority(PRIORITY.HIGH)
+            
+            # Set maximum priority and visibility
+            builder.setPriority(PRIORITY.MAX)  # Changed from HIGH to MAX
+            builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  # Show on lock screen
             builder.setAutoCancel(True)  # Allow swiping to cancel
+            
+            # Add full screen intent to wake up screen
+            full_screen_intent = self.create_app_open_intent()
+            if full_screen_intent:
+                builder.setFullScreenIntent(full_screen_intent, True)
             
             # Add delete intent to cancel task when notification is swiped
             delete_intent = self.create_action_intent(ACTION.CANCEL)
@@ -273,6 +283,18 @@ class ServiceNotificationManager:
             # Add to active notifications set
             self.active_notification_ids.add(self.current_notification_id)
             logger.debug(f"Showed task notification with ID: {self.current_notification_id}")
+            
+            # Wake up screen if locked
+            try:
+                power_manager = self.context.getSystemService(Context.POWER_SERVICE)
+                wake_lock = power_manager.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "BGTask::TaskNotificationWakeLock"
+                )
+                wake_lock.acquire(1000)  # Wake for 1 second
+                wake_lock.release()
+            except Exception as e:
+                logger.error(f"Error waking up screen: {e}")
         
         except Exception as e:
             logger.error(f"Error showing task notification: {e}")

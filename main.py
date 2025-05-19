@@ -299,7 +299,7 @@ class TaskApp(App, EventDispatcher):
         App is being stopped.
         Save last open time and ensure the background service is running.
         """
-        self.logger.debug("App is stopping - saving last open time and ensuring background service")
+        self.logger.debug("App is stopping - saving last open for background service")
 
         self.set_last_open_time()
     
@@ -328,9 +328,10 @@ class TaskApp(App, EventDispatcher):
             self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
     
     def set_last_open_time(self):
-        from src.managers.settings_manager import SettingsManager
-        settings_manager = SettingsManager()
-        settings_manager.save_last_open_time()
+        if platform == "android":
+            from src.managers.settings_manager import SettingsManager
+            settings_manager = SettingsManager()
+            settings_manager.save_last_open_time()
 
     def on_start(self):
         """
