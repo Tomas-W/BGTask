@@ -152,7 +152,7 @@ class TaskPopup(BasePopup):
         self.stop_alarm = CancelButton(text="Stop", width=2)
         self.button_row.add_widget(self.stop_alarm)
         # Snooze button
-        self.snooze_alarm = ConfirmButton(text="Snooze", width=2)
+        self.snooze_alarm = ConfirmButton(text="Snooze 1m", width=2)
         self.button_row.add_widget(self.snooze_alarm)
         # Add to layout
         self.content_layout.add_widget(self.button_row)
@@ -409,7 +409,6 @@ class PopupManager:
         from kivy.app import App
         app = App.get_running_app()
         self.task_manager = app.task_manager
-        self.audio_manager = app.audio_manager
         self.task_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
         
         total_time = time.time() - start_time
@@ -427,26 +426,37 @@ class PopupManager:
             logger.error("No task provided to _handle_task_popup")
             return
         
-        def stop_alarm(*args):
-            """Stop the alarm and reset alarm state."""
-            self.audio_manager.keep_alarming = False
-            self.audio_manager.stop_playing_audio()
-            self.audio_manager.current_alarm_path = None
-            self.audio_manager.alarm_is_triggered = False
-        
-        def snooze_alarm(*args):
-            """Stop current alarm and trigger task manager snooze."""
-            stop_alarm()
-            pass
-        
         # Update popup callbacks
         self.task.update_callbacks(
-            on_confirm=snooze_alarm,
-            on_cancel=stop_alarm
+            on_confirm=lambda: self._snooze_alarm(task.task_id),
+            on_cancel=lambda: self._stop_alarm()
         )
         
         # Show the popup
         self.show_task_popup(task=task)
+    
+    def _stop_alarm(self):
+        """Stop the alarm and mark task as expired"""
+        from kivy.app import App
+        from src.utils.background_service import notify_service_of_tasks_update
+        app = App.get_running_app()
+        self.audio_manager = app.audio_manager
+        self.task_manager = app.task_manager
+        
+        # Get the current task and mark it as expired
+        if self.task_manager.current_task:
+            self.task_manager.current_task.expired = True
+            self.task_manager._save_tasks_to_json()
+        
+        self.audio_manager.stop_alarm()
+        notify_service_of_tasks_update()
+    
+    def _snooze_alarm(self, task_id: str):
+        """Snooze the alarm"""
+        from kivy.app import App
+        app = App.get_running_app()
+        self.task_manager = app.task_manager
+        self.task_manager.snooze_task(task_id)
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""
@@ -513,6 +523,7 @@ class PopupManager:
         - StopButton and SnoozeButton
         """
         task = kwargs.get("task") if "task" in kwargs else args[-1]
+        logger.critical(f"show_task_popup popup for task: {task}")
         
         def show_popup(dt):
             self.task.task_time.text = task.timestamp.strftime(DATE.TASK_TIME)
