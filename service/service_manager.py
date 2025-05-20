@@ -331,6 +331,9 @@ class ServiceManager:
                   new_task.snooze_time != self.service_task_manager.current_task.snooze_time):
                 # Same task but content changed, so we should update
                 should_update = True
+        elif self.service_task_manager.current_task:  # <-- Add this condition
+            # We had a task before but now we have none, so we should update
+            should_update = True
         
         if should_update:
             logger.debug(f"Updating current task to: {new_task.task_id if new_task else None}")
