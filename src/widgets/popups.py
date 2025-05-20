@@ -429,13 +429,13 @@ class PopupManager:
         # Update popup callbacks
         self.task.update_callbacks(
             on_confirm=lambda: self._snooze_alarm(task.task_id),
-            on_cancel=lambda: self._stop_alarm()
+            on_cancel=lambda: self._stop_alarm(task.task_id)
         )
         
         # Show the popup
         self.show_task_popup(task=task)
     
-    def _stop_alarm(self):
+    def _stop_alarm(self, task_id: str):
         """Stop the alarm and mark task as expired"""
         from kivy.app import App
         from src.utils.background_service import notify_service_of_tasks_update
@@ -443,11 +443,9 @@ class PopupManager:
         self.audio_manager = app.audio_manager
         self.task_manager = app.task_manager
         
-        # Get the current task and mark it as expired
-        if self.task_manager.current_task:
-            self.task_manager.current_task.expired = True
-            self.task_manager._save_tasks_to_json()
-        
+        task = self.task_manager.get_task_by_id(task_id)
+        task.expired = True
+        self.task_manager._save_tasks_to_json()
         self.audio_manager.stop_alarm()
         notify_service_of_tasks_update()
     
