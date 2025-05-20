@@ -23,31 +23,21 @@ if platform != PLATFORM.ANDROID:
 
 # TODO: Trigger laarm dont change nbutton states
 
-# TODO: Fix back button in  app
-
 
 # Widgets
 # TODO: Base widgets and custom - with extra options like borders / radius / etc
 
 
 # Popups
-# TODO: Fix popup inits - no params
 # TODO: Load popups background & connect later
 
 
 # TaskManager
-# TODO: Expired check only today
-# TODO: Check every minute for expired tasks and update Task
-# TODO: Set first expiring time and check at that time
-# TODO: Make all Tasks have a rounded timestamp
-# TODO: Afk for alarm popup
 
 
 # StartScreen
 # TODO: Refactor StartScreen / Layout / Widgets
-# TODO: When no tasks, edit message for screenshot
 # TODO: Smart loading widgets
-# TODO: Rework screenshot - storage paths
 
 
 # BaseScreen
@@ -56,35 +46,29 @@ if platform != PLATFORM.ANDROID:
 
 # HomeScreen
 # TODO: Smart rendering widgets
-# TODO: Hide edit/delete when not in edit mode in on_enter on HomeScreen
 # TODO: Create generic popup for errors
-# TODO: Only show tasks/edit/delete if visible
-# TODO: Save scroll value when going to new task screen
 # TODO: Floating Day label if many/long tasks
-# TODO: Swipe left/right to go to prev/next day
 # TODO: Add year to Tasks header when in next year
 
 
 # NewTaskScreen
-# TODO: Delete alarm button on NewTask screen
 # TODO: Autofocus on input field when field error
 
 
 # SelectDateScreen
 # TODO: Optimize layout / widgets
-# TODO: Circle today
+# TODO: Wider input field for better selecting
+# TODO: Block dates in past
 
 # SelectAlarmScreen
-# TODO: Fix alarm name taken filename
-# TODO: new name = old name -> continue dont rename
+# TODO: Rename o existing name -> error popup
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
-# TODO: Implement alarm before task end
 # TODO: Repeat alarm
 
 
 # SavedAlarmScreen
-# TODO: Limit alarm name length
+
 
 
 # General
@@ -93,6 +77,11 @@ if platform != PLATFORM.ANDROID:
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
 # TODO: Look at caching
+# TODO: Fix black alarm/vibrate icons for Tasks [TRYING]
+# TODO: Slow L&R swiping for screens
+
+# Service
+
 
 start_app_time = time.time()
 
@@ -188,7 +177,7 @@ class TaskApp(App, EventDispatcher):
         # TaskManager
         start_time = time.time()
         from src.managers.tasks.task_manager import TaskManager
-        self.task_manager = TaskManager() 
+        self.task_manager = TaskManager()
         LOADED.TASK_MANAGER = True
         self.logger.critical(f"Loading TaskManager time: {time.time() - start_time:.4f}")
     
@@ -292,6 +281,7 @@ class TaskApp(App, EventDispatcher):
         Creates a flag file to indicate Tasks need updating in the service.
         """
         self.logger.debug("App is pausing")
+        self.task_manager._checked_background_cancelled_tasks = False
         return True
     
     def on_stop(self):
@@ -300,9 +290,7 @@ class TaskApp(App, EventDispatcher):
         Save last open time and ensure the background service is running.
         """
         self.logger.debug("App is stopping - saving last open for background service")
-
-        self.set_last_open_time()
-    
+        
     def on_resume(self):
         """
         App is resumed from a paused state.
@@ -310,13 +298,7 @@ class TaskApp(App, EventDispatcher):
         """
         self.logger.debug("App is resuming - checking for expired tasks")
 
-        self.set_last_open_time()
-
         if hasattr(self, "task_manager"):
-            if platform == "android":
-                # Check for any cancelled Tasks that might have occurred while paused
-                self.task_manager.check_background_cancelled_tasks()
-
             # Reload tasks
             start_time = time.time()
             # First reload tasks from file to ensure we have latest data
@@ -327,17 +309,11 @@ class TaskApp(App, EventDispatcher):
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
             self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
     
-    def set_last_open_time(self):
-        if platform == "android":
-            from src.managers.settings_manager import SettingsManager
-            settings_manager = SettingsManager()
-            settings_manager.save_last_open_time()
-
     def on_start(self):
         """
         App is being started.
         """
-        Clock.schedule_interval(self._check_background_cancelled_tasks, 0.2)
+        print("on_start")
 
     def _check_background_cancelled_tasks(self, dt):
         """
