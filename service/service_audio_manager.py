@@ -81,7 +81,7 @@ class ServiceAudioManager:
         
         while not self._alarm_stop_event.is_set() and self.task and self.task.keep_alarming:
             try:
-                # Get audio path if not already set
+                # Get audio path
                 if not path:
                     path = self.get_audio_path(self.task.alarm_name)
                     if not path:
@@ -119,7 +119,7 @@ class ServiceAudioManager:
     
     def stop_alarm_vibrate(self, *args: Any, **kwargs: Any) -> None:
         """Stop both alarm and vibrate if they are running"""
-        # Stop each independently if running
+        # Stop each independently
         self._stop_alarm_loop()
         self._stop_vibrate_loop()
         

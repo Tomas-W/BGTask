@@ -199,7 +199,7 @@ class ServiceNotificationManager:
             
             except Exception as e:
                 logger.error(f"Cannot start foreground service now, will retry later: {str(e)}")
-                # IMPORTANT: Schedule a retry with increasing backoff
+                # Schedule a retry with increasing backoff
                 if not hasattr(self, '_retry_count'):
                     self._retry_count = 0
                 self._retry_count += 1
@@ -240,9 +240,9 @@ class ServiceNotificationManager:
             builder.setSmallIcon(icon_id)
             
             # Set maximum priority and visibility
-            builder.setPriority(PRIORITY.MAX)  # Changed from HIGH to MAX
+            builder.setPriority(PRIORITY.MAX)
             builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  # Show on lock screen
-            builder.setAutoCancel(True)  # Allow swiping to cancel
+            builder.setAutoCancel(True)
             
             # Add full screen intent to wake up screen
             full_screen_intent = self.create_app_open_intent()

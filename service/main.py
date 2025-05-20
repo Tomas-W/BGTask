@@ -66,7 +66,11 @@ def start_broadcast_receiver(receiver: Any) -> None:
 
 
 def on_start_command(intent: Any, flags: int, start_id: int) -> int:
-    """Android service onStartCommand callback"""
+    """
+    Service onStartCommand callback.
+    Enables auto-restart, initializes components,
+    and shows foreground notification.
+    """
     global service_manager, receiver
     
     logger.debug(f"Service onStartCommand: flags={flags}, startId={start_id}")
@@ -79,15 +83,14 @@ def on_start_command(intent: Any, flags: int, start_id: int) -> int:
             
         PythonService.mService.setAutoRestartService(True)
         
-        # Initialize service components if not already running
+        # Initialize service components
         if service_manager is None:
             try:
                 service_manager = ServiceManager()
                 service_manager._init_notification_manager()
                 
-                # Show foreground notification immediately
+                # Show foreground notification
                 service_manager.update_foreground_notification_info()
-                
                 # Set up broadcast receiver
                 receiver = create_broadcast_receiver(service_manager)
                 if receiver:
@@ -116,7 +119,11 @@ def on_start_command(intent: Any, flags: int, start_id: int) -> int:
 
 
 def on_destroy() -> None:
-    """Android service onDestroy callback"""
+    """
+    Service onDestroy callback.
+    Cleans up receiver, stops alarm vibrate,
+    and stops the service.
+    """
     global service_manager, receiver
     
     logger.debug("Service onDestroy called")
