@@ -1,7 +1,7 @@
 import uuid
 from functools import lru_cache
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class DateFormats:
@@ -99,15 +99,15 @@ class Task:
     @lru_cache(maxsize=32)
     def get_date_str(self) -> str:
         """Get formatted date string [Day DD Month]."""
-        return Task.to_date_str(self.timestamp)
+        return Task.to_date_str(self.timestamp + timedelta(seconds=self.snooze_time))
     
     def get_time_str(self) -> str:
         """Get formatted time string [HH:MM]."""
-        return Task.to_time_str(self.timestamp)
+        return Task.to_time_str(self.timestamp + timedelta(seconds=self.snooze_time))
     
     def get_date_key(self) -> str:
         """
         Used by TaskManager to group Tasks by date and save to JSON as key.
         Format: YYYY-MM-DD
         """
-        return self.timestamp.date().isoformat()
+        return (self.timestamp + timedelta(seconds=self.snooze_time)).date().isoformat()

@@ -105,11 +105,13 @@ class ServiceManager:
                 self.force_foreground_notification()             # 60 seconds
                 
                 if self._need_foreground_notification_update:
-                    self.update_foreground_notification_info()   # 1 second
+                    self.update_foreground_notification_info()   # 10 seconds
                 
 
                 # ############### RUNS IN FOREGROUND ###############
                 if self.is_app_in_foreground():
+
+                    self.check_for_task_updates()                              # 10 seconds
 
                     # Runs only once per app foregrounded
                     if not self._in_foreground:
@@ -311,11 +313,27 @@ class ServiceManager:
         self.service_task_manager.active_tasks = self.service_task_manager._get_active_tasks()
         new_task = self.service_task_manager.get_current_task()
         
-        # If current Task is no longer closest, update it
-        if (new_task and 
-            ((not self.service_task_manager.current_task) or 
-                (new_task.task_id != self.service_task_manager.current_task.task_id))):
-            logger.debug(f"Found new task {new_task.task_id}, updating current task")
+        # Check if we need to update the current task
+        should_update = False
+        
+        if new_task:
+            if not self.service_task_manager.current_task:
+                # No current task, so we should update
+                should_update = True
+            elif new_task.task_id != self.service_task_manager.current_task.task_id:
+                # Different task, so we should update
+                should_update = True
+            elif (new_task.timestamp != self.service_task_manager.current_task.timestamp or
+                  new_task.message != self.service_task_manager.current_task.message or
+                  new_task.alarm_name != self.service_task_manager.current_task.alarm_name or
+                  new_task.vibrate != self.service_task_manager.current_task.vibrate or
+                  new_task.keep_alarming != self.service_task_manager.current_task.keep_alarming or
+                  new_task.snooze_time != self.service_task_manager.current_task.snooze_time):
+                # Same task but content changed, so we should update
+                should_update = True
+        
+        if should_update:
+            logger.debug(f"Updating current task to: {new_task.task_id if new_task else None}")
             self.service_task_manager.current_task = new_task
             self._need_foreground_notification_update = True
     
