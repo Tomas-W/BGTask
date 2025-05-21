@@ -28,7 +28,8 @@ Service = autoclass("android.app.Service")
 LOOP_INTERVAL = 10                       # = 10 seconds
 SERVICE_HEARTBEAT_TICK = 6               # = 60 seconds
 FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
-LOOP_SYNC_TICK = 3600                    # = 1 hour
+LOOP_SYNC_TICK = 360                     # = 1 hour
+
 MAX_LOOP_DEVIATION = 4                   # = 4 seconds
 
 
@@ -402,11 +403,14 @@ class ServiceManager:
         if self.notification_manager:
             self.notification_manager.cancel_all_notifications()
         
-        # Clicked Snooze button
+        # Clicked Snooze A button
         if action.endswith(ACTION.SNOOZE_A):
             self.service_task_manager.snooze_task(action)
             self.audio_manager.stop_alarm_vibrate()
             self._need_foreground_notification_update = True
+            # Add immediate updates
+            self.check_for_task_updates()
+            self.update_foreground_notification_info()
             return Service.START_REDELIVER_INTENT
 
         # Clicked Snooze B button
@@ -414,6 +418,9 @@ class ServiceManager:
             self.service_task_manager.snooze_task(action)
             self.audio_manager.stop_alarm_vibrate()
             self._need_foreground_notification_update = True
+            # Add immediate updates
+            self.check_for_task_updates()
+            self.update_foreground_notification_info()
             return Service.START_REDELIVER_INTENT
         
         # Clicked Cancel button or swiped notification
@@ -428,6 +435,9 @@ class ServiceManager:
             self.service_task_manager.cancel_task()
             self._need_foreground_notification_update = True
             self.audio_manager.stop_alarm_vibrate()
+            # Add immediate updates
+            self.check_for_task_updates()
+            self.update_foreground_notification_info()
             return Service.START_STICKY
         
         # Clicked notification to open app
@@ -445,6 +455,9 @@ class ServiceManager:
             self.service_task_manager.cancel_task()
             self._need_foreground_notification_update = True
             self.audio_manager.stop_alarm_vibrate()
+            # Add immediate updates
+            self.check_for_task_updates()
+            self.update_foreground_notification_info()
             self._open_app()
         
         else:
