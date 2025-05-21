@@ -1,7 +1,7 @@
 import time
 
 from src.managers.device_manager import DM
-
+from src.managers.permission_manager import PM
 from src.utils.logger import logger
 
 from src.settings import PATH
@@ -28,8 +28,8 @@ def _set_screenshot_as_wallpaper(dt, root_layout, screen_header, screenshot_butt
     If device is Android, sets the screenshot as the wallpaper.
     """
     # Check permissions
-    if not DM.has_wallpaper_permission:
-        DM.request_android_wallpaper_permissions()
+    if not PM.has_wallpaper_permission:
+        PM.request_android_wallpaper_permissions()
         Clock.schedule_once(lambda dt: reset_screenshot_button(dt, screenshot_button), 0.5)
         return
     
@@ -63,9 +63,9 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
     Takes a screenshot of the current root_layout.
     """
     try:           
-        if not DM.has_wallpaper_permission:
-                DM.request_android_wallpaper_permissions()
-                return
+        if not PM.has_wallpaper_permission:
+            PM.request_android_wallpaper_permissions()
+            return
         
         start_time = time.time()
 

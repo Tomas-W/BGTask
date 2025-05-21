@@ -8,8 +8,6 @@ try:
 except ImportError:
     pass
 
-from src.managers.device_manager import DM
-
 from src.utils.logger import logger
 
 
@@ -20,6 +18,7 @@ class SettingsManager:
         self.prefs = None
         self._init_context(max_retries, retry_delay)
 
+        from src.managers.device_manager import DM
         self.cancelled_task_path = DM.get_storage_path("cancelled_task_id.txt")
         # DM.validate_file(self.cancelled_task_path)
         

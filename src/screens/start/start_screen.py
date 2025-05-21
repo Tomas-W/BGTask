@@ -248,6 +248,13 @@ class StartScreen(Screen):
         When the screen is shown, the rest of the app is loaded in the background.
         After loading the app, the HomeScreen is loaded.
         """
+        logger.trace("TRACE TRACE")
+        logger.debug("DEBUG DEBUG")
+        logger.info("INFO INFO")
+        logger.success("SUCCESS SUCCESS")
+        logger.warning("WARNING WARNING")
+        logger.error("ERROR ERROR")
+        logger.critical("CRITICAL CRITICAL")
         if not self._start_screen_finished:
             import time
             self.on_enter_time = time.time()        

@@ -4,8 +4,8 @@ from kivy.app import App
 from kivy.clock import Clock
 
 from src.managers.device_manager import DM
+from src.managers.permission_manager import PM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
-from src.managers.settings_manager import SettingsManager
 
 from src.utils.logger import logger
 
@@ -37,8 +37,6 @@ class AudioManager(AudioManagerUtils):
         app.task_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
         app.bind(on_resume=self.stop_alarm)
 
-        self.settings_manager = SettingsManager()
-
         self.alarm_is_triggered: bool = False
         self.keep_alarming: bool | None = None
         self.audio_player.keep_alarming = self.keep_alarming
@@ -59,7 +57,7 @@ class AudioManager(AudioManagerUtils):
         
         # States
         self.is_recording: bool = False
-        self.has_recording_permission: bool = DM.check_recording_permission()
+        self.has_recording_permission: bool = PM._check_recording_permission()
     
     def trigger_alarm(self, *args, **kwargs):
         """
@@ -154,7 +152,7 @@ class AudioManager(AudioManagerUtils):
         
         # Check recording permissions
         if DM.is_android and not self.has_recording_permission:
-            DM.request_android_recording_permissions()
+            PM.request_android_recording_permissions()
             return False
         
         # Try setting up recording
