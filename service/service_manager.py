@@ -8,11 +8,12 @@ from src.managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
 from service.service_audio_manager import ServiceAudioManager
-from service.service_logger import logger
 from service.service_task_manager import ServiceTaskManager
 from service.service_utils import (ACTION, PATH,
                                    get_service_timestamp,
                                    validate_path)
+
+from src.utils.logger import logger
 
 if TYPE_CHECKING:
     from service.service_notification_manager import ServiceNotificationManager
@@ -88,7 +89,7 @@ class ServiceManager:
         self.synchronize_loop_start()
         self.flag_service_as_running()
         self.update_foreground_notification_info()
-
+        
         while self._running:
             self.loop_sync_tick += 1
             self.heartbeat_tick += 1

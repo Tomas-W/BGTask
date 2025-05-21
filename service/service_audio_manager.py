@@ -5,8 +5,10 @@ from jnius import autoclass  # type: ignore
 from typing import Any
 
 from src.managers.tasks.task_manager_utils import Task
-from service.service_logger import logger
 from service.service_utils import PATH
+
+from src.utils.logger import logger
+
 
 PythonService = autoclass("org.kivy.android.PythonService")
 

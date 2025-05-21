@@ -3,8 +3,9 @@ from jnius import autoclass                      # type: ignore
 from typing import Any
 
 from service.service_manager import ServiceManager
-from service.service_logger import logger
 from service.service_utils import ACTION
+
+from src.utils.logger import logger
 
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")

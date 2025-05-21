@@ -5,8 +5,7 @@ from typing import Any
 
 from kivy.utils import platform
 
-from service.service_logger import logger
-
+from src.utils.logger import logger
 
 class DateFormats:
     """Date and time format patterns used throughout the application."""
@@ -38,7 +37,6 @@ def get_service_timestamp(task: Any) -> str:
             return f"{timestamp.strftime(DATE.MONTH_DAY)} @ {timestamp.strftime(DATE.TASK_TIME)}"
     
     except Exception as e:
-        from service.service_logger import logger
         logger.error(f"Error getting service timestamp: {e}")
         return "00:00:00"
 

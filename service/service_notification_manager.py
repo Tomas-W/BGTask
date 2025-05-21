@@ -3,8 +3,9 @@ import time
 from jnius import autoclass  # type: ignore
 from typing import Any
 
-from service.service_logger import logger
 from service.service_utils import ACTION, CHANNEL, IMPORTANCE, PRIORITY
+
+from src.utils.logger import logger
 
 AndroidString = autoclass("java.lang.String")
 BuildVersion = autoclass('android.os.Build$VERSION')
