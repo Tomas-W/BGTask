@@ -191,6 +191,29 @@ class SelectAlarmScreen(BaseScreen):
     
     def _handle_alarm_rename(self, new_name: str) -> None:
         """Handle alarm rename callback to ensure proper UI updates"""
+        # No change
+        if new_name == self.audio_manager.selected_alarm_name:
+            return
+        
+        # Name taken
+        if new_name in self.audio_manager.alarms:
+            Clock.schedule_once(lambda dt: self._show_name_taken_popup(new_name), 0.3)
+        
+        # Name available
+        else:
+            self._rename_alarm(new_name)
+    
+    def _show_name_taken_popup(self, new_name: str, *args, **kwargs) -> None:
+        POPUP.show_input_popup(
+                header="Name already taken\nProvide different name:", 
+                input_text=new_name,
+                on_confirm=self._handle_alarm_rename,
+                on_cancel=None
+            )
+
+    def _rename_alarm(self, new_name: str) -> None:
+        """Rename the selected alarm"""
+        logger.critical(f"Renaming alarm from {self.audio_manager.selected_alarm_name} to {new_name}")
         self.audio_manager.update_alarm_name(new_name)
         self.update_selected_alarm_text()
 
