@@ -1,36 +1,22 @@
-from kivy.clock import Clock
-
-try:
-    from jnius import autoclass  # type: ignore
-except ImportError:
-    pass
+from jnius import autoclass  # type: ignore
 
 from src.utils.logger import logger
 
 
-class AndroidAudioPlayer:
-    """Android-specific audio implementation for recording and playback."""
+class AndroidAudioRecorder:
+    """Android audio recorder for capturing audio"""
     def __init__(self):
-        self.audio_manager = None
-
         self.recorder = None
-        self.media_player = None
         self.recording = False
         self.current_path = None
-        
-        # Cache for Java classes
         self._java_classes = {}
-        self.vibrator = None
-    
-    def bind_audio_manager(self, audio_manager):
-        self.audio_manager = audio_manager
-        
-    def _get_java_class(self, class_name):
+
+    def _get_java_class(self, class_name: str):
         """Lazy load Java classes only when needed"""
         if class_name not in self._java_classes:
             self._java_classes[class_name] = autoclass(class_name)
         return self._java_classes[class_name]
-        
+
     def setup_recording(self, path: str) -> bool:
         """Configure the recorder for a new recording session"""
         try:
@@ -60,8 +46,9 @@ class AndroidAudioPlayer:
         except Exception as e:
             logger.error(f"Error setting up Android recorder: {e}")
             return False
-    
+
     def start_recording(self) -> bool:
+        """Start recording audio"""
         try:
             if not self.recorder:
                 logger.error("Android recorder not found, setup recording first")
@@ -79,9 +66,9 @@ class AndroidAudioPlayer:
         except Exception as e:
             logger.error(f"Error starting Android recorder: {e}")
             return False
-    
+
     def stop_recording(self) -> bool:
-        """Stop the recording and release resources."""
+        """Stop the recording and release resources"""
         try:
             if not self.recorder:
                 logger.error("Android recorder not set-up")
@@ -102,88 +89,17 @@ class AndroidAudioPlayer:
             logger.error(f"Error stopping Android recorder: {e}")
             self.recording = False
             return False
-    
-    def play(self, path: str) -> bool:
-        """Play audio file using Android MediaPlayer"""
-        try:
-            self.stop()
-            
-            MediaPlayer = self._get_java_class("android.media.MediaPlayer")
-            self.media_player = MediaPlayer()
-            self.media_player.setDataSource(path)
-            self.media_player.prepare()
-            self.media_player.start()
-            logger.trace(f"Started Android audio playback: {path}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error playing audio on Android: {e}")
-            return False
-    
-    def stop(self) -> bool:
-        """
-        Stop any playing audio.
-        """
-        try:
-            if not self.media_player or not self.media_player.isPlaying():
-                return True
-            old_path = self.current_path
-            self.media_player.stop()
-            self.media_player.reset()
-            self.media_player.release()
-            self.media_player = None
-            logger.trace(f"Stopped Android audio playback: {old_path}")
-            return True
-        
-        except Exception as e:
-            logger.error(f"Error stopping Android playback: {e}")
-            return False
-    
-    def is_playing(self) -> bool:
-        """Check if audio is currently playing"""
-        try:
-            return self.media_player and self.media_player.isPlaying()
-        
-        except Exception as e:
-            logger.error(f"Error checking playback status on Android: {e}")
-            return False
-    
+
     def release(self) -> bool:
-        """Release resources without stopping (for cleanup)."""
+        """Release recorder resources without stopping (for cleanup)"""
         try:
             if self.recorder:
                 self.recorder.release()
                 self.recorder = None
             
             self.recording = False
-            self.stop()
             return True
         
         except Exception as e:
-            logger.error(f"Error releasing Android resources: {e}")
-            return False
-    
-    def vibrate(self, *args, **kwargs) -> bool:
-        """Vibrate the device using Android's Vibrator service."""
-        try:
-            if not self.vibrator:
-                # Get the Android Context
-                Context = self._get_java_class("android.content.Context")
-                PythonActivity = self._get_java_class("org.kivy.android.PythonActivity")
-                activity = PythonActivity.mActivity
-                
-                # Get the Vibrator service
-                self.vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
-            
-            if self.vibrator:
-                # Vibrate for 1 second (1000ms)
-                self.vibrator.vibrate(1000)
-                if self.audio_manager.keep_alarming:
-                    Clock.schedule_once(self.vibrate, 2)
-                return True
-            
-            return False
-            
-        except Exception as e:
-            logger.error(f"Error vibrating on Android: {e}")
+            logger.error(f"Error releasing Android recorder resources: {e}")
             return False

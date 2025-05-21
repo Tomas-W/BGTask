@@ -50,6 +50,7 @@ presplash.filename = presplash.png
 android.presplash_color = #EDEDED
 
 # Android resources
+icon = res/icon.png
 android.add_resources = 
     res/drawable-mdpi/notification_icon.png:drawable-mdpi/notification_icon.png,
     res/drawable-hdpi/notification_icon.png:drawable-hdpi/notification_icon.png,

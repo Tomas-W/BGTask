@@ -7,7 +7,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
-from src.managers.device_manager import DM
+from src.managers.device.device_manager import DM
 from src.managers.settings_manager import SettingsManager
 from src.managers.tasks.task_manager_utils import Task
 

@@ -3,7 +3,7 @@ import time
 
 from datetime import datetime
 
-from src.managers.device_manager import DM
+from src.managers.device.device_manager import DM
 
 from src.utils.logger import logger
 

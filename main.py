@@ -38,7 +38,7 @@ if platform != PLATFORM.ANDROID:
 # StartScreen
 # TODO: Refactor StartScreen / Layout / Widgets
 # TODO: Smart loading widgets
-
+# TODO: Show snooze time
 
 # BaseScreen
 # TODO: Fix synchronized_animate SIZE.BOTTOM_BAR_HEIGHT*1.05
@@ -49,6 +49,9 @@ if platform != PLATFORM.ANDROID:
 # TODO: Create generic popup for errors
 # TODO: Floating Day label if many/long tasks
 # TODO: Add year to Tasks header when in next year
+# TODO: Snooze/Cancel through notification -> update task display
+# TODO: And immediate notification updates
+# TODO: Show snooze time
 
 
 # NewTaskScreen
@@ -79,6 +82,8 @@ if platform != PLATFORM.ANDROID:
 # TODO: Look at caching
 # TODO: Fix black alarm/vibrate icons for Tasks [TRYING]
 # TODO: Slow L&R swiping for screens
+# TODO: Task expired notification shows without snooze time
+# TODO: Stop vibrate immediately
 
 # Service
 

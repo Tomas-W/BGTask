@@ -3,9 +3,10 @@ import os
 from kivy.app import App
 from kivy.clock import Clock
 
-from src.managers.device_manager import DM
+from src.managers.device.device_manager import DM
 from src.managers.permission_manager import PM
 from src.managers.audio.audio_manager_utils import AudioManagerUtils
+from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.logger import logger
 
@@ -41,6 +42,7 @@ class AudioManager(AudioManagerUtils):
         self.keep_alarming: bool | None = None
         self.audio_player.keep_alarming = self.keep_alarming
         self.current_alarm_path: str | None = None
+        self.task: Task | None = None
         
         # Recordings
         self.recordings_dir: str = DM.get_storage_path(DIR.RECORDINGS)

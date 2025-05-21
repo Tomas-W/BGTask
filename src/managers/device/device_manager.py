@@ -1,11 +1,14 @@
 import os
 import time
 
-from src.utils.logger import logger
+from typing import Final
 
+from src.managers.device.device_manager_utils import Dirs, Paths
+from src.utils.logger import logger
 
 ANDROID = "android"
 WINDOWS = "Windows"
+
 
 class DeviceManager:
     """
@@ -14,18 +17,15 @@ class DeviceManager:
     def __init__(self):
         self.is_android: bool = self._device_is_android()
         self.is_windows: bool = not self.is_android
-    
-    def _device_is_android(self):
+        
+        # Initialize paths
+        self.DIR: Final[Dirs] = Dirs(self.is_android)
+        self.PATH: Final[Paths] = Paths(self.is_android)
+
+    def _device_is_android(self) -> bool:
         """Returns whether the app is running on Android."""
         from kivy.utils import platform
         return platform == ANDROID
-    
-    def get_storage_path(self, directory):
-        """Returns the app-specific storage path for the given directory."""
-        if self.is_android:
-            return os.path.join(os.environ['ANDROID_PRIVATE'], directory)
-        else:
-            return os.path.join(directory)
     
     def validate_dir(self, dir_path) -> bool:
         """Validate and create a directory if it doesn't exist."""
@@ -61,8 +61,13 @@ class DeviceManager:
             except OSError as e:
                 logger.error(f"OS error while creating {path}: {e}")
                 return False
-
     
+    def get_storage_path(self, path: str) -> str:
+        """Returns the app-specific storage path for the given directory."""
+        if self.is_android:
+            return os.path.join(os.environ["ANDROID_PRIVATE"], path)
+        else:
+            return os.path.join(path)
 
 
 DM = DeviceManager()

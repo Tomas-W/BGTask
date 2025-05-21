@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 from src.managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
-from service.service_audio_manager import ServiceAudioManager
+# from service.service_audio_manager import ServiceAudioManager
+from src.managers.new_audio_manager import AudioManager
 from service.service_task_manager import ServiceTaskManager
 from service.service_utils import (ACTION, PATH,
                                    get_service_timestamp,
@@ -45,7 +46,8 @@ class ServiceManager:
     def __init__(self):
         self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
         self.service_task_manager: ServiceTaskManager = ServiceTaskManager()
-        self.audio_manager: ServiceAudioManager = ServiceAudioManager()
+        # self.audio_manager: ServiceAudioManager = ServiceAudioManager()
+        self.audio_manager: AudioManager = AudioManager()
         self.settings_manager = None
 
         # Loop variables
@@ -117,7 +119,7 @@ class ServiceManager:
 
                     # Runs only once per app foregrounded
                     if not self._in_foreground:
-                        self.audio_manager.stop_alarm_vibrate()                # Once per foregrounded
+                        self.audio_manager.stop_alarm()                # Once per foregrounded
                         logger.debug("Stopped alarm and vibrations")
 
                         self.notification_manager.cancel_all_notifications()   # Once per foregrounded
@@ -162,7 +164,7 @@ class ServiceManager:
                 logger.error(f"Error in service loop: {e}")
                 time.sleep(self.get_loop_interval())
         
-        self.audio_manager.stop_alarm_vibrate()
+        self.audio_manager.stop_alarm()
     
     def synchronize_loop_start(self) -> None:
         """'
@@ -372,7 +374,7 @@ class ServiceManager:
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""
-        self.audio_manager.stop_alarm_vibrating()
+        self.audio_manager.stop_alarm()
         self.notification_manager.cancel_all_notifications()
         self.service_task_manager.cancel_task()
         self.service_task_manager.clear_expired_task()
@@ -406,7 +408,7 @@ class ServiceManager:
         # Clicked Snooze A button
         if action.endswith(ACTION.SNOOZE_A):
             self.service_task_manager.snooze_task(action)
-            self.audio_manager.stop_alarm_vibrate()
+            self.audio_manager.stop_alarm()
             self._need_foreground_notification_update = True
             # Add immediate updates
             self.check_for_task_updates()
@@ -416,7 +418,7 @@ class ServiceManager:
         # Clicked Snooze B button
         if action.endswith(ACTION.SNOOZE_B):
             self.service_task_manager.snooze_task(action)
-            self.audio_manager.stop_alarm_vibrate()
+            self.audio_manager.stop_alarm()
             self._need_foreground_notification_update = True
             # Add immediate updates
             self.check_for_task_updates()
@@ -434,7 +436,7 @@ class ServiceManager:
             
             self.service_task_manager.cancel_task()
             self._need_foreground_notification_update = True
-            self.audio_manager.stop_alarm_vibrate()
+            self.audio_manager.stop_alarm()
             # Add immediate updates
             self.check_for_task_updates()
             self.update_foreground_notification_info()
@@ -454,7 +456,7 @@ class ServiceManager:
             
             self.service_task_manager.cancel_task()
             self._need_foreground_notification_update = True
-            self.audio_manager.stop_alarm_vibrate()
+            self.audio_manager.stop_alarm()
             # Add immediate updates
             self.check_for_task_updates()
             self.update_foreground_notification_info()
@@ -462,7 +464,7 @@ class ServiceManager:
         
         else:
             logger.error(f"Unknown action: {action}")
-            self.audio_manager.stop_alarm_vibrate()
+            self.audio_manager.stop_alarm()
             return Service.START_STICKY
 
     def _open_app(self) -> None:
