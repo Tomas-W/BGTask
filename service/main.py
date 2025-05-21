@@ -11,18 +11,25 @@ PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
 
 
-# Global service manager instance
+# Global ServiceManager
 service_manager: ServiceManager | None = None
+# Global BroadcastReceiver
 receiver: BroadcastReceiver | None = None
 
-def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
+def create_broadcast_receiver(service_manager: ServiceManager) -> BroadcastReceiver | None:
     """
-    Creates a broadcast receiver for handling notification actions.
+    Creates a BroadcastReceiver for handling notification actions.
+    Actions:
+    - Snooze A
+    - Snooze B
+    - Cancel
+    - Open App
+    Snooze A & Snooze B are loaded from user settings.
     """
     try:
         context = PythonService.mService.getApplicationContext()
         if not context:
-            logger.error("Failed to get application context")
+            logger.error("Failed to get application context: PythonService.mService is None")
             return None
             
         package_name = context.getPackageName()
@@ -30,84 +37,94 @@ def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
             logger.error("Failed to get package name")
             return None
         
+        # Aallows callback to access service_manager without passing it
         def on_receive(context: Any, intent: Any) -> None:
             """Callback for handling received broadcast actions"""
             try:
                 action = intent.getAction()
                 if action:
                     pure_action = action.split(".")[-1]
-                    logger.debug(f"Received broadcast action: {pure_action}")
+                    logger.trace(f"Received broadcast action: {pure_action}")
                     service_manager.handle_action(pure_action)
             
             except Exception as e:
                 logger.error(f"Error in broadcast receiver: {e}")
         
         # Register actions to receiver
-        actions = [
-            f"{package_name}.{ACTION.SNOOZE_A}",
-            f"{package_name}.{ACTION.SNOOZE_B}",
-            f"{package_name}.{ACTION.CANCEL}",
-            f"{package_name}.{ACTION.OPEN_APP}"
-        ]
+        actions = _get_broadcast_actions(package_name)
         
         receiver = BroadcastReceiver(on_receive, actions=actions)
-        logger.debug("Created BroadcastReceiver")
+        logger.trace("Created BroadcastReceiver")
         return receiver
         
     except Exception as e:
-        logger.error(f"Error setting up broadcast receiver: {e}")
+        logger.error(f"Error setting up BroadcastReceiver: {e}")
         return None
 
 
+def _get_broadcast_actions(package_name: str) -> list[str]:
+    """
+    Returns a list of actions for the BroadcastReceiver.
+    """
+    return [
+        f"{package_name}.{ACTION.SNOOZE_A}",
+        f"{package_name}.{ACTION.SNOOZE_B}",
+        f"{package_name}.{ACTION.CANCEL}",
+        f"{package_name}.{ACTION.OPEN_APP}"
+    ]
+
+
 def start_broadcast_receiver(receiver: Any) -> None:
-    """Starts the broadcast receiver"""
+    """Starts the BroadcastReceiver"""
     try:
         receiver.start()
-        logger.debug("Started BroadcastReceiver")
+        logger.trace("Started BroadcastReceiver")
     
     except Exception as e:
-        logger.error(f"Error starting broadcast receiver: {e}")
+        logger.error(f"Error starting BroadcastReceiver: {e}")
 
 
-def on_start_command(intent: Any, flags: int, start_id: int) -> int:
+def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
     """
     Service onStartCommand callback.
-    Enables auto-restart, initializes components,
-    and shows foreground notification.
+    - Enables auto-restart
+    - Initializes ServiceManager
+    - Initializes NotificationManager
+    - Initializes BroadcastReceiver
+    - Starts Service
     """
     global service_manager, receiver
-    
-    logger.debug(f"Service onStartCommand: flags={flags}, startId={start_id}")
-    
+        
     try:
         # Enable auto-restart
         if not PythonService.mService:
-            logger.error("PythonService not available")
+            logger.error("PythonService.mService is None")
             return Service.START_STICKY
             
         PythonService.mService.setAutoRestartService(True)
-        
-        # Initialize service components
+
+        # Initialize ServiceManager
         if service_manager is None:
             try:
                 service_manager = ServiceManager()
+
+                # Initialize NotificationManager
                 service_manager._init_notification_manager()
-                
-                # Show foreground notification
                 service_manager.update_foreground_notification_info()
-                # Set up broadcast receiver
+                
+                # Initialize BroadcastReceiver
                 receiver = create_broadcast_receiver(service_manager)
                 if receiver:
                     start_broadcast_receiver(receiver)
                 else:
-                    logger.error("Failed to create broadcast receiver")
+                    logger.error("Failed to create BroadcastReceiver")
                 
-                # Start monitoring
+                # Start Service
                 service_manager.run_service()
             
             except Exception as e:
                 logger.error(f"Error initializing service: {e}")
-                # Clean up on initialization failure
+                # Clean up
                 if service_manager:
                     service_manager.stop_alarm_vibrate()
                 
@@ -125,21 +142,20 @@ def on_start_command(intent: Any, flags: int, start_id: int) -> int:
 def on_destroy() -> None:
     """
     Service onDestroy callback.
-    Cleans up receiver, stops alarm vibrate,
-    and stops the service.
+    - Stops BroadcastReceiver
+    - Stops alarm and vibrate
+    - Cleans up Service state
     """
     global service_manager, receiver
     
-    logger.debug("Service onDestroy called")
-    
     try:
-        # Clean up receiver
+        # Clean up BroadcastReceiver
         if receiver:
             try:
                 receiver.stop()
                         
             except Exception as e:
-                logger.error(f"Error stopping broadcast receiver: {e}")
+                logger.error(f"Error stopping BroadcastReceiver: {e}")
         
         # Clean up state
         if service_manager:
@@ -147,6 +163,7 @@ def on_destroy() -> None:
         
         service_manager = None
         receiver = None
+        logger.trace("Service destroyed")
         
     except Exception as e:
         logger.error(f"Error in onDestroy: {e}")
@@ -155,8 +172,10 @@ def on_destroy() -> None:
 def main() -> None:
     """Main entry point for the background service"""
     try:
-        logger.debug("Starting background service")
-        on_start_command(None, 0, 1)
+        logger.trace("Starting background service")
+        on_start_command(intent=None,
+                         flags=0,
+                         start_id=1)
     
     except Exception as e:
         logger.error(f"Error in Service main: {e}")
