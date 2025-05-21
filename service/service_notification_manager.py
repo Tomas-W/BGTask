@@ -166,12 +166,25 @@ class ServiceNotificationManager:
             
             if with_buttons:
                 try:
-                    # Add Snooze button
+                    # Add Snooze A button
                     snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
                     if snooze_intent:
                         builder.addAction(
                             0,  # No icon for buttons
                             AndroidString("Snooze 1m"),
+                            snooze_intent
+                        )
+                
+                except Exception as e:
+                    logger.error(f"Error adding snooze button: {e}")
+                
+                try:
+                    # Add Snooze B button
+                    snooze_intent = self.create_action_intent(ACTION.SNOOZE_B)
+                    if snooze_intent:
+                        builder.addAction(
+                            0,  # No icon for buttons
+                            AndroidString("Snooze 1h"),
                             snooze_intent
                         )
                 
@@ -260,12 +273,21 @@ class ServiceNotificationManager:
             if app_intent:
                 builder.setContentIntent(app_intent)
             
-            # Add Snooze button
+            # Add Snooze A button
             snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
             if snooze_intent:
                 builder.addAction(
                     0,  # No icon for buttons
                     AndroidString("Snooze 1m"),
+                    snooze_intent
+                )
+            
+            # Add Snooze B button
+            snooze_intent = self.create_action_intent(ACTION.SNOOZE_B)
+            if snooze_intent:
+                builder.addAction(
+                    0,  # No icon for buttons
+                    AndroidString("Snooze 1h"),
                     snooze_intent
                 )
             

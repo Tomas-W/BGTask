@@ -16,7 +16,9 @@ service_manager: ServiceManager | None = None
 receiver: BroadcastReceiver | None = None
 
 def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
-    """Creates a broadcast receiver for handling notification actions"""
+    """
+    Creates a broadcast receiver for handling notification actions.
+    """
     try:
         context = PythonService.mService.getApplicationContext()
         if not context:
@@ -43,6 +45,7 @@ def create_broadcast_receiver(service_manager: ServiceManager) -> Any | None:
         # Register actions to receiver
         actions = [
             f"{package_name}.{ACTION.SNOOZE_A}",
+            f"{package_name}.{ACTION.SNOOZE_B}",
             f"{package_name}.{ACTION.CANCEL}",
             f"{package_name}.{ACTION.OPEN_APP}"
         ]

@@ -89,7 +89,7 @@ class ServiceManager:
         self.synchronize_loop_start()
         self.flag_service_as_running()
         self.update_foreground_notification_info()
-        
+
         while self._running:
             self.loop_sync_tick += 1
             self.heartbeat_tick += 1
@@ -404,6 +404,13 @@ class ServiceManager:
         
         # Clicked Snooze button
         if action.endswith(ACTION.SNOOZE_A):
+            self.service_task_manager.snooze_task(action)
+            self.audio_manager.stop_alarm_vibrate()
+            self._need_foreground_notification_update = True
+            return Service.START_REDELIVER_INTENT
+
+        # Clicked Snooze B button
+        if action.endswith(ACTION.SNOOZE_B):
             self.service_task_manager.snooze_task(action)
             self.audio_manager.stop_alarm_vibrate()
             self._need_foreground_notification_update = True

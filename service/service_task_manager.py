@@ -17,6 +17,9 @@ class ServiceTaskManager:
         self.active_tasks: list[dict[str, Any]] = self._get_active_tasks()
         self.current_task: Task | None = self.get_current_task()
 
+        self._snooze_a_seconds: int = 60
+        self._snooze_b_seconds: int = 3600
+
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         try:
             with open(self.task_file, "r") as f:
@@ -142,7 +145,13 @@ class ServiceTaskManager:
             return
             
         # Update snooze time but don't mark as expired
-        snooze_seconds = 60 if action.endswith(ACTION.SNOOZE_A) else 120
+        if action.endswith(ACTION.SNOOZE_A):
+            snooze_seconds = self._snooze_a_seconds
+        elif action.endswith(ACTION.SNOOZE_B):
+            snooze_seconds = self._snooze_b_seconds
+        else:
+            logger.error(f"Invalid snooze action: {action}")
+            return
         
         # Calculate the new timestamp after snooze
         new_timestamp = task_to_snooze.timestamp + timedelta(seconds=task_to_snooze.snooze_time + snooze_seconds)
