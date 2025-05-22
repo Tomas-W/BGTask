@@ -2,9 +2,10 @@ import os
 
 from kivy.app import App
 
+from managers.audio.audio_manager import AudioManager
+
 from src.managers.device.device_manager import DM
 from src.managers.permission_manager import PM
-from src.managers.new_audio_manager import AudioManager
 from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.logger import logger
@@ -12,60 +13,70 @@ from src.utils.logger import logger
 
 class AppAudioManager(AudioManager):
     """
-    Manages playing and recording audio through the application.
-    Has a platform-specific audio player.
-    All audio players have the same interface.
+    Manages playing and recording audio in the application.
+    Extends on AudioManager to add app-specific functionality.
     """
     def __init__(self):
         super().__init__()
         
+        # Bind events
         app = App.get_running_app()
         app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
         app.task_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
         app.bind(on_resume=self.stop_alarm)
 
+        # SelectAlarmScreen
+        self.alarms: dict[str, str] = {}
+        self.load_alarms()  # Loads alarms and recordings into self.alarms
+        self.selected_alarm_name: str | None = None
+        self.selected_alarm_path: str | None = None
+        # Triggering alarm
         self.alarm_is_triggered: bool = False
         self.current_alarm_path: str | None = None
         self.task: Task | None
         
-        # Recordings
-        self.is_recording: bool = False
-
-        # Alarms
-        self.alarms: dict[str, str] = {}
-        self.load_alarms()
-        self.selected_alarm_name: str | None = None
-        self.selected_alarm_path: str | None = None
-        
-        # States
+        # Recording
         self.is_recording: bool = False
         self.has_recording_permission: bool = PM._check_recording_permission()
     
     def load_alarms(self) -> None:
-        """Load all audio files from alarms and recordings directories."""
+        """
+        Loads all audio files from alarms and recordings directories.
+        Sorts the files by name and saves them to self.alarms.
+        """
         alarms = {}
-        rec_count = 0
-        alarm_count = 0
 
         # Load user recordings
-        if os.path.exists(DM.DIR.RECORDINGS):
-            for file in os.listdir(DM.DIR.RECORDINGS):
-                if file.endswith(DM.EXT.WAV):
-                    name = os.path.splitext(file)[0]
-                    alarms[name] = os.path.join(DM.DIR.RECORDINGS, file)
-                    rec_count += 1
+        user_recordings = self._load_alarms(DM.DIR.RECORDINGS)
+        nr_recordings = len(user_recordings)
+        alarms.update(user_recordings)
 
         # Load default alarms
-        if os.path.exists(DM.DIR.ALARMS):
-            for file in os.listdir(DM.DIR.ALARMS):
-                if file.endswith(DM.EXT.WAV):
-                    name = os.path.splitext(file)[0]
-                    alarms[name] = os.path.join(DM.DIR.ALARMS, file)
-                    alarm_count += 1
-        
+        default_alarms = self._load_alarms(DM.DIR.ALARMS)
+        nr_alarms = len(default_alarms)
+        alarms.update(default_alarms)
+
+        # Sort and save
         sorted_alarms = sorted(alarms.items(), key=lambda x: x[0])
         self.alarms = dict(sorted_alarms)
-        logger.debug(f"Loaded {rec_count} recordings and {alarm_count} alarms")
+        logger.trace(f"Loaded {nr_recordings} recordings and {nr_alarms} alarms")
+    
+    def _load_alarms(self, directory: str) -> dict[str, str]:
+        """
+        Returns a dictionary of audio files from a directory.
+        """
+        alarms = {}
+        try:
+            if os.path.exists(directory):
+                for file in os.listdir(directory):
+                    if file.endswith(DM.EXT.WAV):
+                        name = os.path.splitext(file)[0]
+                        alarms[name] = os.path.join(directory, file)
+        
+        except Exception as e:
+            logger.error(f"Error loading alarms: {e}")
+        
+        return alarms
     
     def start_recording_audio(self) -> bool:
         """
@@ -127,8 +138,7 @@ class AppAudioManager(AudioManager):
             logger.error(f"Recording file not found: {recording_path}")
             return False
             
-        # Add alarm to AudioManager
-        self.alarms[recording_name] = recording_path
+        # self.alarms[recording_name] = recording_path
         self.load_alarms()
         self.selected_alarm_name = recording_name
         self.selected_alarm_path = recording_path
@@ -138,11 +148,7 @@ class AppAudioManager(AudioManager):
     def start_playing_audio(self, audio_path: str) -> bool:
         """
         Validates the alarm path and plays the audio file.
-        """        
-        if not audio_path:
-            logger.error("No alarm selected to play")
-            return False
-        
+        """
         if not DM.validate_file(audio_path):
             logger.error(f"Alarm file not found: {audio_path}")
             return False
@@ -152,7 +158,6 @@ class AppAudioManager(AudioManager):
             return False
             
         try:
-            # Try playing the audio
             return self.audio_player.play(audio_path)
         
         except Exception as e:
@@ -163,15 +168,7 @@ class AppAudioManager(AudioManager):
         """
         Stops any currently playing audio.
         """
-        # Try stopping the audio
         return self.audio_player.stop()
-
-    def is_playing(self):
-        """Check if an alarm is currently playing"""
-        if not self.audio_player:
-            return False
-
-        return self.audio_player.is_playing()
     
     def select_alarm_audio(self, name: str) -> bool:
         """
@@ -190,6 +187,7 @@ class AppAudioManager(AudioManager):
             if path and os.path.exists(path):
                 self.selected_alarm_path = path
                 self.selected_alarm_name = name
+                self.alarms[name] = path
                 return True
     
         logger.error(f"Alarm not found: {name} at {path}")
@@ -197,22 +195,19 @@ class AppAudioManager(AudioManager):
     
     def update_alarm_name(self, new_name: str) -> bool:
         """
-        Updates the alarm name and path.
+        Renames the selected alarm file and updates self.alarms.
         """
-        old_name = self.selected_alarm_name
-        old_path = self.get_audio_path(old_name)
-        if not old_path:
-            logger.error(f"Alarm file not found: {old_name}")
+        if not self.selected_alarm_path:
+            logger.error("No alarm selected to rename")
             return False
         
-        # Construct new path based on old file's location
-        directory = os.path.dirname(old_path)
+        # Rename file
+        directory = os.path.dirname(self.selected_alarm_path)
         new_path = os.path.join(directory, f"{new_name}{DM.EXT.WAV}")
+        os.rename(self.selected_alarm_path, new_path)
         
-        # Rename the file
-        os.rename(old_path, new_path)
-        
-        # Update internal state
+        # Renew memory
+        old_name = self.selected_alarm_name
         del self.alarms[old_name]
         self.alarms[new_name] = new_path
         self.selected_alarm_name = new_name
@@ -227,7 +222,7 @@ class AppAudioManager(AudioManager):
     
     def delete_alarm(self, name: str) -> bool:
         """
-        Deletes the alarm from the alarms and recordings directories.
+        Deletes the alarm file and removes it from memory.
         """
         path = self.get_audio_path(name)
         if not path:

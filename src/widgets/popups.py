@@ -440,21 +440,25 @@ class PopupManager:
         from kivy.app import App
         from src.utils.background_service import notify_service_of_tasks_update
         app = App.get_running_app()
-        self.audio_manager = app.audio_manager
-        self.task_manager = app.task_manager
+        audio_manager = app.audio_manager
+        task_manager = app.task_manager
         
-        task = self.task_manager.get_task_by_id(task_id)
+        task = task_manager.get_task_by_id(task_id)
         task.expired = True
-        self.task_manager._save_tasks_to_json()
-        self.audio_manager.stop_alarm()
+        task_manager._save_tasks_to_json()
+        audio_manager.stop_alarm()
         notify_service_of_tasks_update()
     
     def _snooze_alarm(self, task_id: str):
         """Snooze the alarm"""
         from kivy.app import App
         app = App.get_running_app()
-        self.task_manager = app.task_manager
-        self.task_manager.snooze_task(task_id)
+        task_manager = app.task_manager
+        audio_manager = app.audio_manager
+        
+        task_manager.snooze_task(task_id)
+        audio_manager.stop_alarm()
+        # TaskManager notifies Service of Tasks update
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""

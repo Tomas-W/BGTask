@@ -68,6 +68,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
 # TODO: Repeat alarm
+# TODO: Clean user input (maybe a popup level?)
 
 
 # SavedAlarmScreen
@@ -84,6 +85,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Slow L&R swiping for screens
 # TODO: Task expired notification shows without snooze time
 # TODO: Stop vibrate immediately
+# TODO: Remove all App.get_running_app() and use dispatcher
 
 # Service
 
@@ -189,7 +191,7 @@ class TaskApp(App, EventDispatcher):
     def _init_audio_manager(self):
         # AudioManager
         start_time = time.time()
-        from src.managers.audio.audio_manager import AppAudioManager
+        from src.managers.app_audio_manager import AppAudioManager
         self.audio_manager = AppAudioManager()
         LOADED.AUDIO_MANAGER = True
         self.logger.critical(f"Loading AudioManager time: {time.time() - start_time:.4f}")

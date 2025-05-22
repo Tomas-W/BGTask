@@ -17,17 +17,17 @@ class AudioManager:
     """
     def __init__(self, is_service: bool = False):
         if DM.is_android:
-            from src.managers.new.android_player import AndroidAudioPlayer
+            from managers.audio.android_player import AndroidAudioPlayer
             self.audio_player = AndroidAudioPlayer()
             self.audio_player.bind_audio_manager(self)
             # Service does not require recorder
             if not is_service:
-                from src.managers.new.android_recorder import AndroidAudioRecorder
+                from managers.audio.android_recorder import AndroidAudioRecorder
                 self.audio_recorder = AndroidAudioRecorder()
         
         else:
-            from src.managers.new.windows_player import WindowsAudioPlayer
-            from src.managers.new.windows_recorder import WindowsAudioRecorder
+            from managers.audio.windows_player import WindowsAudioPlayer
+            from managers.audio.windows_recorder import WindowsAudioRecorder
             self.audio_player = WindowsAudioPlayer()
             self.audio_player.bind_audio_manager(self)
 
@@ -42,7 +42,7 @@ class AudioManager:
         self._alarm_thread = None
         self._vibrate_thread = None
 
-    def trigger_alarm(self, task, *args, **kwargs) -> bool:
+    def trigger_alarm(self, *args, **kwargs) -> bool:
         """
         Starts a one-time or continuous alarm and vibrate depending on Task settings.
         Stops any running alarm or vibrate before starting new one.
@@ -54,15 +54,18 @@ class AudioManager:
         with self._lock:
             self._alarm_stop_event.clear()
             self._vibrate_stop_event.clear()
-            
-            self.task = task
-            alarm_path = self.get_audio_path(task.alarm_name)
-            play_alarm = task.alarm_name
-            vibrate = task.vibrate
-            keep_alarming = task.keep_alarming
+            self.task = kwargs.get("task") if "task" in kwargs else args[-1]
+            if not self.task:
+                logger.error("Error triggering alarm: No task provided")
+                return False
 
-            if not play_alarm:
-                logger.trace("No alarm name set, skipping alarm playback")
+            alarm_path = self.get_audio_path(self.task.alarm_name)
+            play_alarm = self.task.alarm_name
+            vibrate = self.task.vibrate
+            keep_alarming = self.task.keep_alarming
+
+            if not play_alarm and not vibrate:
+                logger.trace("No alarm name or vibrate set, skipping alarm playback")
                 return False
             
             # Continuous alarm

@@ -16,7 +16,7 @@ from src.utils.logger import logger
 from src.settings import STATE, SCREEN, SPACE
 
 if TYPE_CHECKING:
-    from src.managers.audio.audio_manager import AppAudioManager
+    from src.managers.app_audio_manager import AppAudioManager
     from src.managers.tasks.task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
 
@@ -134,7 +134,7 @@ class SelectAlarmScreen(BaseScreen):
 
     def start_recording_alarm(self, instance) -> None:
         """Start recording an alarm"""
-        was_playing: bool = self.audio_manager.is_playing()
+        was_playing: bool = self.audio_manager.audio_player.is_playing()
         self.unschedule_audio_check()
         
         if self.audio_manager.start_recording_audio():
@@ -276,7 +276,7 @@ class SelectAlarmScreen(BaseScreen):
     
     def check_audio_finished(self, dt: float) -> bool:
         """Check if audio has finished playing and update buttons accordingly"""
-        if not self.audio_manager.is_playing():
+        if not self.audio_manager.audio_player.is_playing():
             self.update_button_states()
             self.unschedule_audio_check()
             return False
@@ -307,7 +307,7 @@ class SelectAlarmScreen(BaseScreen):
         """Get the current ScreenState based on AppAudioManager state"""
         if self.audio_manager.is_recording:
             return ScreenState.RECORDING
-        elif self.audio_manager.is_playing():
+        elif self.audio_manager.audio_player.is_playing():
             return ScreenState.PLAYING
         elif self.audio_manager.selected_alarm_name is not None:
             return ScreenState.ALARM_SELECTED
