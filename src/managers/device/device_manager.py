@@ -3,7 +3,7 @@ import time
 
 from typing import Final
 
-from src.managers.device.device_manager_utils import Dirs, Paths
+from src.managers.device.device_manager_utils import Dirs, Paths, Dates, Extensions
 from src.utils.logger import logger
 
 ANDROID = "android"
@@ -21,6 +21,8 @@ class DeviceManager:
         # Initialize paths
         self.DIR: Final[Dirs] = Dirs(self.is_android)
         self.PATH: Final[Paths] = Paths(self.is_android)
+        self.DATE: Final[Dates] = Dates()
+        self.EXT: Final[Extensions] = Extensions()
 
     def _device_is_android(self) -> bool:
         """Returns whether the app is running on Android."""
@@ -45,22 +47,28 @@ class DeviceManager:
                 logger.error(f"OS error while creating {dir_path}: {e}")
                 return False
 
-    def validate_file(self, path: str) -> bool:
-        """Validate and create a file if it doesn't exist."""
-        if not os.path.isfile(path):
+    def validate_file(self, path: str, max_attempts: int = 3) -> bool:
+        """
+        Validate and create a file if it doesn't exist.
+        Adds a small delay for Windows.
+        """
+        for attempt in range(max_attempts):
             try:
-                with open(path, "r") as f:
-                    return True
-
-            except PermissionError:
-                logger.error(f"Permission denied: Cannot create file {path}. Check app permissions.")
-                return False
-            except FileNotFoundError:
-                logger.error(f"Invalid path: {path} does not exist.")
-                return False
-            except OSError as e:
-                logger.error(f"OS error while creating {path}: {e}")
-                return False
+                # Windows delay
+                if DM.is_windows and attempt > 0:
+                    time.sleep(0.1)
+                
+                # Verify contents
+                if os.path.exists(path):
+                    with open(path, "rb") as f:
+                        if f.read(1024):
+                            return True
+            
+            except Exception as e:
+                logger.warning(f"File verification attempt {attempt+1} failed: {e}")
+        
+        logger.error(f"Failed to verify audio file: {path}")
+        return False
     
     def get_storage_path(self, path: str) -> str:
         """Returns the app-specific storage path for the given directory."""

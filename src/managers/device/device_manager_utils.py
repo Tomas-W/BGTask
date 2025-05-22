@@ -16,8 +16,6 @@ class Dirs:
         # Define app directories
         self.ALARMS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "alarms"))
         self.RECORDINGS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "recordings"))
-        print(f"ALARMS: {self.ALARMS}")
-        print(f"RECORDINGS: {self.RECORDINGS}")
         
         # Define service directories (using app/ prefix)
         self.SERVICE_ALARMS_DIR: Final[str] = self._get_storage_path(is_android, "app/src/assets/alarms")
@@ -75,3 +73,34 @@ class Paths(Dirs):
 
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
+
+class Dates:
+    """Class to hold date format patterns with type hints"""
+    def __init__(self):
+        # Main
+        self.DATE_KEY: Final[str] = "%Y-%m-%d"              # 2024-03-21
+        self.TIMESTAMP: Final[str] = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
+        
+        # Task
+        self.TASK_HEADER: Final[str] = "%A %d %b"           # Thursday 21 Mar
+        self.TASK_TIME: Final[str] = "%H:%M"                # 14:30
+        
+        # Calendar
+        self.CALENDAR_DAY: Final[str] = "%A %d"             # Thursday 21
+        self.MONTH_DAY: Final[str] = "%b %d"                # March 21
+        self.DAY_MONTH_YEAR: Final[str] = "%d %b %Y"        # 21 Mar 2024
+        self.DATE_SELECTION: Final[str] = "%A, %b %d, %Y"   # Thursday, March 21, 2024
+        self.SELECTED_TIME: Final[str] = "%H:%M"            # 14:30
+        
+        # Components
+        self.HOUR: Final[str] = "%H"                        # 14
+        self.MINUTE: Final[str] = "%M"                      # 30
+        
+        # Recording
+        self.RECORDING: Final[str] = "%H_%M_%S"             # 14_30_45
+
+class Extensions:
+    """Class to hold file extension patterns with type hints"""
+    def __init__(self):
+        # Audio formats
+        self.WAV: Final[str] = ".wav"

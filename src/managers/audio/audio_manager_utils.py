@@ -57,23 +57,3 @@ class AudioManagerUtils:
             
         logger.error(f"Audio file not found for name: {name}")
         return None
-    
-    def _verify_recording_file(self, path: str, max_attempts: int = 3) -> bool:
-        """Verify recording file exists and adds a small delay for Windows."""
-        for attempt in range(max_attempts):
-            try:
-                # Windows delay
-                if DM.is_windows and attempt > 0:
-                    time.sleep(0.1)
-                
-                # Verify contents
-                if os.path.exists(path):
-                    with open(path, "rb") as f:
-                        if f.read(1024):
-                            return True
-            
-            except Exception as e:
-                logger.warning(f"File verification attempt {attempt+1} failed: {e}")
-        
-        logger.error(f"Failed to verify recording file: {path}")
-        return False

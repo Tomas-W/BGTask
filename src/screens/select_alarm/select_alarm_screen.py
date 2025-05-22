@@ -16,7 +16,7 @@ from src.utils.logger import logger
 from src.settings import STATE, SCREEN, SPACE
 
 if TYPE_CHECKING:
-    from src.managers.audio.audio_manager import AudioManager
+    from src.managers.audio.audio_manager import AppAudioManager
     from src.managers.tasks.task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
 
@@ -26,11 +26,11 @@ class SelectAlarmScreen(BaseScreen):
     Screen for selecting an alarm.
     """
     def __init__(self, navigation_manager: "NavigationManager",
-                 task_manager: "TaskManager", audio_manager: "AudioManager", **kwargs):
+                 task_manager: "TaskManager", audio_manager: "AppAudioManager", **kwargs):
         super().__init__(**kwargs)
         self.navigation_manager: "NavigationManager" = navigation_manager
         self.task_manager: "TaskManager" = task_manager
-        self.audio_manager: "AudioManager" = audio_manager
+        self.audio_manager: "AppAudioManager" = audio_manager
 
         self.BUTTON_STATES: dict[ScreenState, dict[str, Any]] = BUTTON_STATES
 
@@ -304,7 +304,7 @@ class SelectAlarmScreen(BaseScreen):
  
     @property
     def screen_state(self) -> ScreenState:
-        """Get the current ScreenState based on AudioManager state"""
+        """Get the current ScreenState based on AppAudioManager state"""
         if self.audio_manager.is_recording:
             return ScreenState.RECORDING
         elif self.audio_manager.is_playing():

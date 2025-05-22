@@ -1,19 +1,16 @@
 import os
 
 from kivy.app import App
-from kivy.clock import Clock
 
 from src.managers.device.device_manager import DM
 from src.managers.permission_manager import PM
-from src.managers.audio.audio_manager_utils import AudioManagerUtils
+from src.managers.new_audio_manager import AudioManager
 from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.logger import logger
 
-from src.settings import EXT, DIR
 
-
-class AudioManager(AudioManagerUtils):
+class AppAudioManager(AudioManager):
     """
     Manages playing and recording audio through the application.
     Has a platform-specific audio player.
@@ -21,17 +18,6 @@ class AudioManager(AudioManagerUtils):
     """
     def __init__(self):
         super().__init__()
-        if DM.is_android:
-            from src.managers.audio.android_audio import AndroidAudioPlayer
-            self.audio_player = AndroidAudioPlayer()
-            self.audio_player.bind_audio_manager(self)
-        
-        elif DM.is_windows:
-            from src.managers.audio.windows_audio import WindowsAudioPlayer
-            self.audio_player = WindowsAudioPlayer()
-            self.audio_player.bind_audio_manager(self)
-        else:
-            logger.error("No audio player loaded")
         
         app = App.get_running_app()
         app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
@@ -39,19 +25,13 @@ class AudioManager(AudioManagerUtils):
         app.bind(on_resume=self.stop_alarm)
 
         self.alarm_is_triggered: bool = False
-        self.keep_alarming: bool | None = None
-        self.audio_player.keep_alarming = self.keep_alarming
         self.current_alarm_path: str | None = None
-        self.task: Task | None = None
+        self.task: Task | None
         
         # Recordings
-        self.recordings_dir: str = DM.get_storage_path(DIR.RECORDINGS)
-        DM.validate_dir(self.recordings_dir)
         self.is_recording: bool = False
 
         # Alarms
-        self.alarms_dir: str = DM.get_storage_path(DIR.ALARMS)
-        DM.validate_dir(self.alarms_dir)
         self.alarms: dict[str, str] = {}
         self.load_alarms()
         self.selected_alarm_name: str | None = None
@@ -61,60 +41,6 @@ class AudioManager(AudioManagerUtils):
         self.is_recording: bool = False
         self.has_recording_permission: bool = PM._check_recording_permission()
     
-    def trigger_alarm(self, *args, **kwargs):
-        """
-        Trigger the alarm for the given task.
-        Handles audio playback and vibration if enabled.
-        """
-        task = kwargs.get("task")
-        if not task:
-            logger.error("No task provided to trigger_alarm")
-            return False
-        
-        if not task.alarm_name:
-            logger.warning("Task has no alarm name set")
-            return False
-        
-        # Stop any currently playing alarm first
-        if self.is_playing():
-            self.stop_playing_audio()
-        
-        self.keep_alarming = task.keep_alarming
-        # Get alarm path and validate
-        alarm_path = self.get_audio_path(task.alarm_name)
-        if not alarm_path:
-            logger.error(f"Could not find alarm audio: {task.alarm_name}")
-            return False
-        
-        # Trigger vibration if enabled
-        if task.vibrate:
-            self.audio_player.vibrate()
-        
-        # Set up alarm state
-        self.alarm_is_triggered = True
-        self.current_alarm_path = alarm_path
-        
-        # Start playing and schedule replay
-        if self.start_playing_audio(alarm_path):
-            logger.info(f"Starting alarm: {alarm_path}")
-            self.check_and_replay_alarm()
-            return True
-        return False
-    
-    def check_and_replay_alarm(self, *args, **kwargs):
-        """Check if the alarm has finished playing and schedule the next play."""
-        if not self.alarm_is_triggered or not self.keep_alarming:
-            return
-        
-        if self.is_playing():
-            Clock.schedule_once(self.check_and_replay_alarm, 2)
-            return
-        
-        if self.keep_alarming:
-            self.start_playing_audio(self.current_alarm_path)
-            Clock.schedule_once(self.check_and_replay_alarm, 2)
-            return
-    
     def load_alarms(self) -> None:
         """Load all audio files from alarms and recordings directories."""
         alarms = {}
@@ -122,19 +48,19 @@ class AudioManager(AudioManagerUtils):
         alarm_count = 0
 
         # Load user recordings
-        if os.path.exists(self.recordings_dir):
-            for file in os.listdir(self.recordings_dir):
-                if file.endswith(EXT.WAV):
+        if os.path.exists(DM.DIR.RECORDINGS):
+            for file in os.listdir(DM.DIR.RECORDINGS):
+                if file.endswith(DM.EXT.WAV):
                     name = os.path.splitext(file)[0]
-                    alarms[name] = os.path.join(self.recordings_dir, file)
+                    alarms[name] = os.path.join(DM.DIR.RECORDINGS, file)
                     rec_count += 1
 
         # Load default alarms
-        if os.path.exists(self.alarms_dir):
-            for file in os.listdir(self.alarms_dir):
-                if file.endswith(EXT.WAV):
+        if os.path.exists(DM.DIR.ALARMS):
+            for file in os.listdir(DM.DIR.ALARMS):
+                if file.endswith(DM.EXT.WAV):
                     name = os.path.splitext(file)[0]
-                    alarms[name] = os.path.join(self.alarms_dir, file)
+                    alarms[name] = os.path.join(DM.DIR.ALARMS, file)
                     alarm_count += 1
         
         sorted_alarms = sorted(alarms.items(), key=lambda x: x[0])
@@ -158,12 +84,12 @@ class AudioManager(AudioManagerUtils):
             return False
         
         # Try setting up recording
-        path, filename = self.create_recording_path()
-        if not self.audio_player.setup_recording(path):
+        path, filename = self.get_recording_path()
+        if not self.audio_recorder.setup_recording(path):
             return False
         
         # Try recording
-        if not self.audio_player.start_recording():
+        if not self.audio_recorder.start_recording():
             return False
         
         # Success
@@ -190,13 +116,15 @@ class AudioManager(AudioManagerUtils):
             return False
         
         # Stop the recording
-        if not self.audio_player.stop_recording():
+        if not self.audio_recorder.stop_recording():
             self.is_recording = False
+            logger.error("Failed to stop recording")
             return False
 
         # Verify recording
-        if not self._verify_recording_file(recording_path):
+        if not DM.validate_file(recording_path):
             self.is_recording = False
+            logger.error(f"Recording file not found: {recording_path}")
             return False
             
         # Add alarm to AudioManager
@@ -215,7 +143,7 @@ class AudioManager(AudioManagerUtils):
             logger.error("No alarm selected to play")
             return False
         
-        if not os.path.exists(audio_path):
+        if not DM.validate_file(audio_path):
             logger.error(f"Alarm file not found: {audio_path}")
             return False
         
@@ -230,13 +158,6 @@ class AudioManager(AudioManagerUtils):
         except Exception as e:
             logger.error(f"Error playing alarm: {e}")
             return False
-
-    def stop_alarm(self, *args, **kwargs):
-        """Stop the alarm and reset alarm state."""
-        self.keep_alarming = False
-        self.stop_playing_audio()
-        self.current_alarm_path = None
-        self.alarm_is_triggered = False
     
     def stop_playing_audio(self) -> bool:
         """
@@ -286,7 +207,7 @@ class AudioManager(AudioManagerUtils):
         
         # Construct new path based on old file's location
         directory = os.path.dirname(old_path)
-        new_path = os.path.join(directory, f"{new_name}{EXT.WAV}")
+        new_path = os.path.join(directory, f"{new_name}{DM.EXT.WAV}")
         
         # Rename the file
         os.rename(old_path, new_path)
@@ -309,7 +230,6 @@ class AudioManager(AudioManagerUtils):
         Deletes the alarm from the alarms and recordings directories.
         """
         path = self.get_audio_path(name)
-        logger.trace(f"Called delete_alarm: {name} at {path}")
         if not path:
             logger.error(f"Alarm file not found: {name}")
             return False

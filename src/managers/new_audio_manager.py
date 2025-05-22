@@ -1,32 +1,40 @@
 import threading
 import os
 
+from datetime import datetime
 from src.managers.device.device_manager import DM
 from src.managers.tasks.task_manager_utils import Task
 from src.utils.logger import logger
 
 
 class AudioManager:
-    """Manages audio playback and recording"""
-    def __init__(self):
+    """
+    Manages audio accross the App and Service.
+    - Plays audio.
+    - Vibrates.
+    - Records audio.
+    - Plays alarms.
+    """
+    def __init__(self, is_service: bool = False):
         if DM.is_android:
             from src.managers.new.android_player import AndroidAudioPlayer
-            from src.managers.new.android_recorder import AndroidAudioRecorder
             self.audio_player = AndroidAudioPlayer()
-            self.audio_recorder = AndroidAudioRecorder()
             self.audio_player.bind_audio_manager(self)
+            # Service does not require recorder
+            if not is_service:
+                from src.managers.new.android_recorder import AndroidAudioRecorder
+                self.audio_recorder = AndroidAudioRecorder()
         
         else:
             from src.managers.new.windows_player import WindowsAudioPlayer
             from src.managers.new.windows_recorder import WindowsAudioRecorder
             self.audio_player = WindowsAudioPlayer()
-            self.audio_recorder = WindowsAudioRecorder()
-
             self.audio_player.bind_audio_manager(self)
 
-        self.task: Task | None = None
-        self.current_alarm_path: str | None = None
+            self.audio_recorder = WindowsAudioRecorder()
 
+        self.task: Task | None = None
+        
         # Threading controls
         self._lock = threading.Lock()
         self._alarm_stop_event = threading.Event()
@@ -175,16 +183,33 @@ class AudioManager:
             return None
 
         # Check default alarms
-        alarm_path = os.path.join(DM.DIR.ALARMS, f"{name}.wav")
+        alarm_path = os.path.join(DM.DIR.ALARMS, f"{name}{DM.EXT.WAV}")
         if os.path.exists(alarm_path):
             return alarm_path
         
         # Check user recordings
-        recording_path = os.path.join(DM.DIR.RECORDINGS, f"{name}.wav")
+        recording_path = os.path.join(DM.DIR.RECORDINGS, f"{name}{DM.EXT.WAV}")
         if os.path.exists(recording_path):
             return recording_path
             
         logger.error(f"Audio file not found for name: {name}")
-        logger.error(f"DIR.RECORDINGS: {DM.DIR.RECORDINGS}")
-        logger.error(f"DIR.ALARMS: {DM.DIR.ALARMS}")
         return None
+
+    def get_recording_path(self) -> tuple[str, str]:
+        """
+        Get the path and filename of a new recording.
+        Format: ../{recordings_dir}/recording_HH_MM_SS.wav
+        """
+        name = "recording_"
+        timestamp = datetime.now().strftime(DM.DATE.RECORDING)
+        while True:
+            path = os.path.join(DM.DIR.RECORDINGS, name + timestamp + DM.EXT.WAV)
+            if os.path.exists(path):
+                logger.warning(f"Recording file already exists: {path}")
+                name += "_"
+            else:
+                break
+
+        filename = f"{name}{timestamp}"
+        path = os.path.join(DM.DIR.RECORDINGS, filename + DM.EXT.WAV)
+        return path, filename

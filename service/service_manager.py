@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 from src.managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
-# from service.service_audio_manager import ServiceAudioManager
-from src.managers.new_audio_manager import AudioManager
+from service.service_audio_manager import ServiceAudioManager
 from service.service_task_manager import ServiceTaskManager
 from service.service_utils import (ACTION, PATH,
                                    get_service_timestamp,
@@ -46,8 +45,7 @@ class ServiceManager:
     def __init__(self):
         self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
         self.service_task_manager: ServiceTaskManager = ServiceTaskManager()
-        # self.audio_manager: ServiceAudioManager = ServiceAudioManager()
-        self.audio_manager: AudioManager = AudioManager()
+        self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.settings_manager = None
 
         # Loop variables

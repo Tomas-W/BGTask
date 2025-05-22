@@ -189,8 +189,8 @@ class TaskApp(App, EventDispatcher):
     def _init_audio_manager(self):
         # AudioManager
         start_time = time.time()
-        from src.managers.audio.audio_manager import AudioManager
-        self.audio_manager = AudioManager()
+        from src.managers.audio.audio_manager import AppAudioManager
+        self.audio_manager = AppAudioManager()
         LOADED.AUDIO_MANAGER = True
         self.logger.critical(f"Loading AudioManager time: {time.time() - start_time:.4f}")
     
