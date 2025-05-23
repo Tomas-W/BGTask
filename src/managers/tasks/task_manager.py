@@ -60,7 +60,6 @@ class TaskManager(EventDispatcher):
         """
         Loads all Tasks from file, which are grouped by date.
         Returns a dictionary of date keys and lists of Task objects.
-        Rounds timestamps down to the minute when loading tasks.
         """
         start_time = time.time()
         try:

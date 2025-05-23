@@ -87,9 +87,11 @@ class ServiceManager:
 
         # Set up loop
         self._init_settings_manager()
-        self.synchronize_loop_start()
         self.flag_service_as_running()
         self.update_foreground_notification_info()
+        self.check_task_expiry()
+
+        self.synchronize_loop_start()
 
         while self._running:
             self.loop_sync_tick += 1
@@ -97,6 +99,8 @@ class ServiceManager:
             self.foreground_notification_tick += 1
 
             self._last_loop_time = time.time()
+
+            logger.trace(f"Loop tick")
 
             try:
                 # ############### ALWAYS RUNS ###############
@@ -115,15 +119,8 @@ class ServiceManager:
 
                     self.check_for_task_updates()                              # 10 seconds
 
-                    # Runs only once per app foregrounded
                     if not self._in_foreground:
-                        self.audio_manager.stop_alarm()                # Once per foregrounded
-                        logger.debug("Stopped alarm and vibrations")
-
-                        self.notification_manager.cancel_all_notifications()   # Once per foregrounded
-                        logger.debug("Cancelled all notifications")
-
-                        self._in_foreground = True
+                        self.cancel_alarm_and_notifications()                  # Once per foregrounded
                     
                     time.sleep(self.get_loop_interval())
                     # Dont run Task checks in foreground
@@ -132,27 +129,12 @@ class ServiceManager:
 
                 # ############### RUNS IN BACKGROUND ###############
                 else:
-                    # Runs only once per app backgrounded
                     if self._in_foreground:
                         # If tasks have changed [found flag], update tasks
                         self.check_for_task_updates()                           # Once per backgrounded
                     
                     if self.service_task_manager.current_task is not None:
-                        # Task expired
-                        if self.is_task_expired():                              # 10 seconds
-                            logger.debug("Task expired, showing notification")
-
-                            # If unhandled expired Task, cancel it first
-                            if self.service_task_manager.expired_task:
-                                self.clean_up_previous_task()
-                            
-                            # Handle expiration and get expired Task
-                            expired_task = self.service_task_manager.handle_expired_task()
-                            if expired_task:
-                                self.notify_user_of_expiry(expired_task)
-                            
-                            # Signal to update foreground notification
-                            self._need_foreground_notification_update = True
+                        self.check_task_expiry()                                # 10 seconds
                     
                     self._in_foreground = False
                 
@@ -163,6 +145,16 @@ class ServiceManager:
                 time.sleep(self.get_loop_interval())
         
         self.audio_manager.stop_alarm()
+    
+    def cancel_alarm_and_notifications(self) -> None:
+        """Cancels the alarm and notifications."""
+        self.audio_manager.stop_alarm()
+        logger.debug("Stopped alarm and vibrations")
+
+        self.notification_manager.cancel_all_notifications()
+        logger.debug("Cancelled all notifications")
+
+        self._in_foreground = True
     
     def synchronize_loop_start(self) -> None:
         """'
@@ -316,7 +308,7 @@ class ServiceManager:
         if self._task_flag_exists():
             self._refresh_active_tasks()
             self._remove_task_flag()
-            self._need_foreground_notification_update = True
+            self.update_foreground_notification_info()
             logger.debug("Found tasks changes flag, updated Tasks")
 
     def _task_flag_exists(self) -> bool:
@@ -366,9 +358,22 @@ class ServiceManager:
         except Exception as e:
             logger.error(f"Error removing tasks flag file: {e}")
     
-    def is_task_expired(self) -> bool:
+    def check_task_expiry(self) -> bool:
         """Returns True if the current Task is expired"""
-        return self.service_task_manager.is_task_expired()
+        if self.service_task_manager.is_task_expired():
+            logger.debug("Task expired, showing notification")
+
+            # If unhandled expired Task, cancel it first
+            if self.service_task_manager.expired_task:
+                self.clean_up_previous_task()
+            
+            # Handle expiration and get expired Task
+            expired_task = self.service_task_manager.handle_task_expired()
+            if expired_task:
+                self.notify_user_of_expiry(expired_task)
+            
+            # Signal to update foreground notification
+            self._need_foreground_notification_update = True
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""

@@ -66,6 +66,7 @@ class DeviceManager:
             
             except Exception as e:
                 logger.warning(f"File verification attempt {attempt+1} failed: {e}")
+                return False
         
         logger.error(f"Failed to verify audio file: {path}")
         return False
