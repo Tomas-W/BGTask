@@ -67,6 +67,7 @@ class Paths:
     TASK_FILE: str = get_storage_path("app/src/assets/task_file.json")
 
     TASKS_CHANGED_FLAG: str = get_storage_path("app/service/tasks_changed.flag")
+    SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG = "app/src/service/task_notification_removal.flag"
     SERVICE_HEARTBEAT_FLAG: str = get_storage_path("app/service/service_heartbeat.flag")
 
     ALARMS_DIR: str = get_storage_path("app/src/assets/alarms")

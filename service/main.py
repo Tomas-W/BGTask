@@ -126,7 +126,7 @@ def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
                 logger.error(f"Error initializing service: {e}")
                 # Clean up
                 if service_manager:
-                    service_manager.stop_alarm_vibrate()
+                    service_manager.audio_manager.stop_alarm()
                 
                 service_manager = None
                 receiver = None

@@ -23,6 +23,7 @@ from src.widgets.misc import Spacer
 from src.utils.logger import logger
 
 from src.settings import COL, SPACE, FONT, STATE, DATE, SIZE
+from service.service_utils import ACTION
 
 
 class BasePopup(Popup):
@@ -438,27 +439,19 @@ class PopupManager:
     def _stop_alarm(self, task_id: str):
         """Stop the alarm and mark task as expired"""
         from kivy.app import App
-        from src.utils.background_service import notify_service_of_tasks_update
         app = App.get_running_app()
-        audio_manager = app.audio_manager
         task_manager = app.task_manager
         
-        task = task_manager.get_task_by_id(task_id)
-        task.expired = True
-        task_manager._save_tasks_to_json()
-        audio_manager.stop_alarm()
-        notify_service_of_tasks_update()
+        # task_manager.stop_task(task_id)
+        task_manager.cancel_task(task_id=task_id)
     
     def _snooze_alarm(self, task_id: str):
         """Snooze the alarm"""
         from kivy.app import App
         app = App.get_running_app()
         task_manager = app.task_manager
-        audio_manager = app.audio_manager
         
-        task_manager.snooze_task(task_id)
-        audio_manager.stop_alarm()
-        # TaskManager notifies Service of Tasks update
+        task_manager.snooze_task(task_id, ACTION.SNOOZE_A)
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""

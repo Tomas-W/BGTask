@@ -39,6 +39,7 @@ if platform != PLATFORM.ANDROID:
 # TODO: Refactor StartScreen / Layout / Widgets
 # TODO: Smart loading widgets
 # TODO: Show snooze time
+# TODO: Home and Start -> show cancelled future tasks muted colors
 
 # BaseScreen
 # TODO: Fix synchronized_animate SIZE.BOTTOM_BAR_HEIGHT*1.05
@@ -310,8 +311,6 @@ class TaskApp(App, EventDispatcher):
             start_time = time.time()
             # First reload tasks from file to ensure we have latest data
             self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
-            # Then update expired tasks
-            self.task_manager.set_expired_tasksbydate()
             # Finally rebuild the display with updated data
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
             self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")

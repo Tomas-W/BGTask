@@ -204,6 +204,8 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         Edit the existing task
         Called when the user selects a date for an existing task.
         """
+        ##
+        ## NOT BY TIMESTAMP !
         date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
         task = self.task_manager.get_task_by_timestamp(date)
         self.task_manager.dispatch("on_task_edit_load_task_data", task=task)

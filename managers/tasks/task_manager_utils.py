@@ -67,12 +67,12 @@ class Task:
     @lru_cache(maxsize=32)
     def to_date_str(timestamp: datetime) -> str:
         """Get formatted date string [# Thursday 21 Mar]."""
-        return timestamp.strftime(DATE.TASK_HEADER)
+        return timestamp.strftime(DM.DATE.TASK_HEADER)
     
     @staticmethod
     def to_time_str(timestamp: datetime) -> str:
         """Get formatted time string [HH:MM]."""
-        return timestamp.strftime(DATE.TASK_TIME)
+        return timestamp.strftime(DM.DATE.TASK_TIME)
 
     @lru_cache(maxsize=32)
     def get_date_str(self) -> str:

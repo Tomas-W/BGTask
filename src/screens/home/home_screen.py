@@ -229,9 +229,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             
         return True
 
-    def scroll_to_task(self, instance, task):
+    def scroll_to_task(self, instance, task, *args, **kwargs):
         """Scroll to the new/edited task"""
         # Mark to invalidate this Widgets cache
+        task = kwargs.get("task") if kwargs.get("task") else task
         self.invalidate_cache_for_date = task.get_date_str()
         
         # Set widget attributes
@@ -261,8 +262,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             on_enter_time = time.time()
             self.on_enter_time = on_enter_time
         
-        # self.task_manager.set_expired_tasksbydate()
-
         # Fallback
         if not self.tasks_loaded:
             self._full_rebuild_task_display()

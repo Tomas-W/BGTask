@@ -52,6 +52,8 @@ class Paths(Directories):
     SERVICE_TASK_FILE = "app/src/assets/task_file.json"
 
     TASKS_CHANGED_FLAG = os.path.join(Directories.SERVICE, "tasks_changed.flag")
+    TASK_NOTIFICATION_REMOVAL_FLAG = os.path.join(Directories.SERVICE, "task_notification_removal.flag")
+    SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG = "app/src/service/task_notification_removal.flag"
 
     SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
 

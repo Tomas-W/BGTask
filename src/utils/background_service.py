@@ -73,3 +73,19 @@ def notify_service_of_tasks_update():
     except Exception as e:
         logger.error(f"Error creating Tasks flag file for background service: {e}")
 
+
+def notify_service_of_task_notificaiton_removal():
+    """Notify the service that a task notification has been removed by setting a flag file"""
+    if platform != "android":
+        return None 
+        
+    try:
+        from src.settings import PATH
+        from src.utils.logger import logger
+        with open(PATH.TASK_NOTIFICATION_REMOVAL_FLAG, "w") as f:
+            f.write("1")
+        logger.debug("Created Task notification removal flag file for background service")
+    
+    except Exception as e:
+        logger.error(f"Error creating Task notification removal flag file for background service: {e}")
+

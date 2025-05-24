@@ -18,6 +18,7 @@ class SettingsManager:
 
         from src.managers.device.device_manager import DM
         self.cancelled_task_path = DM.get_storage_path("cancelled_task_id.txt")
+        self.expired_task_path = DM.get_storage_path("expired_task_id.txt")
         # DM.validate_file(self.cancelled_task_path)
         
         if not self.context:
@@ -82,6 +83,7 @@ class SettingsManager:
         try:
             with open(self.cancelled_task_path, "w") as f:
                 f.write(task_id)
+            time.sleep(0.1)	
             logger.critical(f"Wrote cancelled task ID to file: {task_id}")
         
         except Exception as e:
@@ -109,3 +111,38 @@ class SettingsManager:
         
         except Exception as e:
             logger.error(f"Error removing cancelled task ID file: {e}")
+
+    def set_expired_task_id(self, task_id: str) -> None:
+        """Store expired task ID in settings"""
+        logger.critical(f"Setting expired task ID: {task_id}")
+        try:
+            with open(self.expired_task_path, "w") as f:
+                f.write(task_id)
+            time.sleep(0.1)	
+            logger.critical(f"Wrote expired task ID to file: {task_id}")
+        
+        except Exception as e:
+            logger.error(f"Error writing expired task ID to settings: {e}")
+
+    def get_expired_task_id(self) -> str | None:
+        """Get expired task ID from settings"""
+        try:
+            if os.path.exists(self.expired_task_path):
+                with open(self.expired_task_path, "r") as f:
+                    task_id = f.read().strip()
+                logger.critical(f"Read expired task ID from file: {task_id}")
+                return task_id
+        
+        except Exception as e:
+            logger.error(f"Error reading expired task ID from file: {e}")
+        return ""
+
+    def clear_expired_task_id(self) -> None:
+        """Clear expired task ID from settings"""
+        try:
+            if os.path.exists(self.expired_task_path):
+                os.remove(self.expired_task_path)
+                logger.critical("Removed expired task ID file")
+        
+        except Exception as e:
+            logger.error(f"Error removing expired task ID file: {e}")
