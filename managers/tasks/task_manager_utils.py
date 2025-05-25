@@ -1,10 +1,9 @@
 import uuid
 
-from datetime import datetime, timedelta
 from functools import lru_cache
+from datetime import datetime, timedelta
 
 from src.managers.device.device_manager import DM
-
 
 class Task:
     """

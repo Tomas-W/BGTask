@@ -3,10 +3,10 @@ import os
 from kivy.app import App
 
 from managers.audio.audio_manager import AudioManager
+from managers.tasks.task_manager_utils import Task
 
 from src.managers.device.device_manager import DM
 from src.managers.permission_manager import PM
-from src.managers.tasks.task_manager_utils import Task
 
 from src.utils.logger import logger
 
@@ -21,8 +21,9 @@ class AppAudioManager(AudioManager):
         
         # Bind events
         app = App.get_running_app()
-        app.task_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
-        app.task_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
+        app.task_manager.expiry_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
+        app.task_manager.expiry_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
+        app.task_manager.expiry_manager.bind(on_task_snoozed_stop_alarm=self.stop_alarm)
         app.bind(on_resume=self.stop_alarm)
 
         # SelectAlarmScreen

@@ -19,7 +19,7 @@ from src.settings import SPACE, STATE, SCREEN, DATE
 
 
 if TYPE_CHECKING:
-    from src.managers.tasks.task_manager import TaskManager
+    from src.managers.app_task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
 
 

@@ -7,16 +7,14 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
+from src.managers.app_expiry_manager import AppExpiryManager
 from managers.tasks.task_manager_utils import Task
 
 from src.managers.device.device_manager import DM
 from src.managers.settings_manager import SettingsManager
 
-from src.utils.background_service import notify_service_of_tasks_update, notify_service_of_task_notificaiton_removal
 from src.utils.logger import logger
 
-from src.settings import DATE
-from service.service_utils import ACTION
 
 class TaskManager(EventDispatcher):
     """
@@ -30,18 +28,16 @@ class TaskManager(EventDispatcher):
             return
         
         self.navigation_manager = App.get_running_app().navigation_manager
-        if DM.is_android:
-            self.settings_manager = SettingsManager()
+        # if DM.is_android:
+        self.settings_manager = SettingsManager()
+        self.expiry_manager = AppExpiryManager(self)
                 
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
         self.register_event_type("on_tasks_expired_set_date_expired")
-        self.register_event_type("on_task_expired_trigger_alarm")
-        self.register_event_type("on_task_expired_show_task_popup")
-        self.register_event_type("on_task_cancelled_stop_alarm")
-
+        
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
         self.sorted_active_tasks: list[dict] = None
@@ -55,10 +51,9 @@ class TaskManager(EventDispatcher):
         self.task_to_edit: Task | None = None
 
         # Alarm attributes
-        self._snooze_time_a: int = 60
-        self._snooze_time_b: int = 120
         self._checked_background_cancelled_tasks: bool = False
-        Clock.schedule_interval(self.check_task_expired, 1)
+        
+        Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """
@@ -188,7 +183,8 @@ class TaskManager(EventDispatcher):
         # Save, reload and notify service
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task)
-        notify_service_of_tasks_update()
+        self.expiry_manager._refresh_tasks()
+        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
     
     def update_task(self, task_id: str, message: str, timestamp: datetime,
                     alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
@@ -246,7 +242,8 @@ class TaskManager(EventDispatcher):
         # Save, reload and notify service
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task)
-        notify_service_of_tasks_update()
+        self.expiry_manager._refresh_tasks()
+        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
     
     def delete_task(self, task_id: str) -> None:
         """
@@ -270,42 +267,8 @@ class TaskManager(EventDispatcher):
         
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task, scroll_to_task=False)
-        notify_service_of_tasks_update()
-    
-    def cancel_task(self, task_id: str) -> None:
-        """
-        Cancels a Task by ID.
-        """
-        task = self.get_task_by_id(task_id)
-        if not task:
-            logger.error(f"Task with id {task_id} not found for cancellation")
-            return
-        
-        task.expired = True
-        self._save_tasks_to_json()
-        self._update_tasks_ui(task=task)
-        notify_service_of_tasks_update()
-        notify_service_of_task_notificaiton_removal()
-    
-    def snooze_task(self, task_id: str, action: str) -> None:
-        """
-        Snoozes a Task by ID.
-        """
-        task = self.get_task_by_id(task_id)
-        if not task:
-            logger.error(f"Task with id {task_id} not found for snoozing")
-            return
-        
-        if action == ACTION.SNOOZE_A:
-            snooze_time = self._snooze_time_a
-        elif action == ACTION.SNOOZE_B:
-            snooze_time = self._snooze_time_b
-            
-        task.snooze_time += snooze_time
-        self._save_tasks_to_json()
-        self._update_tasks_ui(task=task)
-        notify_service_of_tasks_update()
-        notify_service_of_task_notificaiton_removal()
+        self.expiry_manager._refresh_tasks()
+        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
     
     def _has_time_overlap(self, timestamp: datetime) -> bool:
         """Checks if the snoozed Task or current Task would overlap with another Task."""
@@ -339,7 +302,7 @@ class TaskManager(EventDispatcher):
         Get a Task object by its timestamp.
         Only compares date and hours/minutes, ignoring seconds and microseconds.
         """
-        target_date_key = target_datetime.strftime(DATE.DATE_KEY)
+        target_date_key = target_datetime.strftime(DM.DATE.DATE_KEY)
         target_time = target_datetime.time()
         
         # First check if we have any tasks on this date
@@ -369,7 +332,7 @@ class TaskManager(EventDispatcher):
         First checks the date to avoid unnecessary time comparisons.
         Only compares hours and minutes, ignoring seconds and microseconds.
         """
-        target_date_key = target_datetime.strftime(DATE.DATE_KEY)
+        target_date_key = target_datetime.strftime(DM.DATE.DATE_KEY)
         
         # First check if we have any tasks on this date
         if target_date_key not in self.tasks_by_date:
@@ -383,60 +346,17 @@ class TaskManager(EventDispatcher):
                 return True
         
         return False
-
-    def check_task_expired(self, dt: float) -> None:
-        """
-        Check if any Tasks are expired and trigger the alarm if so.
-        """
-        if not self._checked_background_cancelled_tasks:
-            self.check_background_cancelled_tasks()
-            self._checked_background_cancelled_tasks = True
-            return
-        
-        expired_task_id = self.settings_manager.get_expired_task_id()
-        task = self.get_task_by_id(expired_task_id)
-
-        if task:
-
-            self.dispatch("on_task_expired_show_task_popup", task=task)
-            # Signal UI change
-            self.settings_manager.clear_expired_task_id()
-        
-        # self.refresh_active_tasks()
-        # self.refresh_current_task()
-
-        # if not self.current_task:
-        #     return
-
-        # task_id = self.current_task.task_id
-        # task_time = self.current_task.timestamp + timedelta(seconds=self.current_task.snooze_time)
-        # logger.debug(f"Current task: {task_id[:6]} | {task_time}")
-        # logger.debug(f"active_tasks:")
-        # for task in self.active_tasks:
-        #     logger.debug(f"{task.task_id[:6]} | {task.timestamp+timedelta(seconds=task.snooze_time)}")
-        # logger.debug(f"*************************************")
-        
-        # if self.current_task is None:
-        #     return
     
-        # if self.is_task_expired():
-        #     logger.critical("is_task_expired is TRUE")
-        #     if self.expired_task:
-        #         logger.critical("expired_task found")
-        #         audio_manager = App.get_running_app().audio_manager
-        #         audio_manager.stop_alarm()
-        #         self.cancel_task()
-        #         self.clear_expired_task()
+    def notify_user_of_expiry(self, expired_task: Task) -> None:
+        """
+        Notifies the user of the expiry of a Task by:
+        - Showing a notification
+        - Triggering an alarm
+        - Updating the Task display
+        """
+        self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
+        self.dispatch("on_task_expired_show_task_popup", task=expired_task)
     
-        #     expired_task = self.handle_task_expired()
-        #     logger.critical(f"handle_task_expired got: {expired_task.task_id if expired_task else None}")
-
-        #     if expired_task:
-        #         logger.critical("Expired task found")
-        #         self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
-        #         # Trigger popup
-        #         self.dispatch("on_task_expired_show_task_popup", task=expired_task)
-
     def _update_tasks_ui(self, task: Task | None = None, scroll_to_task: bool = True):
         """Updates the App's Tasks"""
         # Reload tasks from file
@@ -481,16 +401,4 @@ class TaskManager(EventDispatcher):
     
     def on_tasks_expired_set_date_expired(self, *args, **kwargs):
         """Default handler for on_tasks_expired_set_date_expired event"""
-        pass
-    
-    def on_task_expired_trigger_alarm(self, *args, **kwargs):
-        """Default handler for on_task_expired_trigger_alarm event"""
-        pass
-
-    def on_task_expired_show_task_popup(self, *args, **kwargs):
-        """Default handler for on_task_expired_show_task_popup event"""
-        pass
-
-    def on_task_cancelled_stop_alarm(self, *args, **kwargs):
-        """Default handler for on_task_cancelled_stop_alarm event"""
         pass

@@ -3,7 +3,7 @@ import time
 
 from typing import Final
 
-from src.managers.device.device_manager_utils import Dirs, Paths, Dates, Extensions
+from src.managers.device.device_manager_utils import Dirs, Paths, Dates, Extensions, AlarmActions
 from src.utils.logger import logger
 
 ANDROID = "android"
@@ -24,10 +24,72 @@ class DeviceManager:
         self.DATE: Final[Dates] = Dates()
         self.EXT: Final[Extensions] = Extensions()
 
+        self.ACTION: Final[AlarmActions] = AlarmActions()
+
     def _device_is_android(self) -> bool:
         """Returns whether the app is running on Android."""
         from kivy.utils import platform
         return platform == ANDROID
+
+    def write_flag_file(self, path: str) -> None:
+        """Writes a flag file to the given path."""
+        try:
+            with open(path, "w") as f:
+                f.write("1")
+            logger.debug(f"Wrote flag file: {path.split('/')[-1]}")
+        
+        except Exception as e:
+            logger.error(f"Error writing flag file {path.split('/')[-1]}: {e}")
+    
+    def check_flag_file(self, path: str) -> bool:
+        """Checks if a flag file exists at the given path."""
+        try:
+            return os.path.exists(path)
+        
+        except Exception as e:
+            logger.error(f"Error checking flag file {path.split('/')[-1]}: {e}")
+            return False
+    
+    def remove_flag_file(self, path: str) -> None:
+        """Removes a flag file at the given path."""
+        try:
+            os.remove(path)
+            logger.debug(f"Removed flag file: {path.split('/')[-1]}")
+        
+        except Exception as e:
+            logger.error(f"Error removing flag file {path.split('/')[-1]}: {e}")
+    
+    def write_settings_file(self, path: str, setting: str) -> None:
+        """Writes a settings file to the given path."""
+        try:
+            with open(path, "w") as f:
+                f.write(setting)
+            logger.debug(f"Wrote settings file: {path.split('/')[-1]}")
+        
+        except Exception as e:
+            logger.error(f"Error writing settings file {path.split('/')[-1]}: {e}")
+    
+    def read_settings_file(self, path: str) -> str:
+        """Reads a settings file from the given path."""
+        try:
+            if not os.path.exists(path):
+                return None
+            
+            with open(path, "r") as f:
+                return f.read()
+        
+        except Exception as e:
+            logger.error(f"Error reading settings file {path.split('/')[-1]}: {e}")
+            return None
+    
+    def remove_settings_file(self, path: str) -> None:
+        """Removes a settings file at the given path."""
+        try:
+            os.remove(path)
+            logger.debug(f"Removed settings file: {path.split('/')[-1]}")
+        
+        except Exception as e:
+            logger.error(f"Error removing settings file {path.split('/')[-1]}: {e}")
     
     def validate_dir(self, dir_path) -> bool:
         """Validate and create a directory if it doesn't exist."""

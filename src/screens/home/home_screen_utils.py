@@ -9,7 +9,7 @@ from .home_widgets import (TasksByDate, TimeContainer, TaskContainer,
                            TaskLabel, TimeLabel)
 
 if TYPE_CHECKING:
-    from src.managers.tasks.task_manager_utils import Task
+    from managers.tasks.task_manager_utils import Task
 
 
 class HomeScreenUtils:

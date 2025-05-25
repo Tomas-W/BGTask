@@ -3,7 +3,7 @@ from jnius import autoclass                      # type: ignore
 from typing import Any
 
 from service.service_manager import ServiceManager
-from service.service_utils import ACTION
+from src.managers.device.device_manager import DM
 
 from src.utils.logger import logger
 
@@ -15,6 +15,17 @@ Service = autoclass("android.app.Service")
 service_manager: ServiceManager | None = None
 # Global BroadcastReceiver
 receiver: BroadcastReceiver | None = None
+
+def on_receive_callback(service_manager: ServiceManager, context: Any, intent: Any) -> None:
+    """Callback for handling received broadcast actions"""
+    try:
+        action = intent.getAction()
+        if action:
+            pure_action = action.split(".")[-1]
+            service_manager.handle_action(pure_action)
+    
+    except Exception as e:
+        logger.error(f"Error in broadcast receiver: {e}")
 
 def create_broadcast_receiver(service_manager: ServiceManager) -> BroadcastReceiver | None:
     """
@@ -37,23 +48,14 @@ def create_broadcast_receiver(service_manager: ServiceManager) -> BroadcastRecei
             logger.error("Failed to get package name")
             return None
         
-        # Aallows callback to access service_manager without passing it
-        def on_receive(context: Any, intent: Any) -> None:
-            """Callback for handling received broadcast actions"""
-            try:
-                action = intent.getAction()
-                if action:
-                    pure_action = action.split(".")[-1]
-                    logger.trace(f"Received broadcast action: {pure_action}")
-                    service_manager.handle_action(pure_action)
-            
-            except Exception as e:
-                logger.error(f"Error in broadcast receiver: {e}")
-        
         # Register actions to receiver
         actions = _get_broadcast_actions(package_name)
         
-        receiver = BroadcastReceiver(on_receive, actions=actions)
+        # Create receiver with the standalone callback
+        receiver = BroadcastReceiver(
+            lambda ctx, intent: on_receive_callback(service_manager, ctx, intent),
+            actions=actions
+        )
         logger.trace("Created BroadcastReceiver")
         return receiver
         
@@ -67,10 +69,11 @@ def _get_broadcast_actions(package_name: str) -> list[str]:
     Returns a list of actions for the BroadcastReceiver.
     """
     return [
-        f"{package_name}.{ACTION.SNOOZE_A}",
-        f"{package_name}.{ACTION.SNOOZE_B}",
-        f"{package_name}.{ACTION.CANCEL}",
-        f"{package_name}.{ACTION.OPEN_APP}"
+        f"{package_name}.{DM.ACTION.SNOOZE_A}",
+        f"{package_name}.{DM.ACTION.SNOOZE_B}",
+        f"{package_name}.{DM.ACTION.CANCEL}",
+        f"{package_name}.{DM.ACTION.OPEN_APP}",
+        f"{package_name}.{DM.ACTION.STOP_ALARM}"
     ]
 
 

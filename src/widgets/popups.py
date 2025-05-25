@@ -23,8 +23,7 @@ from src.widgets.misc import Spacer
 from src.utils.logger import logger
 
 from src.settings import COL, SPACE, FONT, STATE, DATE, SIZE
-from service.service_utils import ACTION
-
+from src.managers.device.device_manager import DM
 
 class BasePopup(Popup):
     """Base class for all popups"""
@@ -410,7 +409,7 @@ class PopupManager:
         from kivy.app import App
         app = App.get_running_app()
         self.task_manager = app.task_manager
-        self.task_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
+        self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
         
         total_time = time.time() - start_time
         logger.critical(f"Time taken to initialize PopupManager: {total_time}")
@@ -440,18 +439,17 @@ class PopupManager:
         """Stop the alarm and mark task as expired"""
         from kivy.app import App
         app = App.get_running_app()
-        task_manager = app.task_manager
+        expiry_manager = app.task_manager.expiry_manager
         
-        # task_manager.stop_task(task_id)
-        task_manager.cancel_task(task_id=task_id)
+        expiry_manager.cancel_task(task_id=task_id)
     
     def _snooze_alarm(self, task_id: str):
         """Snooze the alarm"""
         from kivy.app import App
         app = App.get_running_app()
-        task_manager = app.task_manager
+        expiry_manager = app.task_manager.expiry_manager
         
-        task_manager.snooze_task(task_id, ACTION.SNOOZE_A)
+        expiry_manager.snooze_task(task_id, DM.ACTION.SNOOZE_A)
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""

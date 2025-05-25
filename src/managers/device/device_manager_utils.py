@@ -62,7 +62,7 @@ class Paths(Dirs):
         self.DELETE_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_active_64.png")
         self.DELETE_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_inactive_64.png")
         
-        # Task file paths
+        # Task file
         self.TASK_FILE: Final[str] = os.path.join(self.ASSETS, "task_file.json")
         self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
 
@@ -70,9 +70,8 @@ class Paths(Dirs):
         self.TASKS_CHANGED_FLAG: Final[str] = os.path.join(self.SERVICE, "tasks_changed.flag")
         self.SERVICE_TASKS_CHANGED_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/tasks_changed.flag")
         self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
-        self.TASK_NOTIFICATION_REMOVAL_FLAG: Final[str] = os.path.join(self.SERVICE, "task_notification_removal.flag")
-        self.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG: Final[str] = self._get_storage_path(is_android, "app/src/service/task_notification_removal.flag")
         # Screenshot
+        
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
 
 class Dates:
@@ -105,3 +104,14 @@ class Extensions:
     def __init__(self):
         # Audio formats
         self.WAV: Final[str] = ".wav"
+
+
+class AlarmActions:
+    """Class to hold alarm action patterns with type hints"""
+    def __init__(self):
+        # Alarm actions
+        self.SNOOZE_A: Final[str] = "snooze_a"
+        self.SNOOZE_B: Final[str] = "snooze_b"
+        self.CANCEL: Final[str] = "cancel"
+        self.OPEN_APP: Final[str] = "open_app"
+        self.STOP_ALARM: Final[str] = "stop_alarm"

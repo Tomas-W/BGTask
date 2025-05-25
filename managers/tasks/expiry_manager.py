@@ -6,31 +6,34 @@ from typing import Any
 from managers.tasks.task_manager_utils import Task
 
 from src.managers.device.device_manager import DM
-
-from service.service_utils import ACTION
-from src.utils.background_service import notify_service_of_tasks_update
 from src.utils.logger import logger
 
 
-class ServiceTaskExpiryManager:
+class ExpiryManager():
     """
     Base class for managing Tasks expiration.
-    - Is extended upon my AppTaskManager and ServiceTaskManager.
+    - Is extended upon my AppExpiryManager and ServiceExpiryManager.
     - Mainly handles expiry related logic.
     """	
     def __init__(self):
+        super().__init__()
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
             logger.error(f"Task file not found: {self.task_file_path}")
             return
-
+        
         self.expired_task: Task | None = None
         self.active_tasks: list[Task] = self._get_active_tasks()
         self.current_task: Task | None = self.get_current_task()
 
-        self._snooze_a_seconds: int = 60
-        self._snooze_b_seconds: int = 3600
+        self._need_refresh_tasks: bool = False
 
+        self.SNOOZE_A_SECONDS: int = 60
+        self._SNOOZE_B_SECONDS: int = 3600
+    
+    def _bind_audio_manager(self, audio_manager) -> None:
+        self.audio_manager = audio_manager
+    
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         """Returns a dictionary of Tasks from the task file."""
         try:
@@ -70,15 +73,17 @@ class ServiceTaskExpiryManager:
         for task in active_tasks:
             logger.debug(f"Active task {task.task_id} with timestamp={task.timestamp}")
         
-        if not active_tasks:
-            active_tasks = [self._get_start_task()]
-        
         return active_tasks
 
     def refresh_active_tasks(self) -> None:
         """Refreshes the active Tasks"""
         self.active_tasks = self._get_active_tasks()
         return self.active_tasks
+    
+    def refresh_current_task(self) -> None:
+        """Refreshes and returns the current Task"""
+        self.current_task = self.get_current_task()
+        return self.current_task
     
     def get_current_task(self) -> Task | None:
         """Returns the first Task that is not expired and is not the current expired Task"""
@@ -87,23 +92,10 @@ class ServiceTaskExpiryManager:
                 return None
             
             return self.active_tasks[0]
-            # # Check all tasks to find the first one that is not expired
-            # for task in self.active_tasks:
-            #     # Skip if task is expired or is the current expired task
-            #     if task.expired or (self.expired_task and task.task_id == self.expired_task.task_id):
-            #         continue
-            #     return task
-
-            # return None
 
         except Exception as e:
             logger.error(f"Error getting current Task: {e}")
             return None
-    
-    def refresh_current_task(self) -> None:
-        """Refreshes and returns the current Task"""
-        self.current_task = self.get_current_task()
-        return self.current_task
     
     def is_task_expired(self) -> bool:
         """Returns True if the current Task is expired"""
@@ -137,96 +129,11 @@ class ServiceTaskExpiryManager:
 
         return self.expired_task
     
-    def snooze_task(self, action: str) -> None:
-        """
-        Snoozes a Task from notification.
-        - Expired Task or current Task if no expired Task exists.
-        - Updates the snooze time.
-        - Refreshes the Tasks and gets new current Task.
-        """
-        task_to_snooze = self.expired_task or self.current_task
-        if not task_to_snooze:
-            logger.error("No Task to snooze")
-            return
-            
-        # Update snooze time
-        if action.endswith(ACTION.SNOOZE_A):
-            snooze_seconds = self._snooze_a_seconds
-        elif action.endswith(ACTION.SNOOZE_B):
-            snooze_seconds = self._snooze_b_seconds
-        else:
-            logger.error(f"IN APP SNOOZE ACTION: {action}")
-            snooze_seconds = self._snooze_a_seconds
-        
-        # Calculate new timestamp
-        new_timestamp = task_to_snooze.timestamp + timedelta(seconds=task_to_snooze.snooze_time + snooze_seconds)
-        
-        # Check for overlaps with other Tasks
-        if self._has_time_overlap(new_timestamp):
-            logger.debug(f"Task {task_to_snooze.task_id} would overlap with another task, adding 10 seconds")
-            snooze_seconds += 10
-        
-        # If snoozed, clear expired Task
-        if task_to_snooze == self.expired_task:
-            self.expired_task = None
-        
-        # Save changes
-        task_to_snooze.snooze_time += snooze_seconds
-        task_to_snooze.expired = False
-        self._save_task_changes(task_to_snooze.task_id, {
-            "snooze_time": task_to_snooze.snooze_time,
-            "expired": False
-        })
-        logger.debug(f"Task {task_to_snooze.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {task_to_snooze.snooze_time/60:.1f}m")
-
-        # Stop alarm
-        self._stop_alarm()
-
-        # Always update Tasks
-        notify_service_of_tasks_update()
-    
-    def cancel_task(self, task_id: str | None = None) -> None:
-        """
-        Cancels the expired task if it exists, otherwise cancels current task.
-        User can cancel current task with the foreground notification.
-        """
-        if task_id is not None:
-            task_to_cancel = self.get_task_by_id(task_id)
-        else:
-            task_to_cancel = self.expired_task or self.current_task
-        if not task_to_cancel:
-            return
-            
-        # Mark as expired after user action
-        task_to_cancel.expired = True
-        logger.debug(f"Task {task_to_cancel.task_id} cancelled and marked as expired")
-        
-        # Save changes to file
-        self._save_task_changes(task_to_cancel.task_id, {"expired": True})
-
-        # Stop alarm
-        self._stop_alarm()
-        
-        # Clear expired task if it was cancelled
-        if task_to_cancel == self.expired_task:
-            self.expired_task = None
-        
-        # Always update Tasks
-        notify_service_of_tasks_update()
-
-        logger.debug(f"Cancelled task")
-    
-    def _stop_alarm(self) -> None:
-        """Stops the alarm"""
-        from kivy.app import App
-        app = App.get_running_app()
-        audio_manager = app.audio_manager
-        audio_manager.stop_alarm()
-    
-    def _refresh_expiring_tasks(self) -> None:
+    def _refresh_tasks(self) -> None:
         """Refreshes the Tasks and gets new current Task."""
         self.refresh_active_tasks()
         self.refresh_current_task()
+        self.expired_task = None
     
     def _has_time_overlap(self, timestamp: datetime) -> bool:
         """Checks if the snoozed Task or current Task would overlap with another Task."""

@@ -184,7 +184,7 @@ class TaskApp(App, EventDispatcher):
     def _init_task_manager(self):
         # TaskManager
         start_time = time.time()
-        from src.managers.tasks.task_manager import TaskManager
+        from src.managers.app_task_manager import TaskManager
         self.task_manager = TaskManager()
         LOADED.TASK_MANAGER = True
         self.logger.critical(f"Loading TaskManager time: {time.time() - start_time:.4f}")
@@ -289,7 +289,11 @@ class TaskApp(App, EventDispatcher):
         Creates a flag file to indicate Tasks need updating in the service.
         """
         self.logger.debug("App is pausing")
-        self.task_manager._checked_background_cancelled_tasks = False
+        if hasattr(self, "task_manager"):
+            # Check if user interacted with a notification
+            self.task_manager._checked_background_cancelled_tasks = False
+            # Signal to ExpiryManager to refresh tasks
+            self.task_manager.expiry_manager._need_refresh_tasks = True
         return True
     
     def on_stop(self):
@@ -298,7 +302,7 @@ class TaskApp(App, EventDispatcher):
         Save last open time and ensure the background service is running.
         """
         self.logger.debug("App is stopping - saving last open for background service")
-        
+    
     def on_resume(self):
         """
         App is resumed from a paused state.
@@ -307,13 +311,35 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is resuming - checking for expired tasks")
 
         if hasattr(self, "task_manager"):
-            # Reload tasks
-            start_time = time.time()
+            # Send broadcast to stop alarm
+            self._stop_service_alarm()
+            
             # First reload tasks from file to ensure we have latest data
+            start_time = time.time()
             self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
             # Finally rebuild the display with updated data
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
             self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
+    
+    def _stop_service_alarm(self):
+        """
+        Sends a broadcast to stop the service alarm.
+        """
+        from src.managers.device.device_manager import DM
+        if not DM.is_android:
+            return
+        
+        try:
+            from jnius import autoclass # type: ignore
+            Intent = autoclass("android.content.Intent")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            context = PythonActivity.mActivity
+            intent = Intent()
+            intent.setAction(f"{context.getPackageName()}.{DM.ACTION.STOP_ALARM}")  # Use new STOP_ALARM action
+            context.sendBroadcast(intent)
+            self.logger.debug("Sent broadcast to stop alarm")
+        except Exception as e:
+            self.logger.error(f"Error sending broadcast: {e}")
     
     def on_start(self):
         """

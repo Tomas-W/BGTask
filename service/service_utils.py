@@ -104,7 +104,7 @@ if platform == "android":
         OPEN_APP: str = "open_app"
         SNOOZE_A: str = "snooze_a"
         SNOOZE_B: str = "snooze_b"
-        CANCEL: str = "stop"
+        CANCEL: str = "cancel"
 
     class PendingIntents:
         """Constants for pending intents"""

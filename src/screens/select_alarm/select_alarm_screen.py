@@ -17,7 +17,7 @@ from src.settings import STATE, SCREEN, SPACE
 
 if TYPE_CHECKING:
     from src.managers.app_audio_manager import AppAudioManager
-    from src.managers.tasks.task_manager import TaskManager
+    from src.managers.app_task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
 
 

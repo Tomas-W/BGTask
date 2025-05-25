@@ -16,7 +16,7 @@ from src.settings import SCREEN, LOADED, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
-    from src.managers.tasks.task_manager_utils import Task
+    from managers.tasks.task_manager_utils import Task
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
@@ -36,6 +36,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
              **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
         self.task_manager.bind(
             on_tasks_expired_set_date_expired=self.set_date_expired)
+        self.task_manager.bind(
+            on_task_cancelled_update_ui=self.update_task_display)
 
         # Loading attributes
         self.tasks_loaded: bool = False

@@ -130,7 +130,6 @@ class SettingsManager:
             if os.path.exists(self.expired_task_path):
                 with open(self.expired_task_path, "r") as f:
                     task_id = f.read().strip()
-                logger.critical(f"Read expired task ID from file: {task_id}")
                 return task_id
         
         except Exception as e:
