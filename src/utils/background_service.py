@@ -1,7 +1,7 @@
 import os
 import time
 
-from src.managers.device.device_manager import DM
+from managers.device.device_manager import DM
 
 
 def is_service_running():
@@ -14,7 +14,7 @@ def is_service_running():
         if not os.path.exists(DM.PATH.SERVICE_HEARTBEAT_FLAG):
             return False
             
-        # Read timestamp from file - store content first, then convert
+        # Read timestamp from file
         with open(DM.PATH.SERVICE_HEARTBEAT_FLAG, "r") as f:
             content = f.read().strip()
             

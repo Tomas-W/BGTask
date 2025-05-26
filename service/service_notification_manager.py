@@ -3,7 +3,7 @@ import time
 from jnius import autoclass  # type: ignore
 from typing import Any
 
-from service.service_utils import ACTION, CHANNEL, IMPORTANCE, PRIORITY
+from service.service_device_manager import DM
 
 from src.utils.logger import logger
 
@@ -45,9 +45,9 @@ class ServiceNotificationManager:
         """Initialize the foreground channel"""
         try:
             foreground_channel = NotificationChannel(
-                CHANNEL.FOREGROUND,
+                DM.CHANNEL.FOREGROUND,
                 AndroidString("BGTask Service"),
-                IMPORTANCE.LOW
+                DM.IMPORTANCE.LOW
             )
             foreground_channel.setDescription(AndroidString("Shows when BGTask is monitoring your Tasks"))
             self.notification_manager.createNotificationChannel(foreground_channel)
@@ -60,9 +60,9 @@ class ServiceNotificationManager:
         """Initialize the tasks channel"""
         try:
             tasks_channel = NotificationChannel(
-                CHANNEL.TASKS,
+                DM.CHANNEL.TASKS,
                 AndroidString("BGTask Notifications"),
-                IMPORTANCE.HIGH
+                DM.IMPORTANCE.HIGH
             )
             tasks_channel.setDescription(AndroidString("Shows notifications for expired Tasks"))
             tasks_channel.enableVibration(True)
@@ -100,7 +100,7 @@ class ServiceNotificationManager:
             
             # For task notification, add action to stop alarm
             if not is_foreground:
-                intent.setAction(f"{self.package_name}.{ACTION.OPEN_APP}")
+                intent.setAction(f"{self.package_name}.{DM.ACTION.OPEN_APP}")
             
             # Set proper flags based on Android version
             flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -143,11 +143,11 @@ class ServiceNotificationManager:
             
             try:
                 # Create notification builder
-                builder = NotificationBuilder(self.context, CHANNEL.FOREGROUND)
+                builder = NotificationBuilder(self.context, DM.CHANNEL.FOREGROUND)
                 builder.setContentTitle(AndroidString(title))
                 builder.setContentText(AndroidString(message))
                 builder.setSmallIcon(icon_id)
-                builder.setPriority(PRIORITY.LOW)
+                builder.setPriority(DM.PRIORITY.LOW)
                 builder.setOngoing(True)        # Make persistent
                 builder.setAutoCancel(False)    # Prevent auto-cancellation
                 builder.setOnlyAlertOnce(True)  # Prevent re-alerting
@@ -167,7 +167,7 @@ class ServiceNotificationManager:
             if with_buttons:
                 try:
                     # Add Snooze A button
-                    snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
+                    snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A)
                     if snooze_intent:
                         builder.addAction(
                             0,  # No icon for buttons
@@ -180,7 +180,7 @@ class ServiceNotificationManager:
                 
                 try:
                     # Add Snooze B button
-                    snooze_intent = self.create_action_intent(ACTION.SNOOZE_B)
+                    snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B)
                     if snooze_intent:
                         builder.addAction(
                             0,  # No icon for buttons
@@ -193,7 +193,7 @@ class ServiceNotificationManager:
                 
                 try:
                     # Add Cancel button
-                    cancel_intent = self.create_action_intent(ACTION.CANCEL)
+                    cancel_intent = self.create_action_intent(DM.ACTION.CANCEL)
                     if cancel_intent:
                         builder.addAction(
                             0,  # No icon for buttons
@@ -248,13 +248,13 @@ class ServiceNotificationManager:
                 return
             
             # Create notification builder
-            builder = NotificationBuilder(self.context, CHANNEL.TASKS)
+            builder = NotificationBuilder(self.context, DM.CHANNEL.TASKS)
             builder.setContentTitle(AndroidString(title))
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
             
             # Set maximum priority and visibility
-            builder.setPriority(PRIORITY.MAX)
+            builder.setPriority(DM.PRIORITY.MAX)
             builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  # Show on lock screen
             builder.setAutoCancel(True)
             
@@ -264,17 +264,17 @@ class ServiceNotificationManager:
                 builder.setFullScreenIntent(full_screen_intent, True)
             
             # Add delete intent to cancel task when notification is swiped
-            delete_intent = self.create_action_intent(ACTION.CANCEL)
+            delete_intent = self.create_action_intent(DM.ACTION.CANCEL)
             if delete_intent:
                 builder.setDeleteIntent(delete_intent)
             
             # Add click action to open app via broadcast
-            app_intent = self.create_action_intent(ACTION.OPEN_APP)
+            app_intent = self.create_action_intent(DM.ACTION.OPEN_APP)
             if app_intent:
                 builder.setContentIntent(app_intent)
             
             # Add Snooze A button
-            snooze_intent = self.create_action_intent(ACTION.SNOOZE_A)
+            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A)
             if snooze_intent:
                 builder.addAction(
                     0,  # No icon for buttons
@@ -283,7 +283,7 @@ class ServiceNotificationManager:
                 )
             
             # Add Snooze B button
-            snooze_intent = self.create_action_intent(ACTION.SNOOZE_B)
+            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B)
             if snooze_intent:
                 builder.addAction(
                     0,  # No icon for buttons
@@ -292,7 +292,7 @@ class ServiceNotificationManager:
                 )
             
             # Add Cancel button
-            cancel_intent = self.create_action_intent(ACTION.CANCEL)
+            cancel_intent = self.create_action_intent(DM.ACTION.CANCEL)
             if cancel_intent:
                 builder.addAction(
                     0,  # No icon for buttons

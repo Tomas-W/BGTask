@@ -30,15 +30,15 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         super().__init__(**kwargs)
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
+
+        # App dispatches
         self.task_manager.bind(on_task_saved_scroll_to_task=self.scroll_to_task)
         self.task_manager.bind(
             on_tasks_changed_update_task_display=lambda instance,
              **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
         self.task_manager.bind(
             on_tasks_expired_set_date_expired=self.set_date_expired)
-        self.task_manager.bind(
-            on_task_cancelled_update_ui=self.update_task_display)
-
+        
         # Loading attributes
         self.tasks_loaded: bool = False
         # Scroll to Task attributes
@@ -235,6 +235,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """Scroll to the new/edited task"""
         # Mark to invalidate this Widgets cache
         task = kwargs.get("task") if kwargs.get("task") else task
+        logger.debug(f"Scroll to task: {task}")
         self.invalidate_cache_for_date = task.get_date_str()
         
         # Set widget attributes
@@ -256,6 +257,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.3)
             Clock.schedule_once(lambda dt: selected_task.set_active(False), 4)
             Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 4.1)
+        
+        logger.debug(f"Scrolled to task: {task}")
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
@@ -288,11 +291,27 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
+    
+    def check_expired_tasksbydate(self, instance, date: str):
+        """Check if all Tasks are expired for a given date"""
+        logger.debug(f"Checking expired tasks by date: {date}")
+        from src.utils.misc import get_task_header_text
+        formatted_date = get_task_header_text(date)
+        
+        for task_group in self.active_task_widgets:
+            if task_group.date_str == formatted_date:
+                if all(task.expired for task in task_group.tasks):
+                    task_group.tasks_container.set_expired(True)
+                    task_group.all_expired = True
+                    logger.debug(f"All tasks expired for date: {formatted_date}")
+                    return
+        logger.debug(f"No expired tasks found for date: {formatted_date}")
 
     def set_date_expired(self, instance, date):
         """
         Sets background color of given date's TaskGroup to inactive.
-        """   
+        """
+        logger.debug(f"Setting date expired: {date}")
         # Find the task group widget for this date
         for task_group in self.active_task_widgets:
             # The task_group.date_str is already formatted like "Today, April 10"

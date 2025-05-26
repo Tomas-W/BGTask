@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from managers.tasks.task_manager_utils import Task
+from managers.device.device_manager import DM
 
-from src.managers.device.device_manager import DM
 from src.utils.logger import logger
 
 
@@ -32,10 +32,14 @@ class ExpiryManager():
         self._SNOOZE_B_SECONDS: int = 3600
     
     def _bind_audio_manager(self, audio_manager) -> None:
+        """
+        Binds the audio manager to the ExpiryManager.
+        Cannot init immediately due to loading order.
+        """
         self.audio_manager = audio_manager
     
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
-        """Returns a dictionary of Tasks from the task file."""
+        """Returns a dictionary of Tasks from the Task file."""
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
@@ -53,40 +57,31 @@ class ExpiryManager():
         task_data = self._get_task_data()
         active_tasks = []
 
-        # Convert all tasks to Task objects and filter by expired flag
+        # Load Task dictionary
         for tasks_data in task_data.values():
             tasks = [Task.to_class(task_dict) for task_dict in tasks_data]
-            # Log task states
-            for task in tasks:
-                logger.debug(f"Task {task.task_id} loaded with expired={task.expired}, timestamp={task.timestamp}")
-            # Filter tasks that are not expired and not the current expired task
+            # Make Task objects and filter by expired
             non_expired_tasks = [
                 task for task in tasks 
                 if not task.expired and not (self.expired_task and task.task_id == self.expired_task.task_id)
             ]
             active_tasks.extend(non_expired_tasks)
         
-        # Sort all tasks by effective time
+        # Sort by effective time
         active_tasks.sort(key=self.get_effective_time)
-        
-        # Log final active tasks
-        for task in active_tasks:
-            logger.debug(f"Active task {task.task_id} with timestamp={task.timestamp}")
-        
+
         return active_tasks
 
     def refresh_active_tasks(self) -> None:
-        """Refreshes the active Tasks"""
+        """Re-loads active Tasks to get the latest data."""
         self.active_tasks = self._get_active_tasks()
-        return self.active_tasks
-    
+
     def refresh_current_task(self) -> None:
-        """Refreshes and returns the current Task"""
+        """Re-loads the current Task to get the latest data."""
         self.current_task = self.get_current_task()
-        return self.current_task
     
     def get_current_task(self) -> Task | None:
-        """Returns the first Task that is not expired and is not the current expired Task"""
+        """Returns the first Task that is not expired and is not the current expired Task."""
         try:
             if not self.active_tasks or len(self.active_tasks) == 0:
                 return None
@@ -98,7 +93,7 @@ class ExpiryManager():
             return None
     
     def is_task_expired(self) -> bool:
-        """Returns True if the current Task is expired"""
+        """Returns True if the current Task is expired."""
         try:
             if not self.current_task:
                 return False
@@ -119,18 +114,18 @@ class ExpiryManager():
         if not self.current_task:
             return None
         
-        # Set as expired task (don't mark as expired - wait for user action)
+        # Set as expired_task (not marked as expired - wait for user action)
         self.expired_task = self.current_task
         logger.debug(f"Set task {self.expired_task.task_id} as expired task")
         
-        # Get next current task
+        # Re-load Tasks
         self.refresh_active_tasks()
-        self.current_task = self.get_current_task()
+        self.refresh_current_task()
 
         return self.expired_task
     
     def _refresh_tasks(self) -> None:
-        """Refreshes the Tasks and gets new current Task."""
+        """Re-loads Tasks, re-load current and reset expired Task."""
         self.refresh_active_tasks()
         self.refresh_current_task()
         self.expired_task = None

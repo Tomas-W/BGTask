@@ -5,7 +5,7 @@ from kivy.app import App
 from managers.audio.audio_manager import AudioManager
 from managers.tasks.task_manager_utils import Task
 
-from src.managers.device.device_manager import DM
+from src.managers.app_device_manager import DM
 from src.managers.permission_manager import PM
 
 from src.utils.logger import logger

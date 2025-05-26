@@ -10,6 +10,8 @@ from kivy.event import EventDispatcher
 from kivy.core.window import Window
 from kivy.utils import platform
 
+from src.managers.app_device_manager import DM
+
 from src.settings import SCREEN, PLATFORM, LOADED
 kivy_time = time.time() - start_kivy_time
 print(f"FINISHED KIVY TIME: {kivy_time:.4f}")
@@ -268,15 +270,17 @@ class TaskApp(App, EventDispatcher):
     
     def _init_permissions(self):
         # Request runtime permissions for Android
-        if platform == "android":
-            from android.permissions import request_permissions, Permission  # type: ignore
-            permissions = [
-                Permission.WRITE_EXTERNAL_STORAGE,
-                Permission.READ_EXTERNAL_STORAGE,
-                Permission.RECORD_AUDIO,
-                Permission.POST_NOTIFICATIONS
-            ]
-            request_permissions(permissions)
+        if not DM.is_android:
+            return
+        
+        from android.permissions import request_permissions, Permission  # type: ignore
+        permissions = [
+            Permission.WRITE_EXTERNAL_STORAGE,
+            Permission.READ_EXTERNAL_STORAGE,
+            Permission.RECORD_AUDIO,
+            Permission.POST_NOTIFICATIONS
+        ]
+        request_permissions(permissions)
 
 
     def _init_logger(self):
@@ -325,7 +329,6 @@ class TaskApp(App, EventDispatcher):
         """
         Sends a broadcast to stop the service alarm.
         """
-        from src.managers.device.device_manager import DM
         if not DM.is_android:
             return
         

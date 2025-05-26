@@ -10,7 +10,7 @@ from kivy.event import EventDispatcher
 from src.managers.app_expiry_manager import AppExpiryManager
 from managers.tasks.task_manager_utils import Task
 
-from src.managers.device.device_manager import DM
+from src.managers.app_device_manager import DM
 from src.managers.settings_manager import SettingsManager
 
 from src.utils.logger import logger
@@ -31,12 +31,16 @@ class TaskManager(EventDispatcher):
         # if DM.is_android:
         self.settings_manager = SettingsManager()
         self.expiry_manager = AppExpiryManager(self)
-                
+
+        # self.bind(
+        #     on_task_cancelled_check_expired_tasksbydate=self.set_expired_tasksbydate
+        # )
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
         self.register_event_type("on_tasks_expired_set_date_expired")
+        
         
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
@@ -279,23 +283,24 @@ class TaskManager(EventDispatcher):
         
         return False
     
-    def set_expired_tasksbydate(self, task: Task | None) -> None:
-        """
-        Looks for the Task in sorted_active_tasks and if all Tasks that day are now expired,
-         dispatches an event to update the Task display.
-        """
-        if task is None:
-            return
-        
-        for task_group in self.sorted_active_tasks:
-            if not task_group["tasks"]:
-                continue
+    # def set_expired_tasksbydate(self, task: Task | None) -> None:
+    #     """
+    #     Looks for the Task in sorted_active_tasks and if all Tasks that day are now expired,
+    #      dispatches an event to update the Task display.
+    #     """
 
-            if task in task_group["tasks"]:
-                if all(task.expired for task in task_group["tasks"]):
-                    self.dispatch("on_tasks_expired_set_date_expired", 
-                                  date=task_group["date"])
-                    return
+    #     if task is None:
+    #         return
+        
+    #     for task_group in self.sorted_active_tasks:
+    #         if not task_group["tasks"]:
+    #             continue
+
+    #         if task in task_group["tasks"]:
+    #             if all(task.expired for task in task_group["tasks"]):
+    #                 self.dispatch("on_tasks_expired_set_date_expired", 
+    #                               date=task_group["date"])
+    #                 return
     
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """

@@ -1,44 +1,44 @@
 import os
 
-from src import SRC_DIR
 from typing import Final
 
+from service import SERVICE_DIR
+from src import SRC_DIR
+
 class Dirs:
-    """Class to hold directory paths with type hints"""
+    """Contains directories for the App and Service."""
     def __init__(self, is_android: bool):
-        # Use imported SRC_DIR
+        # App source directory
         self.SRC: Final[str] = SRC_DIR
+        # Service source directory
+        self.SERVICE: Final[str] = self._get_storage_path(is_android, SERVICE_DIR)
         
-        # Define base directories relative to src
         self.ASSETS: Final[str] = os.path.join(self.SRC, "assets")
         self.IMG: Final[str] = os.path.join(self.SRC, self.ASSETS, "images")
-        
-        # Define app directories
+
+        # App sound
         self.ALARMS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "alarms"))
         self.RECORDINGS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "recordings"))
-        
-        # Define service directories (using app/ prefix)
+        # Service sound
         self.SERVICE_ALARMS_DIR: Final[str] = self._get_storage_path(is_android, "app/src/assets/alarms")
         self.SERVICE_RECORDINGS_DIR: Final[str] = self._get_storage_path(is_android, "app/src/assets/recordings")
-        
-        # Define root-level directories
-        root_dir = os.path.dirname(self.SRC)  # One level up from src
-        self.SERVICE: Final[str] = self._get_storage_path(is_android, os.path.join(root_dir, "service"))
-        self.PROFILER: Final[str] = self._get_storage_path(is_android, os.path.join(root_dir, "profiler"))
     
     @staticmethod
     def _get_storage_path(is_android: bool, directory: str) -> str:
-        """Returns the app-specific storage path for the given directory."""
+        """
+        Returns storage path for the given directory.
+        If Android, returns the path to the private directory.
+        """
         if is_android:
             return os.path.join(os.environ["ANDROID_PRIVATE"], directory)
         else:
             return os.path.join(directory)
 
 class Paths(Dirs):
-    """Class to hold file paths with type hints"""
+    """Contains file paths for the App and Service."""
     def __init__(self, is_android: bool):
         super().__init__(is_android)
-        # Navigation images
+        # Navigation icons
         self.BACK_IMG: Final[str] = os.path.join(self.IMG, "back_64.png")
         self.EDIT_IMG: Final[str] = os.path.join(self.IMG, "edit_64.png")
         # self.HISTORY_IMG: Final[str] = os.path.join(self.IMG, "history_64.png")
@@ -48,11 +48,11 @@ class Paths(Dirs):
         self.SETTINGS_IMG: Final[str] = os.path.join(self.IMG, "settings_64.png")
         self.EXIT_IMG: Final[str] = os.path.join(self.IMG, "exit_64.png")
 
-        # Task images
+        # Task icons
         self.SOUND_IMG: Final[str] = os.path.join(self.IMG, "sound_64.png")
         self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_64.png")
         
-        # Playback images
+        # Playback icons
         self.PLAY_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_active_64.png")
         self.PLAY_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_inactive_64.png")
         self.STOP_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "stop_active_64.png")
@@ -70,12 +70,13 @@ class Paths(Dirs):
         self.TASKS_CHANGED_FLAG: Final[str] = os.path.join(self.SERVICE, "tasks_changed.flag")
         self.SERVICE_TASKS_CHANGED_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/tasks_changed.flag")
         self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
-        # Screenshot
+        self.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG: Final[str] = self._get_storage_path(is_android, "app/src/service/task_notification_removal.flag")
         
+        # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
 
 class Dates:
-    """Class to hold date format patterns with type hints"""
+    """Contains date format patterns for string formatting for the App and Service."""
     def __init__(self):
         # Main
         self.DATE_KEY: Final[str] = "%Y-%m-%d"              # 2024-03-21
@@ -100,14 +101,17 @@ class Dates:
         self.RECORDING: Final[str] = "%H_%M_%S"             # 14_30_45
 
 class Extensions:
-    """Class to hold file extension patterns with type hints"""
+    """Contains file extensions for the App and Service."""
     def __init__(self):
         # Audio formats
         self.WAV: Final[str] = ".wav"
 
 
-class AlarmActions:
-    """Class to hold alarm action patterns with type hints"""
+class ServiceActions:
+    """
+    Contains action variables for the Service.
+    Also used by App to communicate with Service.
+    """
     def __init__(self):
         # Alarm actions
         self.SNOOZE_A: Final[str] = "snooze_a"
@@ -115,3 +119,50 @@ class AlarmActions:
         self.CANCEL: Final[str] = "cancel"
         self.OPEN_APP: Final[str] = "open_app"
         self.STOP_ALARM: Final[str] = "stop_alarm"
+
+class NotificationChannels:
+    """
+    Contains constants for notification channels.
+    Used solely by Service.
+    """
+    def __init__(self):
+        self.FOREGROUND: str = "foreground_channel"
+        self.TASKS: str = "tasks_channel"
+
+class NotificationPriority:
+    """
+    Contains constants for notification priorities.
+    Used solely by Service.
+    """
+    def __init__(self):
+        from jnius import autoclass  # type: ignore
+        NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
+        
+        self.LOW: int = NotificationCompat.PRIORITY_LOW
+        self.DEFAULT: int = NotificationCompat.PRIORITY_DEFAULT
+        self.HIGH: int = NotificationCompat.PRIORITY_HIGH
+        self.MAX: int = NotificationCompat.PRIORITY_MAX
+
+class NotificationImportance:
+    """
+    Contains constants for notification channel importance.
+    Used solely by Service.
+    """
+    def __init__(self):
+        from jnius import autoclass  # type: ignore
+        AndroidNotificationManager = autoclass("android.app.NotificationManager")
+        
+        self.LOW: int = AndroidNotificationManager.IMPORTANCE_LOW
+        self.DEFAULT: int = AndroidNotificationManager.IMPORTANCE_DEFAULT
+        self.HIGH: int = AndroidNotificationManager.IMPORTANCE_HIGH
+
+class PendingIntents:
+    """
+    Contains constants for pending intents.
+    Used solely by Service.
+    """
+    def __init__(self):
+        self.OPEN_APP: int = 11
+        self.SNOOZE_A: int = 12
+        self.SNOOZE_B: int = 13
+        self.CANCEL: int = 14

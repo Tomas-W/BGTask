@@ -1,10 +1,10 @@
 import time
 import os
 
-try:
+from src.managers.app_device_manager import DM
+
+if DM.is_android:
     from jnius import autoclass  # type: ignore
-except ImportError:
-    pass
 
 from src.utils.logger import logger
 
@@ -14,20 +14,25 @@ class SettingsManager:
     def __init__(self, max_retries=3, retry_delay=0.1):
         self.context = None
         self.prefs = None
-        self._init_context(max_retries, retry_delay)
+        
+        # Only try to initialize Android context if we're on Android
+        if DM.is_android:
+            self._init_context(max_retries, retry_delay)
+            if not self.context:
+                logger.error("Failed to initialize SettingsManager context after retries")
+                raise RuntimeError("Could not initialize SettingsManager context")
+            
+            Context = autoclass("android.content.Context")
+            self.prefs = self.context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        else:
+            # For non-Android platforms (like Windows), use a simple file-based settings
+            self.settings_file = os.path.join(os.path.expanduser("~"), ".bgtask_settings.json")
+            self.prefs = {}  # Will store settings in memory
+            self._load_settings()
 
-        from src.managers.device.device_manager import DM
         self.cancelled_task_path = DM.get_storage_path("cancelled_task_id.txt")
         self.expired_task_path = DM.get_storage_path("expired_task_id.txt")
         # DM.validate_file(self.cancelled_task_path)
-        
-        if not self.context:
-            from src.utils.logger import logger
-            logger.error("Failed to initialize SettingsManager context after retries")
-            raise RuntimeError("Could not initialize SettingsManager context")
-        
-        Context = autoclass("android.content.Context")
-        self.prefs = self.context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
     
     def _init_context(self, max_retries: int, retry_delay: float) -> None:
         """Initialize context with retries for service"""
@@ -57,25 +62,62 @@ class SettingsManager:
         """Get a fresh editor instance"""
         return self.prefs.edit()
     
-    # Simple, type-specific methods that are easy to use and extend
+    def _load_settings(self):
+        """Load settings from file for non-Android platforms"""
+        try:
+            if os.path.exists(self.settings_file):
+                import json
+                with open(self.settings_file, "r") as f:
+                    self.prefs = json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading settings: {e}")
+            self.prefs = {}
+
+    def _save_settings(self):
+        """Save settings to file for non-Android platforms"""
+        try:
+            import json
+            with open(self.settings_file, "w") as f:
+                json.dump(self.prefs, f)
+        except Exception as e:
+            logger.error(f"Error saving settings: {e}")
+
+    # Modify the get/set methods to work on both platforms
     def set_string(self, key: str, value: str) -> None:
-        """Set a string value with synchronous commit"""
-        self._get_editor().putString(key, value).commit()  # Use commit() instead of apply()
+        if IS_ANDROID:
+            self._get_editor().putString(key, value).commit()
+        else:
+            self.prefs[key] = value
+            self._save_settings()
     
     def get_string(self, key: str, default: str = "") -> str:
-        return self.prefs.getString(key, default)
+        if IS_ANDROID:
+            return self.prefs.getString(key, default)
+        return self.prefs.get(key, default)
     
     def set_bool(self, key: str, value: bool) -> None:
-        self._get_editor().putBoolean(key, value).apply()
+        if IS_ANDROID:
+            self._get_editor().putBoolean(key, value).apply()
+        else:
+            self.prefs[key] = value
+            self._save_settings()
     
     def get_bool(self, key: str, default: bool = False) -> bool:
-        return self.prefs.getBoolean(key, default)
+        if IS_ANDROID:
+            return self.prefs.getBoolean(key, default)
+        return self.prefs.get(key, default)
     
     def set_int(self, key: str, value: int) -> None:
-        self._get_editor().putInt(key, value).apply()
+        if IS_ANDROID:
+            self._get_editor().putInt(key, value).apply()
+        else:
+            self.prefs[key] = value
+            self._save_settings()
     
     def get_int(self, key: str, default: int = 0) -> int:
-        return self.prefs.getInt(key, default)
+        if IS_ANDROID:
+            return self.prefs.getInt(key, default)
+        return self.prefs.get(key, default)
 
     def set_cancelled_task_id(self, task_id: str) -> None:
         """Store the ID of a task that was cancelled via notification swipe/cancel button"""

@@ -11,10 +11,8 @@ from src.managers.settings_manager import SettingsManager
 
 from service.service_audio_manager import ServiceAudioManager
 from service.service_expiry_manager import ServiceExpiryManager
-from service.service_utils import (PATH,
-                                   get_service_timestamp,
-                                   validate_path)
-from src.managers.device.device_manager import DM
+from service.service_utils import get_service_timestamp
+from service.service_device_manager import DM
 
 from src.utils.logger import logger
 
@@ -54,10 +52,8 @@ class ServiceManager:
         # Loop variables
         self._running: bool = True
         self._need_foreground_notification_update: bool = True
-        self._tasks_changed_flag: str = PATH.TASKS_CHANGED_FLAG
-        self._task_notification_removal_flag: str = PATH.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG
-        validate_path(self._tasks_changed_flag)
-        validate_path(self._task_notification_removal_flag)
+        self._tasks_changed_flag: str = DM.PATH.TASKS_CHANGED_FLAG
+        self._task_notification_removal_flag: str = DM.PATH.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG
         self._in_foreground: bool = False
 
         # ActivityManager
@@ -228,7 +224,7 @@ class ServiceManager:
         """Writes current timestamp to a file."""
         try:
             # Write current timestamp
-            with open(PATH.SERVICE_HEARTBEAT_FLAG, "w") as f:
+            with open(DM.PATH.SERVICE_HEARTBEAT_FLAG, "w") as f:
                 f.write(str(int(time.time())))
             logger.debug("Service heartbeat flag written")
         
@@ -355,18 +351,19 @@ class ServiceManager:
     
     def check_task_expiry(self) -> bool:
         """Returns True if the current Task is expired"""
-        logger.debug(f"Current task: {self.expiry_manager.current_task.task_id[:6] if self.expiry_manager.current_task else None} | {self.expiry_manager.current_task.timestamp + timedelta(seconds=self.expiry_manager.current_task.snooze_time) if self.expiry_manager.current_task else None}")
-        logger.debug(f"Expired task: {self.expiry_manager.expired_task.task_id[:6] if self.expiry_manager.expired_task else None} | {self.expiry_manager.expired_task.timestamp + timedelta(seconds=self.expiry_manager.expired_task.snooze_time) if self.expiry_manager.expired_task else None}")
+        logger.debug(f"Current task: {DM.get_task_log(self.expiry_manager.current_task) if self.expiry_manager.current_task else None}")
+        logger.debug(f"Expired task: {DM.get_task_log(self.expiry_manager.expired_task) if self.expiry_manager.expired_task else None}")
         logger.debug("Active tasks:")
 
         for task in self.expiry_manager.active_tasks:
-            logger.debug(f"      {task.task_id[:6]} | {task.timestamp + timedelta(seconds=task.snooze_time)}")
+            logger.debug(f"      {DM.get_task_log(task)}")
             
         if self.expiry_manager.is_task_expired():
             logger.debug("Task expired, showing notification")
 
             if self.expiry_manager.expired_task:
-                self.clean_up_previous_task()
+                # self.clean_up_previous_task()
+                self.notification_manager.cancel_all_notifications()
 
             expired_task = self.expiry_manager.handle_task_expired()
             if expired_task:
@@ -374,9 +371,8 @@ class ServiceManager:
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""
-        self.audio_manager.stop_alarm()
         self.notification_manager.cancel_all_notifications()
-        self.expiry_manager.clear_expired_task()
+        # self.expiry_manager.clear_expired_task()
         logger.debug("Cleaned up previous expired task")
     
     def notify_user_of_expiry(self, expired_task: Task) -> None:

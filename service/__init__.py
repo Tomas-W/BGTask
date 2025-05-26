@@ -12,3 +12,9 @@ try:
     ] 
 except Exception as e:
     pass
+
+
+import os
+
+
+SERVICE_DIR = os.path.dirname(os.path.abspath(__file__))

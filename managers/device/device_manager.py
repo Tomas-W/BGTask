@@ -1,35 +1,48 @@
 import os
+import sys
 import time
 
+from datetime import timedelta
 from typing import Final
 
-from src.managers.device.device_manager_utils import Dirs, Paths, Dates, Extensions, AlarmActions
+from managers.device.device_manager_utils import (
+    Dirs, Paths, Dates, Extensions, ServiceActions,
+    NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents
+)
 from src.utils.logger import logger
-
-ANDROID = "android"
-WINDOWS = "Windows"
 
 
 class DeviceManager:
     """
-    Manages device-related operations.
+    Contains constants and basic functions for the App and Service.
     """
     def __init__(self):
         self.is_android: bool = self._device_is_android()
-        self.is_windows: bool = not self.is_android
-        
+
         # Initialize paths
         self.DIR: Final[Dirs] = Dirs(self.is_android)
         self.PATH: Final[Paths] = Paths(self.is_android)
         self.DATE: Final[Dates] = Dates()
         self.EXT: Final[Extensions] = Extensions()
 
-        self.ACTION: Final[AlarmActions] = AlarmActions()
+        self.ACTION: Final[ServiceActions] = ServiceActions()
+
+        if self.is_android:
+            self.CHANNEL: Final[NotificationChannels] = NotificationChannels()
+            self.PRIORITY: Final[NotificationPriority] = NotificationPriority()
+            self.IMPORTANCE: Final[NotificationImportance] = NotificationImportance()
+            self.INTENT: Final[PendingIntents] = PendingIntents()
 
     def _device_is_android(self) -> bool:
         """Returns whether the app is running on Android."""
-        from kivy.utils import platform
-        return platform == ANDROID
+        return sys.platform == "linux" and "ANDROID_DATA" in os.environ
+
+    @staticmethod
+    def get_task_log(task) -> str:
+        """Returns the task log."""
+        id = task.task_id[:8]
+        task_time = task.timestamp + timedelta(seconds=task.snooze_time)
+        return f"{id} | {task_time}"
 
     def write_flag_file(self, path: str) -> None:
         """Writes a flag file to the given path."""
@@ -117,7 +130,7 @@ class DeviceManager:
         for attempt in range(max_attempts):
             try:
                 # Windows delay
-                if DM.is_windows and attempt > 0:
+                if not DM.is_android and attempt > 0:
                     time.sleep(0.1)
                 
                 # Verify contents

@@ -23,7 +23,7 @@ from src.widgets.misc import Spacer
 from src.utils.logger import logger
 
 from src.settings import COL, SPACE, FONT, STATE, DATE, SIZE
-from src.managers.device.device_manager import DM
+from managers.device.device_manager import DM
 
 class BasePopup(Popup):
     """Base class for all popups"""

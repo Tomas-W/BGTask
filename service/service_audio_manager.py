@@ -1,4 +1,5 @@
 from managers.audio.audio_manager import AudioManager
+from service.service_device_manager import DM
 
 
 class ServiceAudioManager(AudioManager):

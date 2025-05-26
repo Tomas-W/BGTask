@@ -13,7 +13,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from src.widgets.buttons import CustomButton
 
 from managers.tasks.task_manager_utils import Task
-from src.managers.device.device_manager import DM
+from managers.device.device_manager import DM
 
 from .start_screen_utils import set_screen_as_wallpaper
 

@@ -23,6 +23,7 @@ class HomeScreenUtils:
         Args:
             modified_task: If provided, invalidate cache for this task's date
         """
+        logger.debug("UPDATE TASK DISPLAY")
         start_time = time.time()
         
         # Step 1: Clear container but don't discard widgets yet

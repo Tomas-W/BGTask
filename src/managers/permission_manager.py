@@ -1,4 +1,4 @@
-from src.managers.device.device_manager import DM
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 

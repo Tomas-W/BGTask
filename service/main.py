@@ -3,7 +3,7 @@ from jnius import autoclass                      # type: ignore
 from typing import Any
 
 from service.service_manager import ServiceManager
-from src.managers.device.device_manager import DM
+from service.service_device_manager import DM
 
 from src.utils.logger import logger
 
