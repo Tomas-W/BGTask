@@ -12,11 +12,11 @@ from kivy.utils import platform
 
 from src.managers.app_device_manager import DM
 
-from src.settings import SCREEN, PLATFORM, LOADED
+from src.settings import SCREEN, LOADED
 kivy_time = time.time() - start_kivy_time
 print(f"FINISHED KIVY TIME: {kivy_time:.4f}")
 
-if platform != PLATFORM.ANDROID:
+if platform != "android":
     Window.size = (360, 736)
     Window.dpi = 100
     Window.left = -386

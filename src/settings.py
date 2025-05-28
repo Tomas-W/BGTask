@@ -1,60 +1,6 @@
-import os
 import enum
 
 from kivy.metrics import dp, sp
-
-# Android Permissions
-ANDROID_PERMISSIONS = [
-    "android.permission.FOREGROUND_SERVICE",
-    "android.permission.WAKE_LOCK",
-    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
-    "android.permission.RECEIVE_BOOT_COMPLETED"
-]
-
-
-class Directories:
-    PROFILER = os.path.join(os.getcwd(), "profiler")
-
-    SRC = os.path.dirname(os.path.abspath(__file__))
-    ASSETS = os.path.join(SRC, "assets")
-    IMG = os.path.join(SRC, ASSETS, "images")
-
-    ALARMS = os.path.join(ASSETS, "alarms")
-    RECORDINGS = os.path.join(ASSETS, "recordings")
-
-    SERVICE = os.path.join(os.getcwd(), "service")
-
-
-class Paths(Directories):
-    BACK_IMG = os.path.join(Directories.IMG, "back_64.png")
-    EDIT_IMG = os.path.join(Directories.IMG, "edit_64.png")
-    HISTORY_IMG = os.path.join(Directories.IMG, "history_64.png")
-
-    OPTIONS_IMG = os.path.join(Directories.IMG, "options_64.png")
-    OPTIONS_IMG_BLACK = os.path.join(Directories.IMG, "options_black_64.png")
-    SCREENSHOT_IMG = os.path.join(Directories.IMG, "screenshot_64.png")
-    SETTINGS_IMG = os.path.join(Directories.IMG, "settings_64.png")
-    EXIT_IMG = os.path.join(Directories.IMG, "exit_64.png")
-
-    SOUND_IMG = os.path.join(Directories.IMG, "sound_64.png")
-    VIBRATE_IMG = os.path.join(Directories.IMG, "vibrate_64.png")
-
-    PLAY_ACTIVE_IMG = os.path.join(Directories.IMG, "play_active_64.png")
-    PLAY_INACTIVE_IMG = os.path.join(Directories.IMG, "play_inactive_64.png")
-    STOP_ACTIVE_IMG = os.path.join(Directories.IMG, "stop_active_64.png")
-    STOP_INACTIVE_IMG = os.path.join(Directories.IMG, "stop_inactive_64.png")
-    EDIT_ACTIVE_IMG = os.path.join(Directories.IMG, "edit_active_64.png")
-    EDIT_INACTIVE_IMG = os.path.join(Directories.IMG, "edit_inactive_64.png")
-    DELETE_ACTIVE_IMG = os.path.join(Directories.IMG, "delete_active_64.png")
-    DELETE_INACTIVE_IMG = os.path.join(Directories.IMG, "delete_inactive_64.png")
-    
-    TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
-    SERVICE_TASK_FILE = "app/src/assets/task_file.json"
-
-    TASK_NOTIFICATION_REMOVAL_FLAG = os.path.join(Directories.SERVICE, "task_notification_removal.flag")
-    SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG = "app/src/service/task_notification_removal.flag"
-
-    SCREENSHOT_PATH = os.path.join(Directories.IMG, "bgtask_screenshot.png")
 
 
 class Colors:
@@ -182,31 +128,6 @@ class Text:
     NO_ALARM = "No alarm set"
 
 
-class Extensions:
-    WAV = ".wav"
-
-
-class DateFormats:  # Linked with task_manager_utils.py
-    """Date and time format patterns used throughout the application."""
-    DATE_KEY = "%Y-%m-%d"              # 2024-03-21
-    TIMESTAMP = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
-
-    TASK_HEADER = "%A %d %b"           # Thursday 21 Mar
-    TASK_TIME = "%H:%M"                # 14:30
-
-    SELECTED_TIME = "%H:%M"            # 14:30
-    CALENDAR_DAY = "%A %d"             # Thursday 21
-    HOUR = "%H"                        # 14
-    MINUTE = "%M"                      # 30
-
-    MONTH_DAY = "%b %d"                # March 21
-    DAY_MONTH_YEAR = "%d %b %Y"        # 21 Mar 2024
-
-    DATE_SELECTION = "%A, %b %d, %Y"   # Thursday, March 21, 2024
-
-    RECORDING = "%H_%M_%S"             # 14_30_45
-
-
 class Loaded:
     START = False
     HOME = False
@@ -237,12 +158,6 @@ class Screens(StrEnum):
     SETTINGS = "SETTINGS"
 
 
-class Platforms(StrEnum):
-    """Supported platforms for the application."""
-    ANDROID = "android"
-    WINDOWS = "Windows"
-
-
 class States(StrEnum):
     """UI element states used throughout the application."""
     ACTIVE = "ACTIVE"
@@ -250,22 +165,13 @@ class States(StrEnum):
     ERROR = "ERROR"
 
 
-DIR = Directories()
-PATH = Paths()
-
 COL = Colors()
-
-
-
-SPACE = Spacing()
 FONT = Fonts()
+SIZE = Sizes()
+SPACE = Spacing()
 STYLE = Styles()
 TEXT = Text()
-SIZE = Sizes()
-EXT = Extensions()
-DATE = DateFormats()
 
 LOADED = Loaded()
 SCREEN = Screens
-PLATFORM = Platforms
 STATE = States

@@ -5,8 +5,8 @@ from kivy.uix.button import Button
 from src.widgets.containers import TopBarContainer
 from src.widgets.buttons import TopBarTitle, TopBarButton
 
-from src.settings import FONT, PATH, COL, SIZE, SPACE
-
+from src.settings import FONT, COL, SIZE, SPACE
+from src.managers.app_device_manager import DM
 
 class TopBarClosed():
     """
@@ -27,12 +27,12 @@ class TopBarClosed():
 
         self.top_bar_container = TopBarContainer()
 
-        self.top_left_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
+        self.top_left_button = TopBarButton(img_path=DM.PATH.BACK_IMG, radius_side="right")
         self.top_left_button.bind(on_release=top_left_callback)
 
         self.bar_title = TopBarTitle(text="")
 
-        self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG, radius_side="left")
+        self.options_button = TopBarButton(img_path=DM.PATH.OPTIONS_IMG, radius_side="left")
         self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.top_left_button)
@@ -41,7 +41,7 @@ class TopBarClosed():
     
     def make_home_bar(self, top_left_callback, top_bar_callback):
         """Make the home bar"""
-        self.top_left_button.set_image(PATH.SCREENSHOT_IMG)
+        self.top_left_button.set_image(DM.PATH.SCREENSHOT_IMG)
         self.top_left_button.unbind(on_release=self.top_left_callback)
         self.top_left_button.bind(on_release=top_left_callback)
         self.bar_title.set_symbol_font_size(FONT.TOP_BAR_SYMBOL)
@@ -70,21 +70,21 @@ class TopBarExpanded():
 
         self.top_bar_container = TopBarContainer()
 
-        self.top_left_button = TopBarButton(img_path=PATH.BACK_IMG, radius_side="right")
+        self.top_left_button = TopBarButton(img_path=DM.PATH.BACK_IMG, radius_side="right")
         self.top_left_button.bind(on_release=top_left_callback)
 
         self.bar_title = TopBarTitle()
 
-        self.screenshot_button = TopBarButton(img_path=PATH.SCREENSHOT_IMG, radius_side="left")
+        self.screenshot_button = TopBarButton(img_path=DM.PATH.SCREENSHOT_IMG, radius_side="left")
         self.screenshot_button.bind(on_release=screenshot_callback)
 
-        self.settings_button = TopBarButton(img_path=PATH.SETTINGS_IMG, radius_side="none")
+        self.settings_button = TopBarButton(img_path=DM.PATH.SETTINGS_IMG, radius_side="none")
         self.settings_button.bind(on_release=settings_callback)
 
-        self.exit_button = TopBarButton(img_path=PATH.EXIT_IMG, radius_side="none")
+        self.exit_button = TopBarButton(img_path=DM.PATH.EXIT_IMG, radius_side="none")
         self.exit_button.bind(on_release=exit_callback)
 
-        self.options_button = TopBarButton(img_path=PATH.OPTIONS_IMG_BLACK, radius_side="none")
+        self.options_button = TopBarButton(img_path=DM.PATH.OPTIONS_IMG_BLACK, radius_side="none")
         self.options_button.bind(on_release=options_callback)
 
         self.top_bar_container.add_widget(self.top_left_button)
@@ -96,7 +96,7 @@ class TopBarExpanded():
     
     def make_home_bar(self, top_left_callback):
         """Make the home bar"""
-        self.top_left_button.set_image(PATH.SCREENSHOT_IMG)
+        self.top_left_button.set_image(DM.PATH.SCREENSHOT_IMG)
         self.top_left_button.unbind(on_release=self.top_left_callback)
         self.top_left_button.bind(on_release=top_left_callback)
 

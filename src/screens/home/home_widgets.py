@@ -8,7 +8,8 @@ from src.utils.misc import get_task_header_text
 from src.utils.logger import logger
 from kivy.app import App
 
-from src.settings import SPACE, SIZE, COL, STYLE, FONT, PATH, SCREEN
+from src.managers.app_device_manager import DM
+from src.settings import SPACE, SIZE, COL, STYLE, FONT, SCREEN
 
 
 class TasksByDate(BoxLayout):
@@ -72,11 +73,11 @@ class TasksByDate(BoxLayout):
 
         # Sound
         if task.alarm_name is not None:
-            sound_icon = TaskIcon(source=PATH.SOUND_IMG)
+            sound_icon = TaskIcon(source=DM.PATH.SOUND_IMG)
             time_container.add_widget(sound_icon)
         # Vibrate
         if task.vibrate:
-            vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
+            vibrate_icon = TaskIcon(source=DM.PATH.VIBRATE_IMG)
             time_container.add_widget(vibrate_icon)
         
         task_label = TaskLabel(text=task.message, task=task)

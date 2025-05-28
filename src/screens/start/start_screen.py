@@ -24,7 +24,7 @@ from src.widgets.labels import PartitionHeader
 
 from src.utils.misc import get_task_header_text
 
-from src.settings import PATH, SCREEN, STATE, LOADED, TEXT
+from src.settings import SCREEN, STATE, LOADED, TEXT
 
 
 from src.utils.logger import logger
@@ -94,7 +94,7 @@ class StartScreen(Screen):
         """Loads initial Task data from file when task_manager is not yet available."""
         start_time = time_.time()
 
-        task_file_path = DM.get_storage_path(PATH.TASK_FILE)
+        task_file_path = DM.get_storage_path(DM.PATH.TASK_FILE)
         if not os.path.exists(task_file_path):
             logger.error("Task file does not exist.")
             return []
@@ -181,11 +181,11 @@ class StartScreen(Screen):
                 time_container.add_widget(start_time_label)
                 # SoundIcon
                 if task["alarm_name"]:
-                    sound_icon = TaskIcon(source=PATH.SOUND_IMG)
+                    sound_icon = TaskIcon(source=DM.PATH.SOUND_IMG)
                     time_container.add_widget(sound_icon)
                 # VibrateIcon
                 if task["vibrate"]:
-                    vibrate_icon = TaskIcon(source=PATH.VIBRATE_IMG)
+                    vibrate_icon = TaskIcon(source=DM.PATH.VIBRATE_IMG)
                     time_container.add_widget(vibrate_icon)
             
             # TaskLabel

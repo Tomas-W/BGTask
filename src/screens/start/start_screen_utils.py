@@ -4,7 +4,7 @@ from managers.device.device_manager import DM
 from src.managers.permission_manager import PM
 from src.utils.logger import logger
 
-from src.settings import PATH
+from src.managers.app_device_manager import DM
 
 from kivy.clock import Clock
 
@@ -74,7 +74,7 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
         texture = root_layout.export_as_image()
         show_widgets([screen_header, screenshot_button])
         
-        screenshot_path = DM.get_storage_path(PATH.SCREENSHOT_PATH)
+        screenshot_path = DM.get_storage_path(DM.PATH.SCREENSHOT_PATH)
         # Save screenshot
         texture.save(screenshot_path)
         DM.validate_file(screenshot_path)

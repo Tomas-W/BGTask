@@ -22,7 +22,7 @@ from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE, DATE, SIZE
+from src.settings import COL, SPACE, FONT, STATE, SIZE
 from managers.device.device_manager import DM
 
 class BasePopup(Popup):
@@ -519,7 +519,7 @@ class PopupManager:
         logger.critical(f"show_task_popup popup for task: {task}")
         
         def show_popup(dt):
-            self.task.task_time.text = task.timestamp.strftime(DATE.TASK_TIME)
+            self.task.task_time.text = task.timestamp.strftime(DM.DATE.TASK_TIME)
             self.task.task_label.text = task.message
             
             from kivy.app import App

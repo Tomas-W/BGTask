@@ -68,8 +68,7 @@ class Paths(Dirs):
 
         # Flags
         self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
-        self.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG: Final[str] = self._get_storage_path(is_android, "app/src/service/task_notification_removal.flag")
-        
+                
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
 

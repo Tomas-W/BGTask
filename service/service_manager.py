@@ -52,7 +52,6 @@ class ServiceManager:
         # Loop variables
         self._running: bool = True
         self._need_foreground_notification_update: bool = True
-        self._task_notification_removal_flag: str = DM.PATH.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG
         self._in_foreground: bool = False
 
         # ActivityManager
@@ -300,25 +299,6 @@ class ServiceManager:
         except Exception as e:
             logger.error(f"Error checking app state: {e}")
             return False
-    
-    def check_for_task_notification_removal(self) -> None:
-        """
-        Checks if the main app has set the Task notification removal flag and if so,
-         removes the notification and updates the Task.
-        """
-        if self._task_notification_removal_flag_exists():
-            self.notification_manager.cancel_all_notifications()
-            # self.expiry_manager.clear_expired_task()
-            self.audio_manager.stop_alarm()
-            self._remove_task_notification_flag()
-    
-    def _task_notification_removal_flag_exists(self) -> bool:
-        """Returns True if the Task notification removal flag exists."""
-        return os.path.exists(self._task_notification_removal_flag)
-
-    def _remove_task_notification_flag(self) -> None:
-        """Removes the Task notification."""
-        self.notification_manager.cancel_all_notifications()
     
     def check_task_expiry(self) -> bool:
         """Returns True if the current Task is expired"""

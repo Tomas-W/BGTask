@@ -3,7 +3,8 @@ import os
 from datetime import datetime, timedelta
 from functools import lru_cache
 
-from src.settings import DATE
+from src.managers.app_device_manager import DM
+
 
 def is_widget_visible(widget, scroll_view):
     if not widget or not scroll_view:
@@ -63,7 +64,7 @@ def get_task_header_text(date_input) -> str:
         return str(date_input)
     
     # Format [Today March 21]
-    month_day = date.strftime(DATE.MONTH_DAY)
+    month_day = date.strftime(DM.DATE.MONTH_DAY)
     if date == today:
         return f"Today, {month_day}"
     
@@ -73,4 +74,4 @@ def get_task_header_text(date_input) -> str:
     elif date == today + timedelta(days=1):
         return f"Tomorrow, {month_day}"
     
-    return date.strftime(DATE.TASK_HEADER)
+    return date.strftime(DM.DATE.TASK_HEADER)

@@ -4,7 +4,8 @@ from kivy.graphics import Color, Rectangle, RoundedRectangle, Line
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 
-from src.settings import COL, SIZE, FONT, STYLE, STATE, PATH
+from src.settings import COL, SIZE, FONT, STYLE, STATE
+from src.managers.app_device_manager import DM
 
 
 class TopBarButton(Button):
@@ -358,8 +359,8 @@ class IconButton(Button):
         self.icon_name = icon_name
         self.color_state = color_state
 
-        self.active_path = os.path.join(PATH.IMG, icon_name + "_active_64.png")
-        self.inactive_path = os.path.join(PATH.IMG, icon_name + "_inactive_64.png")
+        self.active_path = os.path.join(DM.PATH.IMG, icon_name + "_active_64.png")
+        self.inactive_path = os.path.join(DM.PATH.IMG, icon_name + "_inactive_64.png")
 
         self.icon = self._create_icon_widget(self.color_state)
         self.add_widget(self.icon)
