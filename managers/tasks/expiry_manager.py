@@ -114,7 +114,11 @@ class ExpiryManager():
         if not self.current_task:
             return None
         
-        # Set as expired_task (not marked as expired - wait for user action)
+        # Mark previous expired Task as expired (without user interaction)
+        if self.expired_task:
+            self.expired_task.expired = False
+            self._save_task_changes(self.expired_task.task_id, {"expired": False})
+        
         self.expired_task = self.current_task
         logger.debug(f"Set task {self.expired_task.task_id} as expired task")
         

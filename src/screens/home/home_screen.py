@@ -292,20 +292,20 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_label = None
             self.hide_floating_buttons()
     
-    def check_expired_tasksbydate(self, instance, date: str):
-        """Check if all Tasks are expired for a given date"""
-        logger.debug(f"Checking expired tasks by date: {date}")
-        from src.utils.misc import get_task_header_text
-        formatted_date = get_task_header_text(date)
+    # def check_expired_tasksbydate(self, instance, date: str):
+    #     """Check if all Tasks are expired for a given date"""
+    #     logger.debug(f"Checking expired tasks by date: {date}")
+    #     from src.utils.misc import get_task_header_text
+    #     formatted_date = get_task_header_text(date)
         
-        for task_group in self.active_task_widgets:
-            if task_group.date_str == formatted_date:
-                if all(task.expired for task in task_group.tasks):
-                    task_group.tasks_container.set_expired(True)
-                    task_group.all_expired = True
-                    logger.debug(f"All tasks expired for date: {formatted_date}")
-                    return
-        logger.debug(f"No expired tasks found for date: {formatted_date}")
+    #     for task_group in self.active_task_widgets:
+    #         if task_group.date_str == formatted_date:
+    #             if all(task.expired for task in task_group.tasks):
+    #                 task_group.tasks_container.set_expired(True)
+    #                 task_group.all_expired = True
+    #                 logger.debug(f"All tasks expired for date: {formatted_date}")
+    #                 return
+    #     logger.debug(f"No expired tasks found for date: {formatted_date}")
 
     def set_date_expired(self, instance, date):
         """

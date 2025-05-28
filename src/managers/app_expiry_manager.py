@@ -68,7 +68,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
         # Save
         cancelled_task.expired = True
-        self._save_task_changes(task_id, {"expired": True})
+        self._save_task_changes(task_id, {
+            "expired": cancelled_task.expired,
+            "timestamp": cancelled_task.timestamp.isoformat(),
+            "snooze_time": cancelled_task.snooze_time,
+            })
 
         # Stop alarm
         self.dispatch("on_task_cancelled_stop_alarm")
@@ -121,9 +125,10 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         snoozed_task.snooze_time += snooze_seconds
         snoozed_task.expired = False
         self._save_task_changes(task_id, {
+            "expired": snoozed_task.expired,
+            "timestamp": snoozed_task.timestamp.isoformat(),
             "snooze_time": snoozed_task.snooze_time,
-            "expired": False
-        })
+            })
 
         # Stop alarm
         self.dispatch("on_task_snoozed_stop_alarm")
@@ -135,6 +140,21 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Notify Service
 
         logger.debug(f"Task {snoozed_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {snoozed_task.snooze_time/60:.1f}m")
+    
+    def check_expired_tasksbydate(self, instance, date: str):
+        """Check if all Tasks are expired for a given date"""
+        logger.debug(f"Checking expired tasks by date: {date}")
+        from src.utils.misc import get_task_header_text
+        formatted_date = get_task_header_text(date)
+        
+        for task_group in self.active_task_widgets:
+            if task_group.date_str == formatted_date:
+                if all(task.expired for task in task_group.tasks):
+                    task_group.tasks_container.set_expired(True)
+                    task_group.all_expired = True
+                    logger.debug(f"All tasks expired for date: {formatted_date}")
+                    return
+        logger.debug(f"No expired tasks found for date: {formatted_date}")
     
     def on_task_expired_trigger_alarm(self, *args, **kwargs):
         """Default handler for on_task_expired_trigger_alarm event"""
