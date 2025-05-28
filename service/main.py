@@ -73,7 +73,8 @@ def _get_broadcast_actions(package_name: str) -> list[str]:
         f"{package_name}.{DM.ACTION.SNOOZE_B}",
         f"{package_name}.{DM.ACTION.CANCEL}",
         f"{package_name}.{DM.ACTION.OPEN_APP}",
-        f"{package_name}.{DM.ACTION.STOP_ALARM}"
+        f"{package_name}.{DM.ACTION.STOP_ALARM}",
+        f"{package_name}.{DM.ACTION.UPDATE_TASKS}"
     ]
 
 

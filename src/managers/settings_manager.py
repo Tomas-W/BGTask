@@ -84,38 +84,38 @@ class SettingsManager:
 
     # Modify the get/set methods to work on both platforms
     def set_string(self, key: str, value: str) -> None:
-        if IS_ANDROID:
+        if DM.is_android:
             self._get_editor().putString(key, value).commit()
         else:
             self.prefs[key] = value
             self._save_settings()
     
     def get_string(self, key: str, default: str = "") -> str:
-        if IS_ANDROID:
+        if DM.is_android:
             return self.prefs.getString(key, default)
         return self.prefs.get(key, default)
     
     def set_bool(self, key: str, value: bool) -> None:
-        if IS_ANDROID:
+        if DM.is_android:
             self._get_editor().putBoolean(key, value).apply()
         else:
             self.prefs[key] = value
             self._save_settings()
     
     def get_bool(self, key: str, default: bool = False) -> bool:
-        if IS_ANDROID:
+        if DM.is_android:
             return self.prefs.getBoolean(key, default)
         return self.prefs.get(key, default)
     
     def set_int(self, key: str, value: int) -> None:
-        if IS_ANDROID:
+        if DM.is_android:
             self._get_editor().putInt(key, value).apply()
         else:
             self.prefs[key] = value
             self._save_settings()
     
     def get_int(self, key: str, default: int = 0) -> int:
-        if IS_ANDROID:
+        if DM.is_android:
             return self.prefs.getInt(key, default)
         return self.prefs.get(key, default)
 

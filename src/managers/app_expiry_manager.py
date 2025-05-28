@@ -21,6 +21,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.register_event_type("on_task_cancelled_stop_alarm")
         self.register_event_type("on_task_snoozed_stop_alarm")
 
+        self._just_resumed = False
+
         self.tick = 0
     
     def check_task_expiry(self, *args, **kwargs) -> bool:
@@ -46,8 +48,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
                 expired_task = self.handle_task_expired()
                 if expired_task:
                     self.dispatch("on_task_expired_show_task_popup", task=expired_task)
+                
+                if expired_task and not self._just_resumed:
                     self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
-                    # NOTIFY UPDATE SERVICED NOTIFICATION
+        
+        self._just_resumed = False
 
     def cancel_task(self, task_id: str) -> None:
         """
@@ -70,11 +75,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         
         # Refresh tasks
         self._refresh_tasks()
+        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         # Update UI
         self.task_manager._update_tasks_ui(task=cancelled_task, scroll_to_task=True)
         # Notify Service
-        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
-
+        
         logger.debug(f"Task {cancelled_task.task_id} cancelled")
     
     def snooze_task(self, task_id: str, action: str) -> None:
@@ -124,10 +129,10 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.dispatch("on_task_snoozed_stop_alarm")
         # Refresh tasks
         self._refresh_tasks()
+        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         # Update UI
         self.task_manager._update_tasks_ui(task=snoozed_task, scroll_to_task=True)
         # Notify Service
-        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
 
         logger.debug(f"Task {snoozed_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {snoozed_task.snooze_time/60:.1f}m")
     

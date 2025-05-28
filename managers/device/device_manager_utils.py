@@ -67,8 +67,6 @@ class Paths(Dirs):
         self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
 
         # Flags
-        self.TASKS_CHANGED_FLAG: Final[str] = os.path.join(self.SERVICE, "tasks_changed.flag")
-        self.SERVICE_TASKS_CHANGED_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/tasks_changed.flag")
         self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
         self.SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG: Final[str] = self._get_storage_path(is_android, "app/src/service/task_notification_removal.flag")
         
@@ -113,12 +111,15 @@ class ServiceActions:
     Also used by App to communicate with Service.
     """
     def __init__(self):
-        # Alarm actions
-        self.SNOOZE_A: Final[str] = "snooze_a"
-        self.SNOOZE_B: Final[str] = "snooze_b"
-        self.CANCEL: Final[str] = "cancel"
-        self.OPEN_APP: Final[str] = "open_app"
-        self.STOP_ALARM: Final[str] = "stop_alarm"
+        # Service actions
+        self.SNOOZE_A: Final[str] = "SNOOZE_A"
+        self.SNOOZE_B: Final[str] = "SNOOZE_B"
+        self.CANCEL: Final[str] = "CANCEL"
+        self.OPEN_APP: Final[str] = "OPEN_APP"
+
+        # App actions
+        self.STOP_ALARM: Final[str] = "STOP_ALARM"
+        self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
 
 class NotificationChannels:
     """

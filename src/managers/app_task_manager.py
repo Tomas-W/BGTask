@@ -31,16 +31,13 @@ class TaskManager(EventDispatcher):
         # if DM.is_android:
         self.settings_manager = SettingsManager()
         self.expiry_manager = AppExpiryManager(self)
+        self.communication_manager = None  #Connected in main.py
 
-        # self.bind(
-        #     on_task_cancelled_check_expired_tasksbydate=self.set_expired_tasksbydate
-        # )
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
         self.register_event_type("on_tasks_expired_set_date_expired")
-        
         
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
@@ -188,8 +185,8 @@ class TaskManager(EventDispatcher):
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task)
         self.expiry_manager._refresh_tasks()
-        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
-    
+        self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+
     def update_task(self, task_id: str, message: str, timestamp: datetime,
                     alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
@@ -247,8 +244,8 @@ class TaskManager(EventDispatcher):
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task)
         self.expiry_manager._refresh_tasks()
-        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
-    
+        self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+
     def delete_task(self, task_id: str) -> None:
         """
         Deletes a Task by ID.
@@ -272,8 +269,8 @@ class TaskManager(EventDispatcher):
         self._save_tasks_to_json()
         self._update_tasks_ui(task=task, scroll_to_task=False)
         self.expiry_manager._refresh_tasks()
-        DM.write_flag_file(DM.PATH.TASKS_CHANGED_FLAG)
-    
+        self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+        
     def _has_time_overlap(self, timestamp: datetime) -> bool:
         """Checks if the snoozed Task or current Task would overlap with another Task."""
         for task_group in self.sorted_active_tasks:

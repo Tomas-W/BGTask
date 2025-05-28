@@ -51,7 +51,6 @@ class Paths(Directories):
     TASK_FILE = os.path.join(Directories.ASSETS, "task_file.json")
     SERVICE_TASK_FILE = "app/src/assets/task_file.json"
 
-    TASKS_CHANGED_FLAG = os.path.join(Directories.SERVICE, "tasks_changed.flag")
     TASK_NOTIFICATION_REMOVAL_FLAG = os.path.join(Directories.SERVICE, "task_notification_removal.flag")
     SERVICE_TASK_NOTIFICATION_REMOVAL_FLAG = "app/src/service/task_notification_removal.flag"
 
@@ -220,6 +219,7 @@ class Loaded:
     NAVIGATION_MANAGER = False
     TASK_MANAGER = False
     AUDIO_MANAGER = False
+    COMMUNICATION_MANAGER = False
 
 class StrEnum(str, enum.Enum):
     """String Enum that can be compared directly with strings."""

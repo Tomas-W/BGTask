@@ -162,6 +162,7 @@ class TaskApp(App, EventDispatcher):
         Clock.schedule_once(self._load_secondary_components, 0.05)
 
     def _load_secondary_components(self, dt):
+        self._init_communication_manager()
         self._init_audio_manager()
         self._init_main_screens()
         self._init_secondary_screens()
@@ -198,6 +199,15 @@ class TaskApp(App, EventDispatcher):
         self.audio_manager = AppAudioManager()
         LOADED.AUDIO_MANAGER = True
         self.logger.critical(f"Loading AudioManager time: {time.time() - start_time:.4f}")
+    
+    def _init_communication_manager(self):
+        # AppToServiceCommunicator
+        start_time = time.time()
+        from src.managers.app_communication_manager import AppCommunicationManager
+        self.communication_manager = AppCommunicationManager()
+        self.task_manager.communication_manager = self.communication_manager
+        LOADED.COMMUNICATION_MANAGER = True
+        self.logger.critical(f"Loading CommunicationManager time: {time.time() - start_time:.4f}")
     
     def _init_home_screen(self):
         # HomeScreen
@@ -315,8 +325,10 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is resuming - checking for expired tasks")
 
         if hasattr(self, "task_manager"):
-            # Send broadcast to stop alarm
+            # Notify Service to stop alarm
             self._stop_service_alarm()
+            # Notify to trigger without alarm
+            self.task_manager.expiry_manager._just_resumed = True
             
             # First reload tasks from file to ensure we have latest data
             start_time = time.time()
@@ -329,20 +341,8 @@ class TaskApp(App, EventDispatcher):
         """
         Sends a broadcast to stop the service alarm.
         """
-        if not DM.is_android:
-            return
-        
-        try:
-            from jnius import autoclass # type: ignore
-            Intent = autoclass("android.content.Intent")
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            context = PythonActivity.mActivity
-            intent = Intent()
-            intent.setAction(f"{context.getPackageName()}.{DM.ACTION.STOP_ALARM}")  # Use new STOP_ALARM action
-            context.sendBroadcast(intent)
-            self.logger.debug("Sent broadcast to stop alarm")
-        except Exception as e:
-            self.logger.error(f"Error sending broadcast: {e}")
+        if self.communication_manager:
+            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
     
     def on_start(self):
         """
