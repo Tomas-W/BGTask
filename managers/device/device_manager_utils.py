@@ -50,7 +50,7 @@ class Paths(Dirs):
 
         # Task icons
         self.SOUND_IMG: Final[str] = os.path.join(self.IMG, "sound_64.png")
-        self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_64.png")
+        self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_24.png")
         
         # Playback icons
         self.PLAY_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_active_64.png")
@@ -115,6 +115,7 @@ class ServiceActions:
         self.SNOOZE_B: Final[str] = "SNOOZE_B"
         self.CANCEL: Final[str] = "CANCEL"
         self.OPEN_APP: Final[str] = "OPEN_APP"
+        self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
 
         # App actions
         self.STOP_ALARM: Final[str] = "STOP_ALARM"

@@ -27,9 +27,8 @@ def _set_screenshot_as_wallpaper(dt, root_layout, screen_header, screenshot_butt
     Takes a screenshot of the current root_layout.
     If device is Android, sets the screenshot as the wallpaper.
     """
-    # Check permissions
-    if not PM.has_wallpaper_permission:
-        PM.request_android_wallpaper_permissions()
+    # Check permissions, ask if needed
+    if not PM.validate_permission(PM.SET_WALLPAPER):
         Clock.schedule_once(lambda dt: reset_screenshot_button(dt, screenshot_button), 0.5)
         return
     
@@ -62,9 +61,9 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
     Hides widgets except for the TaskHeader and TaskGroupContainer.
     Takes a screenshot of the current root_layout.
     """
-    try:           
-        if not PM.has_wallpaper_permission:
-            PM.request_android_wallpaper_permissions()
+    try:
+        # Check permissions, ask if needed
+        if not PM.validate_permission(PM.SET_WALLPAPER):
             return
         
         start_time = time.time()

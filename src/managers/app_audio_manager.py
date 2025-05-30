@@ -38,8 +38,7 @@ class AppAudioManager(AudioManager):
         
         # Recording
         self.is_recording: bool = False
-        self.has_recording_permission: bool = PM._check_recording_permission()
-    
+        
     def load_alarms(self) -> None:
         """
         Loads all audio files from alarms and recordings directories.
@@ -90,9 +89,8 @@ class AppAudioManager(AudioManager):
             logger.warning("Recording already in progress")
             return False
         
-        # Check recording permissions
-        if DM.is_android and not self.has_recording_permission:
-            PM.request_android_recording_permissions()
+        # Check recording permissions, ask if needed
+        if not PM.validate_permission(PM.RECORD_AUDIO):
             return False
         
         # Try setting up recording

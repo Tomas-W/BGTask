@@ -6,8 +6,9 @@ from datetime import timedelta
 from typing import Final
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions, ServiceActions,
-    NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents
+    Dirs, Paths, Dates, Extensions,
+    NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
+    ServiceActions
 )
 from src.utils.logger import logger
 
