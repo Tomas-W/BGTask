@@ -24,17 +24,22 @@ class PermissionManager:
     Manages Permissions for the App and Service.
     """
     def __init__(self):
-        # Basic permissions, shared methods
-        self.POST_NOTIFICATIONS: Permission = Permission.POST_NOTIFICATIONS
-        self.RECORD_AUDIO: Permission = Permission.RECORD_AUDIO
-        self.SET_WALLPAPER: Permission = Permission.SET_WALLPAPER
+        if DM.is_android:
+            # Basic permissions, shared methods
+            self.POST_NOTIFICATIONS = Permission.POST_NOTIFICATIONS
+            self.RECORD_AUDIO = Permission.RECORD_AUDIO
+            self.SET_WALLPAPER = Permission.SET_WALLPAPER
+        else:
+            self.POST_NOTIFICATIONS = "POST_NOTIFICATIONS"
+            self.RECORD_AUDIO = "RECORD_AUDIO"
+            self.SET_WALLPAPER = "SET_WALLPAPER"	
 
         # Special case permissions, individual methods
         self.REQUEST_SCHEDULE_EXACT_ALARM: str = "REQUEST_SCHEDULE_EXACT_ALARM"
         self.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: str = "ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
 
     @android_only
-    def validate_permission(self, permission: Permission | str) -> bool:
+    def validate_permission(self, permission: str) -> bool:
         """
         Returns True if the App has the given permission.
         If not, requests permission and returns False.
