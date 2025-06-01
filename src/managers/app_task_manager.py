@@ -185,7 +185,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
+        self.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -249,7 +249,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
+        self.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -279,7 +279,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task, scroll_to_task=False)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
+        self.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         

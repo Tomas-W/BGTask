@@ -105,8 +105,7 @@ class AppCommunicationManager:
                             task=task
                         )
                     self.task_manager.dispatch(
-                        "on_task_edit_refresh_start_screen",
-                        task_id=task_data["task_id"]
+                        "on_task_edit_refresh_start_screen"
                     )
                 else:
                     # Fallback to regular dispatch without task data

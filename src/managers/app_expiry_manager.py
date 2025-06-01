@@ -81,7 +81,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh HomeScreen
         self.task_manager._update_tasks_ui(task=cancelled_task, scroll_to_task=True)
         # Refresh StartScreen
-        self.task_manager.dispatch("on_task_edit_refresh_start_screen", task_id=cancelled_task.task_id)
+        self.task_manager.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
@@ -138,7 +138,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh HomeScreen
         self.task_manager._update_tasks_ui(task=snoozed_task, scroll_to_task=True)
         # Refresh StartScreen
-        self.task_manager.dispatch("on_task_edit_refresh_start_screen", task_id=snoozed_task.task_id)
+        self.task_manager.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 

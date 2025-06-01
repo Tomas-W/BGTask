@@ -50,8 +50,7 @@ class StartScreen(Screen):
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
 
-        self.bind(on_task_edit_refresh_start_screen=lambda instance,
-                  **kwargs: self._refresh_start_screen(kwargs.get("task_id")))
+        self.bind(on_task_edit_refresh_start_screen=self._refresh_start_screen)
 
         # Layout
         self.root_layout = RelativeLayout()
@@ -252,11 +251,8 @@ class StartScreen(Screen):
         Re-loads the StartScreen.
         """
         logger.trace("CALLED _REFRESH_START_SCREEN")
-        task_id = kwargs.get("task_id")
-        logger.trace(f"Task ID: {task_id}")
-        if task_id in [task["task_id"] for task in self.current_task_data]:
-            self.current_task_data = self._init_current_task_data()
-            Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
+        self.current_task_data = self._init_current_task_data()
+        Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
 
     def on_enter(self) -> None:
         """

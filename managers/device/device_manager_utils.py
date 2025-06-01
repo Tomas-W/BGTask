@@ -50,7 +50,7 @@ class Paths(Dirs):
 
         # Task icons
         self.SOUND_IMG: Final[str] = os.path.join(self.IMG, "sound_64.png")
-        self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_24.png")
+        self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_64.png")
         
         # Playback icons
         self.PLAY_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_active_64.png")
