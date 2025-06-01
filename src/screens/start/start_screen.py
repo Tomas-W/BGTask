@@ -116,25 +116,20 @@ class StartScreen(Screen):
                 return []
         
         task_data = []
-        today = datetime.now().date()
-        today_key = today.isoformat()
+        today_key = datetime.now().date().isoformat()
 
-        # Get todays Tasks
-        target_date_key = None
-        if today_key in date_keys and data[today_key]:
-            target_date_key = today_key
-        else:
-            # If no todays Tasks, get the earliest future date
-            future_dates = [dk for dk in date_keys if dk >= today_key]
-            try:
-                target_date_key = min(future_dates)
-            except ValueError:
-                logger.debug("No future dates found")
-                start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
-                                  message=TEXT.NO_TASKS,
-                                  expired=True)
-                self.day_header.text = get_task_header_text(start_task.get_date_str())
-                return [start_task.to_dict()]
+        # Get the earliest future date (including today)
+        future_dates = [dk for dk in date_keys if dk >= today_key]
+        try:
+            target_date_key = min(future_dates)
+        
+        except ValueError:
+            logger.debug("No future dates found")
+            start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
+                              message=TEXT.NO_TASKS,
+                              expired=True)
+            self.day_header.text = get_task_header_text(start_task.get_date_str())
+            return [start_task.to_dict()]
 
         # Create Task objects and add to list
         for task_json in data[target_date_key]:

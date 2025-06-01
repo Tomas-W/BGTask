@@ -84,29 +84,26 @@ class TaskManager(EventDispatcher):
         """
         Takes the tasks_by_date dictionary and returns a list of Tasks sorted by date [earliest first].
         Looks at ALL tasks because snoozing could move a task to any future date.
-        Includes:
-        - All non-expired tasks (regardless of date)
-        - Expired tasks from today and yesterday
+        Includes all tasks from yesterday (00:00) onwards, regardless of expiry status.
         Used by HomeScreen's update_task_display to display all active Tasks.
         Only called on initial load and after Task add/edit/delete.
         """
         sorted_active_tasks = []
-        now = datetime.now().replace(second=0, microsecond=0)
-        yesterday = (now - timedelta(days=1)).date()
-        today = now.date()
+        now = datetime.now()
+        yesterday = (now.date() - timedelta(days=1))  # yesterday at 00:00
         
-        # Look at ALL tasks in tasks_by_date
+        # Loop over all Task groups
         for date_key, tasks in self.tasks_by_date.items():
             task_date = datetime.strptime(date_key, "%Y-%m-%d").date()
             
-            # Keep all non-expired tasks, and expired tasks from today/yesterday
+            # Keep all Tasks from yesterday 00:00 onwards
             active_tasks = [
                 task for task in tasks 
-                if not task.expired or task_date in (today, yesterday)
+                if task_date >= yesterday
             ]
             
             if active_tasks:
-                # Sort tasks within each date group by effective time (earliest first)
+                # Sort Tasks by effective time (earliest first)
                 sorted_tasks = sorted(active_tasks, 
                                     key=lambda task: task.timestamp + timedelta(seconds=task.snooze_time))
                 
@@ -119,7 +116,7 @@ class TaskManager(EventDispatcher):
                     "tasks": sorted_tasks
                 })
         
-        # Sort by effective time (earliest first)
+        # Sort date groups by effective time (earliest first)
         sorted_active_tasks.sort(
             key=lambda x: (x["tasks"][0].timestamp + timedelta(seconds=x["tasks"][0].snooze_time)) 
             if x["tasks"] else datetime.max
@@ -188,7 +185,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -252,7 +249,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -282,7 +279,7 @@ class TaskManager(EventDispatcher):
         # Refresh HomeScreen
         self._update_tasks_ui(task=task, scroll_to_task=False)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.dispatch("on_task_edit_refresh_start_screen", task_id=task.task_id)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
