@@ -8,7 +8,6 @@ from jnius import autoclass  # type: ignore
 from typing import TYPE_CHECKING, Any
 
 from managers.tasks.task_manager_utils import Task
-from src.managers.settings_manager import SettingsManager
 
 
 from service.service_audio_manager import ServiceAudioManager
@@ -51,7 +50,6 @@ class ServiceManager:
         self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
-        self.settings_manager = None
         self.communication_manager = ServiceCommunicationManager(self)
 
         # Loop variables
@@ -90,7 +88,6 @@ class ServiceManager:
         time.sleep(0.3)
 
         # Set up loop
-        self._init_settings_manager()
         self.flag_service_as_running()
 
         self.check_task_expiry()
@@ -430,17 +427,6 @@ class ServiceManager:
         if self.notification_manager is None:
             from service.service_notification_manager import ServiceNotificationManager  # type: ignore
             self.notification_manager = ServiceNotificationManager(PythonService.mService)
-    
-    def _init_settings_manager(self) -> None:
-        """Initialize the SettingsManager with retries"""
-        if self.settings_manager is None:
-            try:
-                # reties to guarantee context
-                self.settings_manager = SettingsManager(max_retries=3, retry_delay=0.2)
-                logger.debug("Successfully initialized SettingsManager")
-            except Exception as e:
-                logger.error(f"Error initializing SettingsManager after retries: {e}")
-                # Keep service running
 
     def _init_activity_manager(self) -> None:
         """Initialize ActivityManager and get package name"""

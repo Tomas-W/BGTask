@@ -296,7 +296,6 @@ def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
         if service_manager is None:
             service_manager = ServiceManager()
             service_manager._init_notification_manager()
-            service_manager._init_settings_manager()
             
             # Create and start broadcast receiver
             receiver = create_broadcast_receiver(service_manager)

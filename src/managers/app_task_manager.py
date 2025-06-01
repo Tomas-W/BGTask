@@ -11,7 +11,6 @@ from src.managers.app_expiry_manager import AppExpiryManager
 from managers.tasks.task_manager_utils import Task
 
 from src.managers.app_device_manager import DM
-from src.managers.settings_manager import SettingsManager
 
 from src.utils.logger import logger
 
@@ -29,7 +28,6 @@ class TaskManager(EventDispatcher):
         
         self.navigation_manager = App.get_running_app().navigation_manager
         # if DM.is_android:
-        self.settings_manager = SettingsManager()
         self.expiry_manager = AppExpiryManager(self)
         self.communication_manager = None  #Connected in main.py
 
