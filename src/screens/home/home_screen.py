@@ -31,6 +31,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.navigation_manager = navigation_manager
         self.task_manager = task_manager
 
+        self._need_refresh_screen: bool = False
+
         # App dispatches
         self.task_manager.bind(on_task_saved_scroll_to_task=self.scroll_to_task)
         self.task_manager.bind(
@@ -38,7 +40,9 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
              **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
         self.task_manager.bind(
             on_tasks_expired_set_date_expired=self.set_date_expired)
-        
+        self.task_manager.bind(on_task_edit_refresh_home_screen=lambda instance,
+                               **kwargs: self._set_need_refresh_screen(kwargs.get("task")))
+
         # Loading attributes
         self.tasks_loaded: bool = False
         # Scroll to Task attributes
@@ -260,6 +264,19 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
         logger.debug(f"Scrolled to task: {task}")
     
+    def _set_need_refresh_screen(self, task, *args, **kwargs) -> None:
+        """
+        Sets the need_refresh_screen flag to True.
+        """
+        logger.trace(f"_set_need_refresh_screen received Task: {task.message if task else None}")
+        from kivy.app import App
+        if App.get_running_app().screen_manager.current == SCREEN.HOME:
+            Clock.schedule_once(lambda dt: self.update_task_display(modified_task=task), 0.05)
+            logger.trace(f"Refreshing task display becasue its the current screen")
+        else:
+            self._need_refresh_screen = True
+            logger.trace(f"Setting need_refresh_screen to True because its not the current screen")
+    
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
         
@@ -270,6 +287,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # Fallback
         if not self.tasks_loaded:
             self._full_rebuild_task_display()
+        
+        if self._need_refresh_screen:
+            logger.trace(f"Refreshing task display")
+            self.update_task_display()
+            self._need_refresh_screen = False
 
     def on_enter(self) -> None:
         super().on_enter()
@@ -292,21 +314,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             self.selected_label = None
             self.hide_floating_buttons()
     
-    # def check_expired_tasksbydate(self, instance, date: str):
-    #     """Check if all Tasks are expired for a given date"""
-    #     logger.debug(f"Checking expired tasks by date: {date}")
-    #     from src.utils.misc import get_task_header_text
-    #     formatted_date = get_task_header_text(date)
-        
-    #     for task_group in self.active_task_widgets:
-    #         if task_group.date_str == formatted_date:
-    #             if all(task.expired for task in task_group.tasks):
-    #                 task_group.tasks_container.set_expired(True)
-    #                 task_group.all_expired = True
-    #                 logger.debug(f"All tasks expired for date: {formatted_date}")
-    #                 return
-    #     logger.debug(f"No expired tasks found for date: {formatted_date}")
-
     def set_date_expired(self, instance, date):
         """
         Sets background color of given date's TaskGroup to inactive.

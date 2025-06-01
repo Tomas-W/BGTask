@@ -70,15 +70,23 @@ android.permissions =
     WAKE_LOCK,
     POST_NOTIFICATIONS,
     START_FOREGROUND_SERVICE_FROM_BACKGROUND,
-    USE_FULL_SCREEN_INTENT
+    USE_FULL_SCREEN_INTENT,
+    REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+    SCHEDULE_EXACT_ALARM,
+    USE_EXACT_ALARM,
+    BROADCAST_PACKAGE_REMOVED,
+    BROADCAST_STICKY
 
 # Service configuration
-services = BGTaskService:service/main.py:foreground:sticky:ongoing
+services = BGTaskService:service/main.py:foreground:sticky:ongoing:persistent:boot_completed
+android.service_type = shortService
 
 # Activity and runtime settings
 android.entrypoint = org.kivy.android.PythonActivity
 android.activity_launch_mode = singleTask
 android.wakelock = True
+android.allow_background_activity = True
+android.allow_background_service = True
 
 # Python settings
 android.optimize_python = True
@@ -87,3 +95,7 @@ android.precompile_python = True
 # Dependencies
 android.gradle_dependencies = androidx.core:core:1.6.0
 android.enable_androidx = True
+
+# Add this to your buildozer.spec
+android.add_services = 
+    service/service_communication_manager.py:android.broadcast.BroadcastReceiver

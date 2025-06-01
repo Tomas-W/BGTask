@@ -1,16 +1,20 @@
+# service/service_manager.py
 import time
 import os
 
 from datetime import timedelta
 
 from jnius import autoclass  # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from managers.tasks.task_manager_utils import Task
 from src.managers.settings_manager import SettingsManager
 
+
 from service.service_audio_manager import ServiceAudioManager
+from service.service_communication_manager import ServiceCommunicationManager
 from service.service_expiry_manager import ServiceExpiryManager
+
 from service.service_utils import get_service_timestamp
 from service.service_device_manager import DM
 
@@ -48,10 +52,11 @@ class ServiceManager:
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
         self.settings_manager = None
+        self.communication_manager = ServiceCommunicationManager(self)
 
         # Loop variables
         self._running: bool = True
-        self._need_foreground_notification_update: bool = True
+        # self._need_foreground_notification_update: bool = True
         self._in_foreground: bool = False
 
         # ActivityManager
@@ -110,8 +115,8 @@ class ServiceManager:
 
                 self.force_foreground_notification()             # 60 seconds
                 
-                if self._need_foreground_notification_update:
-                    self.update_foreground_notification_info()   # 10 seconds
+                # if self._need_foreground_notification_update:
+                #     self.update_foreground_notification_info()   # 10 seconds
                 
 
                 # ############### RUNS IN FOREGROUND ###############
@@ -276,7 +281,7 @@ class ServiceManager:
                 with_buttons=False
             )
         
-        self._need_foreground_notification_update = False
+        # self._need_foreground_notification_update = False
     
     def is_app_in_foreground(self) -> bool:
         """Check if app is running in the foreground."""
@@ -339,93 +344,72 @@ class ServiceManager:
         self.audio_manager.trigger_alarm(expired_task)
         self.update_foreground_notification_info()
     
-    def handle_action(self, action: str) -> int:
-        """
-        Handles notification button actions from foreground or Task notifications.
-        Always returns START_STICKY to ensure the service keeps running.
-        """
-        # Rework logic becasue of app communication
-        # if not self.expiry_manager.current_task and not self.expiry_manager.expired_task:
-        #     logger.debug("No current task to handle action for")
-        #     return Service.START_STICKY
-        # ############### SERVICE ACTIONS ###############
+    def handle_action(self, action: str, intent: Any) -> int:
+        """Handles notification button actions from foreground or Task notifications."""
+        logger.debug(f"ServiceManager.handle_action received: {action}")
+        
+        # Log all extras from intent
+        if intent:
+            bundle = intent.getExtras()
+            if bundle:
+                logger.debug("Intent extras:")
+                for key in bundle.keySet():
+                    value = bundle.get(key)
+                    logger.debug(f"  {key}: {value}")
+        
+        notification_type = intent.getStringExtra("notification_type")
+        logger.debug(f"Action from notification type: {notification_type}")
+        
         # Cancel all notifications
         if self.notification_manager:
             self.notification_manager.cancel_all_notifications()
         
-        # Clicked Snooze A button
-        if action.endswith(DM.ACTION.SNOOZE_A):
-            self.expiry_manager.snooze_task(action)
-            self.audio_manager.stop_alarm()
-            self._need_foreground_notification_update = True
-            # Add immediate updates
-            self.update_foreground_notification_info()
-            return Service.START_REDELIVER_INTENT
-
-        # Clicked Snooze B button
-        if action.endswith(DM.ACTION.SNOOZE_B):
-            self.expiry_manager.snooze_task(action)
-            self.audio_manager.stop_alarm()
-            self._need_foreground_notification_update = True
-            # Add immediate updates
-            self.update_foreground_notification_info()
-            return Service.START_REDELIVER_INTENT
-        
-        # Clicked Cancel button or swiped notification
-        elif action.endswith(DM.ACTION.CANCEL):
-            if self.expiry_manager.expired_task:
-                task_id = self.expiry_manager.expired_task.task_id
-                if self.settings_manager:
-                    self.settings_manager.set_cancelled_task_id(task_id)
-                else:
-                    logger.error("Settings manager not initialized, cannot store cancelled task ID")
-            
-            self.expiry_manager.cancel_task()
-            self._need_foreground_notification_update = True
-            self.audio_manager.stop_alarm()
-            # Add immediate updates
-            self.update_foreground_notification_info()
+        # Only handle notification button actions
+        if not any(action.endswith(btn_action) for btn_action in [
+            DM.ACTION.SNOOZE_A,
+            DM.ACTION.SNOOZE_B,
+            DM.ACTION.CANCEL,
+            DM.ACTION.OPEN_APP
+        ]):
             return Service.START_STICKY
         
-        # Clicked notification to open app
-        elif action.endswith(DM.ACTION.OPEN_APP):
-            if self.expiry_manager.expired_task:
-                task_id = self.expiry_manager.expired_task.task_id
-                logger.debug(f"Storing cancelled task ID: {task_id}")
-                
-                if self.settings_manager:
-                    # Notify app to stop alarm and show popup
-                    self.settings_manager.set_cancelled_task_id(task_id)
-                else:
-                    logger.error("Settings manager not initialized, cannot store cancelled task ID")
-            
-            self.expiry_manager.cancel_task()
-            self._need_foreground_notification_update = True
-            self.audio_manager.stop_alarm()
-            # Add immediate updates
-            self.update_foreground_notification_info()
-            self._open_app()
-        
-        # ############### APP ACTIONS ###############
-        # Stop alarm when app is opened manually
-        elif action.endswith(DM.ACTION.STOP_ALARM):
-            logger.debug("STOPPING ALARM WITH ACTION")
-            self.audio_manager.stop_alarm()
-            self.update_foreground_notification_info()
-            logger.debug("STOPPED ALARM WITH ACTION")
-            return Service.START_STICKY
-        
-        # Update Serice Tasks after App has updated them
-        elif action.endswith(DM.ACTION.UPDATE_TASKS):
-            self.expiry_manager._refresh_tasks()
-            self.update_foreground_notification_info()
-            logger.debug("REFRESHED TASKS WITH ACTION")
-            return Service.START_STICKY
-        
+        # Get task data based on notification type
+        task_data = None
+        if notification_type == DM.NOTIFICATION_TYPE.FOREGROUND and self.expiry_manager.current_task:
+            logger.error(f"FOREGROUND NOTIFICATION RECEIVED: {self.expiry_manager.current_task.message}")
+            task_data = {
+                "task_id": self.expiry_manager.current_task.task_id,
+                "notification_type": notification_type
+            }
+        elif notification_type == DM.NOTIFICATION_TYPE.EXPIRED and self.expiry_manager.expired_task:
+            logger.error(f"EXPIRED NOTIFICATION RECEIVED: {self.expiry_manager.expired_task.message}")
+            task_data = {
+                "task_id": self.expiry_manager.expired_task.task_id,
+                "notification_type": notification_type
+            }
         else:
-            logger.error(f"Unknown action: {action}")
+            logger.error(f"UNKNOWN NOTIFICATION TYPE RECEIVED: {notification_type}")
+        
+        # Handle the actions
+        if action.endswith(DM.ACTION.SNOOZE_A) or action.endswith(DM.ACTION.SNOOZE_B):
+            self.expiry_manager.snooze_task(action)
             self.audio_manager.stop_alarm()
+            self.update_foreground_notification_info()
+            self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
             return Service.START_STICKY
+        
+        elif action.endswith(DM.ACTION.CANCEL) or action.endswith(DM.ACTION.OPEN_APP):
+            self.expiry_manager.cancel_task()
+            self.audio_manager.stop_alarm()
+            self.update_foreground_notification_info()
+            self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
+            
+            if action.endswith(DM.ACTION.OPEN_APP):
+                self._open_app()
+        
+        return Service.START_STICKY
 
     def _open_app(self) -> None:
         """Opens the app from Task notification"""

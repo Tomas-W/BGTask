@@ -8,7 +8,7 @@ from typing import Final
 from managers.device.device_manager_utils import (
     Dirs, Paths, Dates, Extensions,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
-    ServiceActions
+    NotificationType, ServiceActions
 )
 from src.utils.logger import logger
 
@@ -27,6 +27,7 @@ class DeviceManager:
         self.EXT: Final[Extensions] = Extensions()
 
         self.ACTION: Final[ServiceActions] = ServiceActions()
+        self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
 
         if self.is_android:
             self.CHANNEL: Final[NotificationChannels] = NotificationChannels()

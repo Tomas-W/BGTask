@@ -190,6 +190,8 @@ class TaskApp(App, EventDispatcher):
         from src.managers.app_task_manager import TaskManager
         self.task_manager = TaskManager()
         LOADED.TASK_MANAGER = True
+        start_screen = self.get_screen(SCREEN.START)
+        start_screen._init_task_manager(self.task_manager)
         self.logger.critical(f"Loading TaskManager time: {time.time() - start_time:.4f}")
     
     def _init_audio_manager(self):
@@ -204,7 +206,7 @@ class TaskApp(App, EventDispatcher):
         # AppToServiceCommunicator
         start_time = time.time()
         from src.managers.app_communication_manager import AppCommunicationManager
-        self.communication_manager = AppCommunicationManager()
+        self.communication_manager = AppCommunicationManager(self.task_manager)
         self.task_manager.communication_manager = self.communication_manager
         LOADED.COMMUNICATION_MANAGER = True
         self.logger.critical(f"Loading CommunicationManager time: {time.time() - start_time:.4f}")
@@ -344,16 +346,6 @@ class TaskApp(App, EventDispatcher):
         App is being started.
         """
         print("on_start")
-
-    def _check_background_cancelled_tasks(self, dt):
-        """
-        Check for any cancelled tasks that might have occurred while paused.
-        """
-        if not self.task_manager:
-            return
-        
-        self.task_manager.check_background_cancelled_tasks()
-        Clock.unschedule(self._check_background_cancelled_tasks)
 
 
 if __name__ == "__main__":

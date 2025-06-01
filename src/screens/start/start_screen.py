@@ -45,10 +45,14 @@ class StartScreen(Screen):
         super().__init__(**kwargs)
         start_time = time_.time()
         self._start_screen_finished: bool = False
+        self._need_refresh_screen: bool = True
         self.is_taking_screenshot: bool = False  # Flag to prevent multiple screenshot calls
 
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
+
+        self.bind(on_task_edit_refresh_start_screen=lambda instance,
+                  **kwargs: self._set_need_refresh_screen(kwargs.get("task_id")))
 
         # Layout
         self.root_layout = RelativeLayout()
@@ -89,6 +93,13 @@ class StartScreen(Screen):
 
         end_time = time_.time()
         logger.error(f"StartScreen __INIT__ TIME: {end_time - start_time:.4f}")
+    
+    def _init_task_manager(self, task_manager) -> None:
+        """
+        Initializes the TaskManager.
+        """
+        self.task_manager = task_manager
+        self.task_manager.bind(on_task_edit_refresh_start_screen=self._set_need_refresh_screen)
     
     def _init_current_task_data(self) -> list[dict]:
         """Loads initial Task data from file when task_manager is not yet available."""
@@ -176,7 +187,8 @@ class StartScreen(Screen):
                 time_container = TimeContainer()
                 task_container.add_widget(time_container)
                 # TimeLabel
-                time = Task.to_time_str(task["timestamp"])
+                task_time = task["timestamp"] + timedelta(seconds=task["snooze_time"])
+                time = Task.to_time_str(task_time)
                 start_time_label = TimeLabel(text=time)
                 time_container.add_widget(start_time_label)
                 # SoundIcon
@@ -236,25 +248,51 @@ class StartScreen(Screen):
         When the screen is about to be shown, the data is loaded in and 
          the widgets are built.
         """
-        if hasattr(self, "task_manager"):
-            self.current_task_data = self._get_current_task_data()
-        else:
+        # if hasattr(self, "task_manager"):
+        #     self.current_task_data = self._get_current_task_data()
+        # else:
+        # #     self.current_task_data = self._init_current_task_data()
+        if self._need_refresh_screen:
+            logger.trace("_NEED_REFRESH_SCREEN is True")
+            self.refresh_start_screen()
+            self._need_refresh_screen = False
+    
+    def refresh_start_screen(self, *args, **kwargs) -> None:
+        """
+        Refreshes the start screen safely.
+        """
+        try:
             self.current_task_data = self._init_current_task_data()
+            Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
+            logger.trace("SCHEDULED REFRESHED START SCREEN")
             
-        self._load_current_tasks_widgets()
+        except Exception as e:
+            logger.error(f"Error refreshing start screen: {e}")
+    
+    def _set_need_refresh_screen(self, *args, **kwargs) -> None:
+        """
+        Sets the need_refresh_screen flag to True.
+        """
+        # from kivy.app import App
+        # if App.get_running_app().screen_manager.current == SCREEN.START:
+        #     self.refresh_start_screen()
+        #     self._need_refresh_screen = False
+        # else:
+        #     self._need_refresh_screen = True
+        logger.trace("CALLED _SET_NEED_REFRESH_SCREEN")
+        task_id = kwargs.get("task_id")
+        logger.trace(f"Task ID: {task_id}")
+        if task_id in [task["task_id"] for task in self.current_task_data]:
+            self.refresh_start_screen()
+            self._need_refresh_screen = False
+        else:
+            self._need_refresh_screen = True
 
     def on_enter(self) -> None:
         """
         When the screen is shown, the rest of the app is loaded in the background.
         After loading the app, the HomeScreen is loaded.
         """
-        logger.trace("TRACE TRACE")
-        logger.debug("DEBUG DEBUG")
-        logger.info("INFO INFO")
-        logger.success("SUCCESS SUCCESS")
-        logger.warning("WARNING WARNING")
-        logger.error("ERROR ERROR")
-        logger.critical("CRITICAL CRITICAL")
         if not self._start_screen_finished:
             import time
             self.on_enter_time = time.time()        

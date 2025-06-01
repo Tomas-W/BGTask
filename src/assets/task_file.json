@@ -1,48 +1,4 @@
 {
-  "2025-05-29": [
-    {
-      "task_id": "93aab5c6-cbd1-4844-9431-be5ab1a2132d",
-      "timestamp": "2025-05-29T18:00:00",
-      "message": "18:00",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "b47f6a76-57f4-49ad-bf3b-bda18f0e5bb9",
-      "timestamp": "2025-05-29T16:00:00",
-      "message": "sdasd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
-  "2025-05-30": [
-    {
-      "task_id": "1076a529-9e7a-4153-a93d-85c8f567bdff",
-      "timestamp": "2025-05-30T16:04:00",
-      "message": "asd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "ba26a91c-55a1-4c41-9150-f1c2450473cd",
-      "timestamp": "2025-05-30T16:00:00",
-      "message": "asdasdas\nasdas\ndasdasd",
-      "alarm_name": "scanner",
-      "vibrate": true,
-      "keep_alarming": true,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
   "2025-05-31": [
     {
       "task_id": "638cec83-5f4e-4ca9-b241-f239858e7e1c",
@@ -51,7 +7,7 @@
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
-      "expired": false,
+      "expired": true,
       "snooze_time": 0
     },
     {
@@ -61,27 +17,15 @@
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
-      "expired": false,
+      "expired": true,
       "snooze_time": 0
     }
   ],
-  "2025-06-01": [
+  "2025-06-11": [
     {
       "task_id": "1b3e9c1c-bb57-42cc-bd5a-51a742203f60",
-      "timestamp": "2025-06-01T16:04:00",
+      "timestamp": "2025-06-11T16:04:00",
       "message": "asdasd\nasd\nas\nd\nasd\nasd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
-  "2025-05-28": [
-    {
-      "task_id": "7bb433da-489e-4480-954a-949583947e18",
-      "timestamp": "2025-05-28T16:04:00",
-      "message": "asdasd\nasdasd\nasdasd",
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,

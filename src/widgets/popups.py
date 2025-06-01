@@ -1,6 +1,7 @@
 import time
 start_time = time.time()
 
+from datetime import timedelta
 from typing import Callable
 
 from kivy.animation import Animation
@@ -519,7 +520,8 @@ class PopupManager:
         logger.critical(f"show_task_popup popup for task: {task}")
         
         def show_popup(dt):
-            self.task.task_time.text = task.timestamp.strftime(DM.DATE.TASK_TIME)
+            time = task.timestamp + timedelta(seconds=task.snooze_time)
+            self.task.task_time.text = time.strftime(DM.DATE.TASK_TIME)
             self.task.task_label.text = task.message
             
             from kivy.app import App

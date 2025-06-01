@@ -76,13 +76,14 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
         # Stop alarm
         self.dispatch("on_task_cancelled_stop_alarm")
-        
-        # Refresh tasks
+        # Refresh ExpiryManager
         self._refresh_tasks()
-        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
-        # Update UI
+        # Refresh HomeScreen
         self.task_manager._update_tasks_ui(task=cancelled_task, scroll_to_task=True)
-        # Notify Service
+        # Refresh StartScreen
+        self.task_manager.dispatch("on_task_edit_refresh_start_screen")
+        # Refresh ServiceExpiryManager
+        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
         logger.debug(f"Task {cancelled_task.task_id} cancelled")
     
@@ -132,12 +133,14 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
         # Stop alarm
         self.dispatch("on_task_snoozed_stop_alarm")
-        # Refresh tasks
+        # Refresh ExpiryManager
         self._refresh_tasks()
-        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
-        # Update UI
+        # Refresh HomeScreen
         self.task_manager._update_tasks_ui(task=snoozed_task, scroll_to_task=True)
-        # Notify Service
+        # Refresh StartScreen
+        self.task_manager.dispatch("on_task_edit_refresh_start_screen")
+        # Refresh ServiceExpiryManager
+        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
         logger.debug(f"Task {snoozed_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {snoozed_task.snooze_time/60:.1f}m")
     

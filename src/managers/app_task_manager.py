@@ -38,7 +38,9 @@ class TaskManager(EventDispatcher):
         self.register_event_type("on_tasks_changed_update_task_display")
         self.register_event_type("on_task_edit_load_task_data")
         self.register_event_type("on_tasks_expired_set_date_expired")
-        
+        self.register_event_type("on_task_edit_refresh_start_screen")
+        self.register_event_type("on_task_edit_refresh_home_screen")
+
         # Tasks
         self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
         self.sorted_active_tasks: list[dict] = None
@@ -183,8 +185,13 @@ class TaskManager(EventDispatcher):
 
         # Save, reload and notify service
         self._save_tasks_to_json()
-        self._update_tasks_ui(task=task)
+        # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
+        # Refresh HomeScreen
+        self._update_tasks_ui(task=task)
+        # Refresh StartScreen
+        self.dispatch("on_task_edit_refresh_start_screen")
+        # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
     def update_task(self, task_id: str, message: str, timestamp: datetime,
@@ -242,8 +249,13 @@ class TaskManager(EventDispatcher):
         logger.debug(f"Updated task: {task.task_id[:6]} | {task.timestamp+timedelta(seconds=task.snooze_time)}")
         # Save, reload and notify service
         self._save_tasks_to_json()
-        self._update_tasks_ui(task=task)
+        # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
+        # Refresh HomeScreen
+        self._update_tasks_ui(task=task)
+        # Refresh StartScreen
+        self.dispatch("on_task_edit_refresh_start_screen")
+        # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
     def delete_task(self, task_id: str) -> None:
@@ -267,8 +279,13 @@ class TaskManager(EventDispatcher):
                 del self.tasks_by_date[date_key]
         
         self._save_tasks_to_json()
-        self._update_tasks_ui(task=task, scroll_to_task=False)
+        # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
+        # Refresh HomeScreen
+        self._update_tasks_ui(task=task, scroll_to_task=False)
+        # Refresh StartScreen
+        self.dispatch("on_task_edit_refresh_start_screen")
+        # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
     def _has_time_overlap(self, timestamp: datetime) -> bool:
@@ -279,26 +296,7 @@ class TaskManager(EventDispatcher):
                     return True
         
         return False
-    
-    # def set_expired_tasksbydate(self, task: Task | None) -> None:
-    #     """
-    #     Looks for the Task in sorted_active_tasks and if all Tasks that day are now expired,
-    #      dispatches an event to update the Task display.
-    #     """
 
-    #     if task is None:
-    #         return
-        
-    #     for task_group in self.sorted_active_tasks:
-    #         if not task_group["tasks"]:
-    #             continue
-
-    #         if task in task_group["tasks"]:
-    #             if all(task.expired for task in task_group["tasks"]):
-    #                 self.dispatch("on_tasks_expired_set_date_expired", 
-    #                               date=task_group["date"])
-    #                 return
-    
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """
         Get a Task object by its timestamp.
@@ -370,25 +368,6 @@ class TaskManager(EventDispatcher):
         if scroll_to_task:
             Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
     
-    def check_background_cancelled_tasks(self, *args, **kwargs) -> None:
-        """
-        Check if there were tasks that were cancelled via notification.
-        Handles both alarm cancellation and popup display.
-        """
-        if not DM.is_android:
-            return
-        
-        # If user interacter through notification, stop alarm and show popup
-        cancelled_task_id = self.settings_manager.get_cancelled_task_id()
-        if cancelled_task_id:
-            task = self.get_task_by_id(cancelled_task_id)
-            logger.critical(f"Found task: {task.task_id if task else None}")
-            if task:
-                self.dispatch("on_task_cancelled_stop_alarm")
-                self.dispatch("on_task_expired_show_task_popup", task=task)
-            
-            Clock.schedule_once(lambda dt: self.settings_manager.clear_cancelled_task_id(), 5)
-
     def on_task_saved_scroll_to_task(self, task, *args):
         """Default handler for on_task_saved_scroll_to_task event"""
         pass
@@ -403,4 +382,12 @@ class TaskManager(EventDispatcher):
     
     def on_tasks_expired_set_date_expired(self, *args, **kwargs):
         """Default handler for on_tasks_expired_set_date_expired event"""
+        pass
+    
+    def on_task_edit_refresh_start_screen(self, *args, **kwargs):
+        """Default handler for on_task_edit_refresh_start_screen event"""
+        pass
+    
+    def on_task_edit_refresh_home_screen(self, *args, **kwargs):
+        """Default handler for on_task_edit_refresh_home_screen event"""
         pass

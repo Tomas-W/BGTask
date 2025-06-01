@@ -110,16 +110,16 @@ class ServiceActions:
     Also used by App to communicate with Service.
     """
     def __init__(self):
-        # Service actions
+        self.STOP_ALARM: Final[str] = "STOP_ALARM"
         self.SNOOZE_A: Final[str] = "SNOOZE_A"
         self.SNOOZE_B: Final[str] = "SNOOZE_B"
         self.CANCEL: Final[str] = "CANCEL"
+        self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
+
+        # Service only
         self.OPEN_APP: Final[str] = "OPEN_APP"
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
 
-        # App actions
-        self.STOP_ALARM: Final[str] = "STOP_ALARM"
-        self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
 
 class NotificationChannels:
     """
@@ -167,3 +167,13 @@ class PendingIntents:
         self.SNOOZE_A: int = 12
         self.SNOOZE_B: int = 13
         self.CANCEL: int = 14
+
+
+class NotificationType:
+    """
+    Contains constants for notification types.
+    Used solely by Service.
+    """
+    def __init__(self):
+        self.FOREGROUND: str = "foreground"
+        self.EXPIRED: str = "expired"

@@ -1,3 +1,4 @@
+# service/service_notification_manager.py
 import time
 
 from jnius import autoclass  # type: ignore
@@ -73,20 +74,36 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error creating tasks channel: {e}")
     
-    def create_action_intent(self, action: str) -> Any | None:
-        """Create a broadcast intent for notification button actions"""
+    def create_action_intent(self, action: str, notification_type: str) -> Any | None:
+        """Create a broadcast intent for notification button actions with notification type"""
         intent = Intent()
         intent.setAction(f"{self.package_name}.{action}")
         intent.setPackage(self.package_name)
+        
+        # Add notification type to the intent
+        intent.putExtra("notification_type", AndroidString(notification_type))
+        logger.debug(f"Adding notification_type to intent: {notification_type}")
         
         # Set flags based on Android version
         flags = PendingIntent.FLAG_UPDATE_CURRENT
         if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
             flags |= PendingIntent.FLAG_IMMUTABLE
         
+        # Use different request codes for different actions
+        request_code = 0
+        if action.endswith(DM.ACTION.SNOOZE_A):
+            request_code = DM.INTENT.SNOOZE_A
+        elif action.endswith(DM.ACTION.SNOOZE_B):
+            request_code = DM.INTENT.SNOOZE_B
+        elif action.endswith(DM.ACTION.CANCEL):
+            request_code = DM.INTENT.CANCEL
+        elif action.endswith(DM.ACTION.OPEN_APP):
+            request_code = DM.INTENT.OPEN_APP
+        
+        logger.debug(f"Creating PendingIntent with request_code: {request_code}")
         return PendingIntent.getBroadcast(
             self.context, 
-            0,  # Request code
+            request_code,
             intent,
             flags
         )
@@ -166,8 +183,11 @@ class ServiceNotificationManager:
             
             if with_buttons:
                 try:
-                    # Add Snooze A button
-                    snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A)
+                    # Add Snooze A button with notification type
+                    snooze_intent = self.create_action_intent(
+                        DM.ACTION.SNOOZE_A,
+                        DM.NOTIFICATION_TYPE.FOREGROUND
+                    )
                     if snooze_intent:
                         builder.addAction(
                             0,  # No icon for buttons
@@ -179,8 +199,11 @@ class ServiceNotificationManager:
                     logger.error(f"Error adding snooze button: {e}")
                 
                 try:
-                    # Add Snooze B button
-                    snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B)
+                    # Add Snooze B button with notification type
+                    snooze_intent = self.create_action_intent(
+                        DM.ACTION.SNOOZE_B,
+                        DM.NOTIFICATION_TYPE.FOREGROUND
+                    )
                     if snooze_intent:
                         builder.addAction(
                             0,  # No icon for buttons
@@ -192,17 +215,20 @@ class ServiceNotificationManager:
                     logger.error(f"Error adding snooze button: {e}")
                 
                 try:
-                    # Add Cancel button
-                    cancel_intent = self.create_action_intent(DM.ACTION.CANCEL)
+                    # Add Cancel button with notification type
+                    cancel_intent = self.create_action_intent(
+                        DM.ACTION.CANCEL,
+                        DM.NOTIFICATION_TYPE.FOREGROUND
+                    )
                     if cancel_intent:
                         builder.addAction(
                             0,  # No icon for buttons
-                                AndroidString("Cancel"),
-                                cancel_intent
-                            )
+                            AndroidString("Cancel"),
+                            cancel_intent
+                        )
                 
                 except Exception as e:
-                    logger.error(f"Error adding cancel button: {e}" )
+                    logger.error(f"Error adding cancel button: {e}")
             
             
             try:
@@ -264,17 +290,20 @@ class ServiceNotificationManager:
                 builder.setFullScreenIntent(full_screen_intent, True)
             
             # Add delete intent to cancel task when notification is swiped
-            delete_intent = self.create_action_intent(DM.ACTION.CANCEL)
+            delete_intent = self.create_action_intent(DM.ACTION.CANCEL, DM.NOTIFICATION_TYPE.EXPIRED)
             if delete_intent:
                 builder.setDeleteIntent(delete_intent)
             
             # Add click action to open app via broadcast
-            app_intent = self.create_action_intent(DM.ACTION.OPEN_APP)
+            app_intent = self.create_action_intent(DM.ACTION.OPEN_APP, DM.NOTIFICATION_TYPE.EXPIRED)
             if app_intent:
                 builder.setContentIntent(app_intent)
             
-            # Add Snooze A button
-            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A)
+            # Add Snooze A button with notification type
+            snooze_intent = self.create_action_intent(
+                DM.ACTION.SNOOZE_A,
+                DM.NOTIFICATION_TYPE.EXPIRED
+            )
             if snooze_intent:
                 builder.addAction(
                     0,  # No icon for buttons
@@ -282,8 +311,11 @@ class ServiceNotificationManager:
                     snooze_intent
                 )
             
-            # Add Snooze B button
-            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B)
+            # Add Snooze B button with notification type
+            snooze_intent = self.create_action_intent(
+                DM.ACTION.SNOOZE_B,
+                DM.NOTIFICATION_TYPE.EXPIRED
+            )
             if snooze_intent:
                 builder.addAction(
                     0,  # No icon for buttons
@@ -291,8 +323,11 @@ class ServiceNotificationManager:
                     snooze_intent
                 )
             
-            # Add Cancel button
-            cancel_intent = self.create_action_intent(DM.ACTION.CANCEL)
+            # Add Cancel button with notification type
+            cancel_intent = self.create_action_intent(
+                DM.ACTION.CANCEL,
+                DM.NOTIFICATION_TYPE.EXPIRED
+            )
             if cancel_intent:
                 builder.addAction(
                     0,  # No icon for buttons
