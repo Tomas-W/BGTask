@@ -74,7 +74,7 @@ class ServiceCommunicationManager:
                 f"{self.package_name}.{DM.ACTION.UPDATE_TASKS}",
                 f"{self.package_name}.{DM.ACTION.REMOVE_TASK_NOTIFICATIONS}",
                 # Boot action
-                "android.intent.action.BOOT_COMPLETED"
+                f"{DM.ACTION.BOOT_ACTION}.{DM.ACTION.BOOT_COMPLETED}"
             ]
 
             # Create and start the receiver
@@ -91,6 +91,11 @@ class ServiceCommunicationManager:
     def _receiver_callback(self, context: Any, intent: Any) -> None:
         """Handles all actions received through the broadcast receiver"""
         try:
+            target = intent.getStringExtra(DM.ACTION_TARGET.TARGET)
+            logger.debug(f"ServiceCommunicationManager received intent with target: {target}")
+            if target != DM.ACTION_TARGET.SERVICE:
+                return
+            
             action = intent.getAction()
             if not action:
                 logger.error("Received intent with null action")
@@ -100,7 +105,7 @@ class ServiceCommunicationManager:
             logger.debug(f"ServiceCommunicationManager received action: {pure_action}")
             
             # Handle boot action
-            if pure_action == "BOOT_COMPLETED":
+            if pure_action == DM.ACTION.BOOT_COMPLETED:
                 from service.main import start_service
                 start_service()
                 return
@@ -197,6 +202,10 @@ class ServiceCommunicationManager:
         if not self.context:
             logger.error("Cannot send action - no context available")
             return
+        
+        if not DM.validate_action(action):
+            logger.error(f"Invalid action: {action}")
+            return
 
         try:
             # Special handling for OPEN_APP action
@@ -207,6 +216,7 @@ class ServiceCommunicationManager:
             intent = Intent()
             intent.setAction(f"{self.package_name}.{action}")
             intent.setPackage(self.package_name)
+            intent.putExtra(DM.ACTION_TARGET.TARGET, AndroidString(DM.ACTION_TARGET.APP))
             
             # Add task data if provided
             if task_data:

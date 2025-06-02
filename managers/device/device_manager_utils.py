@@ -104,7 +104,7 @@ class Extensions:
         self.WAV: Final[str] = ".wav"
 
 
-class ServiceActions:
+class Actions:
     """
     Contains action variables for the Service.
     Also used by App to communicate with Service.
@@ -120,7 +120,19 @@ class ServiceActions:
         # Service only
         self.OPEN_APP: Final[str] = "OPEN_APP"
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
+        self.BOOT_ACTION: Final[str] = "android.intent.action"
+        self.BOOT_COMPLETED: Final[str] = "BOOT_COMPLETED"
 
+
+class ActionTargets:
+    """
+    Contains target variables for the Service.
+    Also used by App to communicate with Service.
+    """
+    def __init__(self):
+        self.TARGET: Final[str] = "TARGET"
+        self.SERVICE: Final[str] = "SERVICE"
+        self.APP: Final[str] = "APP"
 
 class NotificationChannels:
     """

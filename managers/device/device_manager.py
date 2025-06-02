@@ -8,7 +8,7 @@ from typing import Final
 from managers.device.device_manager_utils import (
     Dirs, Paths, Dates, Extensions,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
-    NotificationType, ServiceActions
+    NotificationType, Actions, ActionTargets
 )
 from src.utils.logger import logger
 
@@ -26,7 +26,8 @@ class DeviceManager:
         self.DATE: Final[Dates] = Dates()
         self.EXT: Final[Extensions] = Extensions()
 
-        self.ACTION: Final[ServiceActions] = ServiceActions()
+        self.ACTION: Final[Actions] = Actions()
+        self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
         self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
 
         if self.is_android:
@@ -122,6 +123,10 @@ class DeviceManager:
             return os.path.join(os.environ["ANDROID_PRIVATE"], path)
         else:
             return os.path.join(path)
+    
+    def validate_action(self, action: str) -> bool:
+        """Validate if the action is valid."""
+        return hasattr(self.ACTION, action)
 
 
 DM = DeviceManager()

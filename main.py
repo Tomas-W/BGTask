@@ -206,7 +206,8 @@ class TaskApp(App, EventDispatcher):
         # AppToServiceCommunicator
         start_time = time.time()
         from src.managers.app_communication_manager import AppCommunicationManager
-        self.communication_manager = AppCommunicationManager(self.task_manager)
+        self.communication_manager = AppCommunicationManager(self.task_manager,
+                                                             self.task_manager.expiry_manager)
         self.task_manager.communication_manager = self.communication_manager
         LOADED.COMMUNICATION_MANAGER = True
         self.logger.critical(f"Loading CommunicationManager time: {time.time() - start_time:.4f}")
