@@ -91,10 +91,8 @@ class ServiceCommunicationManager:
     def _receiver_callback(self, context: Any, intent: Any) -> None:
         """Handles all actions received through the broadcast receiver"""
         try:
-            target = intent.getStringExtra(DM.ACTION_TARGET.TARGET)
-            logger.debug(f"ServiceCommunicationManager received intent with target: {target}")
-            if target != DM.ACTION_TARGET.SERVICE:
-                return
+            # No need for target check
+            # Must listen for all actions
             
             action = intent.getAction()
             if not action:
@@ -217,7 +215,7 @@ class ServiceCommunicationManager:
             intent.setAction(f"{self.package_name}.{action}")
             intent.setPackage(self.package_name)
             intent.putExtra(DM.ACTION_TARGET.TARGET, AndroidString(DM.ACTION_TARGET.APP))
-            
+
             # Add task data if provided
             if task_data:
                 logger.debug(f"Adding task_data to intent: {task_data}")
