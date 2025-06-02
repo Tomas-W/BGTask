@@ -1,26 +1,42 @@
-from android.broadcast import BroadcastReceiver # type: ignore
-from jnius import autoclass  # type: ignore
+from typing import TYPE_CHECKING, Any
+
+from android.broadcast import BroadcastReceiver  # type: ignore
+from jnius import autoclass                      # type: ignore
+
 from service.service_device_manager import DM
 from src.utils.logger import logger
-
-
 
 AndroidString = autoclass("java.lang.String")
 Intent = autoclass("android.content.Intent")
 PythonService = autoclass("org.kivy.android.PythonService")
+Service = autoclass("android.app.Service")
+
+if TYPE_CHECKING:
+    from service.service_manager import ServiceManager
+    from service.service_audio_manager import ServiceAudioManager
+    from service.service_expiry_manager import ServiceExpiryManager
+    from service.service_notification_manager import ServiceNotificationManager
 
 
 class ServiceCommunicationManager:
-    """Manages communication from the service to the app through broadcast actions"""
-    
-    def __init__(self, service_manager):
-        self.service_manager = service_manager
-        self.expiry_manager = service_manager.expiry_manager
-        self.audio_manager = service_manager.audio_manager
+    """
+    Manages all communication within the Service and with the App.
+    Handles actions from notifications, broadcasts, and app communication.
+    """
+    def __init__(self,
+                 service_manager: "ServiceManager",
+                 audio_manager: "ServiceAudioManager",
+                 expiry_manager: "ServiceExpiryManager",
+                 notification_manager: "ServiceNotificationManager"):
+        
+        self.service_manager: "ServiceManager" = service_manager
+        self.audio_manager: "ServiceAudioManager" = audio_manager
+        self.expiry_manager: "ServiceExpiryManager" = expiry_manager
+        self.notification_manager: "ServiceNotificationManager" = notification_manager
 
-        self.context = None
-        self.package_name = None
-        self.receiver = None
+        self.context: Any | None = None
+        self.package_name: str | None = None
+        self.receiver: BroadcastReceiver | None = None
 
         self._init_context()
         self._init_receiver()
@@ -34,23 +50,34 @@ class ServiceCommunicationManager:
                 logger.debug("Initialized service communication manager")
             else:
                 logger.error("Could not initialize context - service context not available")
+        
         except Exception as e:
             logger.error(f"Error initializing service context: {e}")
 
     def _init_receiver(self) -> None:
-        """Initialize broadcast receiver for app messages"""
+        """Initialize broadcast receiver for receiving all actions"""
         try:
             if not self.context:
                 logger.error("Cannot initialize receiver - no context available")
                 return
 
-            # Define actions to listen for
+            # Define all actions to listen for
             actions = [
+                # Internal actions
+                f"{self.package_name}.{DM.ACTION.SNOOZE_A}",
+                f"{self.package_name}.{DM.ACTION.SNOOZE_B}",
+                f"{self.package_name}.{DM.ACTION.CANCEL}",
+                f"{self.package_name}.{DM.ACTION.OPEN_APP}",
+                f"{self.package_name}.{DM.ACTION.RESTART_SERVICE}",
+                # App communication actions
                 f"{self.package_name}.{DM.ACTION.STOP_ALARM}",
                 f"{self.package_name}.{DM.ACTION.UPDATE_TASKS}",
+                f"{self.package_name}.{DM.ACTION.REMOVE_TASK_NOTIFICATIONS}",
+                # Boot action
+                "android.intent.action.BOOT_COMPLETED"
             ]
 
-            # Create and start the receiver - remove package and exported parameters
+            # Create and start the receiver
             self.receiver = BroadcastReceiver(
                 self._receiver_callback,
                 actions=actions
@@ -61,8 +88,8 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error initializing broadcast receiver: {e}")
 
-    def _receiver_callback(self, context, intent) -> None:
-        """Handle messages received from the app"""
+    def _receiver_callback(self, context: Any, intent: Any) -> None:
+        """Handles all actions received through the broadcast receiver"""
         try:
             action = intent.getAction()
             if not action:
@@ -72,44 +99,111 @@ class ServiceCommunicationManager:
             pure_action = action.split(".")[-1]
             logger.debug(f"ServiceCommunicationManager received action: {pure_action}")
             
+            # Handle boot action
+            if pure_action == "BOOT_COMPLETED":
+                from service.main import start_service
+                start_service()
+                return
+
+            # Handle app communication actions
             if pure_action == DM.ACTION.UPDATE_TASKS:
-                self._handle_update_tasks()
+                self._update_tasks_action()
+                return
             elif pure_action == DM.ACTION.STOP_ALARM:
-                self._handle_stop_alarm()
+                self._stop_alarm_action()
+                return
+            elif pure_action == DM.ACTION.OPEN_APP:
+                self.service_manager._open_app()
+                return
+            elif pure_action == DM.ACTION.REMOVE_TASK_NOTIFICATIONS:
+                self.notification_manager.cancel_all_notifications()
+                return
+
+
+            # Handle notification actions
+            self.handle_action(pure_action, intent)
                 
         except Exception as e:
             logger.error(f"Error in broadcast receiver callback: {e}")
 
-    def _handle_update_tasks(self) -> None:
-        """Handle the UPDATE_TASKS action"""
-        try:
-            # First refresh tasks
-            self.expiry_manager.refresh_active_tasks()
-            self.expiry_manager.refresh_current_task()
-            
-            # Then update notification
-            self.service_manager.update_foreground_notification_info()
-            logger.trace("Updated Tasks and foreground notification through service action")
+    def handle_action(self, action: str, intent: Any) -> int:
+        """Handles notification button actions from foreground or Task notifications."""
+        logger.debug(f"ServiceCommunicationManager.handle_action received: {action}")
         
-        except Exception as e:
-            logger.error(f"Error handling UPDATE_TASKS: {e}")
-    
-    def _handle_stop_alarm(self) -> None:
-        """Handle the STOP_ALARM action"""
-        try:
+        # Log all extras from intent
+        if intent:
+            bundle = intent.getExtras()
+            if bundle:
+                logger.debug("Intent extras:")
+                for key in bundle.keySet():
+                    value = bundle.get(key)
+                    logger.debug(f"  {key}: {value}")
+        
+        notification_type = intent.getStringExtra("notification_type")
+        logger.debug(f"Action from notification type: {notification_type}")
+        
+        # Cancel all notifications
+        self.notification_manager.cancel_all_notifications()
+        
+        # Only handle notification button actions
+        if not any(action.endswith(btn_action) for btn_action in [
+            DM.ACTION.SNOOZE_A,
+            DM.ACTION.SNOOZE_B,
+            DM.ACTION.CANCEL,
+            DM.ACTION.OPEN_APP,
+        ]):
+            return Service.START_STICKY
+        
+        # Get task data based on notification type
+        task_data = None
+        if notification_type == DM.NOTIFICATION_TYPE.FOREGROUND and self.expiry_manager.current_task:
+            logger.error(f"FOREGROUND NOTIFICATION RECEIVED: {self.expiry_manager.current_task.message}")
+            task_data = {
+                "task_id": self.expiry_manager.current_task.task_id,
+                "notification_type": notification_type
+            }
+        elif notification_type == DM.NOTIFICATION_TYPE.EXPIRED and self.expiry_manager.expired_task:
+            logger.error(f"EXPIRED NOTIFICATION RECEIVED: {self.expiry_manager.expired_task.message}")
+            task_data = {
+                "task_id": self.expiry_manager.expired_task.task_id,
+                "notification_type": notification_type
+            }
+        else:
+            logger.error(f"UNKNOWN NOTIFICATION TYPE RECEIVED: {notification_type}")
+        
+        # Handle the actions
+        if action.endswith(DM.ACTION.SNOOZE_A) or action.endswith(DM.ACTION.SNOOZE_B):
+            self.expiry_manager.snooze_task(action)
             self.audio_manager.stop_alarm()
-            logger.trace("Stopped alarm through service action")
+            self.service_manager.update_foreground_notification_info()
+            self.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+            self.send_action(DM.ACTION.STOP_ALARM)
+            return Service.START_STICKY
         
-        except Exception as e:
-            logger.error(f"Error handling STOP_ALARM: {e}")
+        elif action.endswith(DM.ACTION.CANCEL) or action.endswith(DM.ACTION.OPEN_APP):
+            self.expiry_manager.cancel_task()
+            self.audio_manager.stop_alarm()
+            self.service_manager.update_foreground_notification_info()
+            self.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+            self.send_action(DM.ACTION.STOP_ALARM)
+            
+            if action.endswith(DM.ACTION.OPEN_APP):
+                self.service_manager._open_app()
+        
+        return Service.START_STICKY
 
     def send_action(self, action: str, task_data: dict | None = None) -> None:
-        """Send a broadcast action from the service to the app"""
+        """Send a broadcast action (both internal and to app)"""
         if not self.context:
             logger.error("Cannot send action - no context available")
             return
 
         try:
+            # Special handling for OPEN_APP action
+            if action == DM.ACTION.OPEN_APP:
+                self.service_manager._open_app()
+                return
+
             intent = Intent()
             intent.setAction(f"{self.package_name}.{action}")
             intent.setPackage(self.package_name)
@@ -133,4 +227,25 @@ class ServiceCommunicationManager:
             logger.debug(f"Sent broadcast action: {action} with data: {task_data}")
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
-
+    
+    def _update_tasks_action(self) -> None:
+        """Handle the UPDATE_TASKS action"""
+        try:
+            # First refresh tasks and clear expired task
+            self.expiry_manager._refresh_tasks()  # This will clear expired task and refresh everything
+            
+            # Then update notification
+            self.service_manager.update_foreground_notification_info()
+            logger.trace("Updated Tasks and foreground notification through service action")
+        
+        except Exception as e:
+            logger.error(f"Error handling UPDATE_TASKS: {e}")
+    
+    def _stop_alarm_action(self) -> None:
+        """Handle the STOP_ALARM action"""
+        try:
+            self.audio_manager.stop_alarm()
+            logger.trace("Stopped alarm through service action")
+        
+        except Exception as e:
+            logger.error(f"Error handling STOP_ALARM: {e}")

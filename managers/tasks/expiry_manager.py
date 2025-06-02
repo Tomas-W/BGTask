@@ -130,9 +130,9 @@ class ExpiryManager():
     
     def _refresh_tasks(self) -> None:
         """Re-loads Tasks, re-load current and reset expired Task."""
+        self.expired_task = None
         self.refresh_active_tasks()
         self.refresh_current_task()
-        self.expired_task = None
     
     def _has_time_overlap(self, timestamp: datetime) -> bool:
         """Checks if the snoozed Task or current Task would overlap with another Task."""

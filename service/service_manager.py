@@ -9,10 +9,9 @@ from typing import TYPE_CHECKING, Any
 
 from managers.tasks.task_manager_utils import Task
 
-
 from service.service_audio_manager import ServiceAudioManager
-from service.service_communication_manager import ServiceCommunicationManager
 from service.service_expiry_manager import ServiceExpiryManager
+from service.service_communication_manager import ServiceCommunicationManager
 
 from service.service_utils import get_service_timestamp
 from service.service_device_manager import DM
@@ -47,14 +46,20 @@ class ServiceManager:
     - Writes timestamp to flag file periodically
     """
     def __init__(self):
-        self.notification_manager: "ServiceNotificationManager | None" = None  # Initialized in service loop
+        from service.service_notification_manager import ServiceNotificationManager
+        self.notification_manager = ServiceNotificationManager(PythonService.mService)
+    
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
-        self.communication_manager = ServiceCommunicationManager(self)
+        self.communication_manager = ServiceCommunicationManager(
+            service_manager=self,
+            audio_manager=self.audio_manager,
+            expiry_manager=self.expiry_manager,
+            notification_manager=self.notification_manager
+        )
 
         # Loop variables
         self._running: bool = True
-        # self._need_foreground_notification_update: bool = True
         self._in_foreground: bool = False
 
         # ActivityManager
@@ -111,24 +116,13 @@ class ServiceManager:
                 self.flag_service_as_running()                   # 60 seconds
 
                 self.force_foreground_notification()             # 60 seconds
-                
-                # if self._need_foreground_notification_update:
-                #     self.update_foreground_notification_info()   # 10 seconds
-                
 
                 # ############### RUNS IN FOREGROUND ###############
                 if self.is_app_in_foreground():
                     logger.debug("App is in foreground")
 
-                    # if not self._in_foreground:
-                    #     self.cancel_alarm_and_notifications()                  # Once per foregrounded
-                    #     self._in_foreground = True
-                    #     logger.critical("Canceled SERVICE ALARM because _in_foreground was False")
-                    
                     self._in_foreground = True
-                    # time.sleep(0.5)
                     time.sleep(self.get_loop_interval())
-                    # Dont run Task checks in foreground
                     continue
                 
 
@@ -277,9 +271,7 @@ class ServiceManager:
                 "",
                 with_buttons=False
             )
-        
-        # self._need_foreground_notification_update = False
-    
+
     def is_app_in_foreground(self) -> bool:
         """Check if app is running in the foreground."""
         try:
@@ -341,73 +333,6 @@ class ServiceManager:
         self.audio_manager.trigger_alarm(expired_task)
         self.update_foreground_notification_info()
     
-    def handle_action(self, action: str, intent: Any) -> int:
-        """Handles notification button actions from foreground or Task notifications."""
-        logger.debug(f"ServiceManager.handle_action received: {action}")
-        
-        # Log all extras from intent
-        if intent:
-            bundle = intent.getExtras()
-            if bundle:
-                logger.debug("Intent extras:")
-                for key in bundle.keySet():
-                    value = bundle.get(key)
-                    logger.debug(f"  {key}: {value}")
-        
-        notification_type = intent.getStringExtra("notification_type")
-        logger.debug(f"Action from notification type: {notification_type}")
-        
-        # Cancel all notifications
-        if self.notification_manager:
-            self.notification_manager.cancel_all_notifications()
-        
-        # Only handle notification button actions
-        if not any(action.endswith(btn_action) for btn_action in [
-            DM.ACTION.SNOOZE_A,
-            DM.ACTION.SNOOZE_B,
-            DM.ACTION.CANCEL,
-            DM.ACTION.OPEN_APP
-        ]):
-            return Service.START_STICKY
-        
-        # Get task data based on notification type
-        task_data = None
-        if notification_type == DM.NOTIFICATION_TYPE.FOREGROUND and self.expiry_manager.current_task:
-            logger.error(f"FOREGROUND NOTIFICATION RECEIVED: {self.expiry_manager.current_task.message}")
-            task_data = {
-                "task_id": self.expiry_manager.current_task.task_id,
-                "notification_type": notification_type
-            }
-        elif notification_type == DM.NOTIFICATION_TYPE.EXPIRED and self.expiry_manager.expired_task:
-            logger.error(f"EXPIRED NOTIFICATION RECEIVED: {self.expiry_manager.expired_task.message}")
-            task_data = {
-                "task_id": self.expiry_manager.expired_task.task_id,
-                "notification_type": notification_type
-            }
-        else:
-            logger.error(f"UNKNOWN NOTIFICATION TYPE RECEIVED: {notification_type}")
-        
-        # Handle the actions
-        if action.endswith(DM.ACTION.SNOOZE_A) or action.endswith(DM.ACTION.SNOOZE_B):
-            self.expiry_manager.snooze_task(action)
-            self.audio_manager.stop_alarm()
-            self.update_foreground_notification_info()
-            self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS, task_data)
-            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
-            return Service.START_STICKY
-        
-        elif action.endswith(DM.ACTION.CANCEL) or action.endswith(DM.ACTION.OPEN_APP):
-            self.expiry_manager.cancel_task()
-            self.audio_manager.stop_alarm()
-            self.update_foreground_notification_info()
-            self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS, task_data)
-            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
-            
-            if action.endswith(DM.ACTION.OPEN_APP):
-                self._open_app()
-        
-        return Service.START_STICKY
-
     def _open_app(self) -> None:
         """Opens the app from Task notification"""
         try:
@@ -422,11 +347,11 @@ class ServiceManager:
         except Exception as e:
             logger.error(f"Error launching app: {e}")
     
-    def _init_notification_manager(self) -> None:
-        """Initialize the NotificationManager"""
-        if self.notification_manager is None:
-            from service.service_notification_manager import ServiceNotificationManager  # type: ignore
-            self.notification_manager = ServiceNotificationManager(PythonService.mService)
+    # def _init_notification_manager(self) -> None:
+    #     """Initialize the NotificationManager"""
+    #     if self.notification_manager is None:
+    #         from service.service_notification_manager import ServiceNotificationManager  # type: ignore
+    #         self.notification_manager = ServiceNotificationManager(PythonService.mService)
 
     def _init_activity_manager(self) -> None:
         """Initialize ActivityManager and get package name"""

@@ -1,5 +1,4 @@
 # service/main.py
-from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
 from typing import Any
 
@@ -22,85 +21,8 @@ Handler = autoclass("android.os.Handler")
 
 # Global ServiceManager
 service_manager: ServiceManager | None = None
-# Global BroadcastReceiver
-receiver: BroadcastReceiver | None = None
 # Global wake lock
 wake_lock: Any | None = None
-
-def on_receive_callback(service_manager: ServiceManager, context: Any, intent: Any) -> None:
-    """Callback for handling received broadcast actions"""
-    try:
-        action = intent.getAction()
-        if action:
-            pure_action = action.split(".")[-1]
-            if pure_action == "BOOT_COMPLETED":
-                # Start service on boot
-                start_service()
-            else:
-                service_manager.handle_action(pure_action, intent)
-    
-    except Exception as e:
-        logger.error(f"Error in broadcast receiver: {e}")
-
-def create_broadcast_receiver(service_manager: ServiceManager) -> BroadcastReceiver | None:
-    """
-    Creates a BroadcastReceiver for handling notification actions.
-    Actions:
-    - Snooze A
-    - Snooze B
-    - Cancel
-    - Open App
-    - Boot completed
-    - Service restart
-    Snooze A & Snooze B are loaded from user settings.
-    """
-    try:
-        context = PythonService.mService.getApplicationContext()
-        if not context:
-            logger.error("Failed to get application context: PythonService.mService is None")
-            return None
-            
-        package_name = context.getPackageName()
-        if not package_name:
-            logger.error("Failed to get package name")
-            return None
-        
-        # Register actions to receiver
-        actions = _get_broadcast_actions(package_name)
-        # Add boot completed action
-        actions.append("android.intent.action.BOOT_COMPLETED")
-        
-        # Create receiver with the standalone callback
-        receiver = BroadcastReceiver(
-            lambda ctx, intent: on_receive_callback(service_manager, ctx, intent),
-            actions
-        )
-        return receiver
-    
-    except Exception as e:
-        logger.error(f"Error creating broadcast receiver: {e}")
-        return None
-
-def _get_broadcast_actions(package_name: str) -> list[str]:
-    """Get list of broadcast actions"""
-    return [
-        f"{package_name}.{DM.ACTION.SNOOZE_A}",
-        f"{package_name}.{DM.ACTION.SNOOZE_B}",
-        f"{package_name}.{DM.ACTION.CANCEL}",
-        f"{package_name}.{DM.ACTION.OPEN_APP}",
-        # f"{package_name}.{DM.ACTION.STOP_ALARM}",
-        # f"{package_name}.{DM.ACTION.UPDATE_TASKS}",
-        f"{package_name}.{DM.ACTION.RESTART_SERVICE}"  # Action for service restart
-    ]
-
-def start_broadcast_receiver(receiver: Any) -> None:
-    """Starts the BroadcastReceiver"""
-    try:
-        receiver.start()
-        logger.trace("Started BroadcastReceiver")
-    
-    except Exception as e:
-        logger.error(f"Error starting BroadcastReceiver: {e}")
 
 def schedule_service_restart() -> None:
     """Schedule a service restart using AlarmManager with exponential backoff"""
@@ -271,11 +193,10 @@ def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
     - Enables auto-restart
     - Initializes ServiceManager
     - Initializes NotificationManager
-    - Initializes BroadcastReceiver
     - Starts Service
     - Acquires wake lock
     """
-    global service_manager, receiver
+    global service_manager
     
     try:
         # Reset retry count on successful start
@@ -295,12 +216,7 @@ def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
         # Initialize ServiceManager
         if service_manager is None:
             service_manager = ServiceManager()
-            service_manager._init_notification_manager()
-            
-            # Create and start broadcast receiver
-            receiver = create_broadcast_receiver(service_manager)
-            if receiver:
-                start_broadcast_receiver(receiver)
+            # service_manager._init_notification_manager()
             
             # Start service loop
             service_manager.run_service()
@@ -314,19 +230,11 @@ def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
 
 def on_destroy() -> None:
     """Service onDestroy callback"""
-    global service_manager, receiver, wake_lock
+    global service_manager, wake_lock
     
     try:
         # Release wake lock
         release_wake_lock()
-        
-        # Stop broadcast receiver
-        if receiver:
-            try:
-                receiver.stop()
-            except Exception as e:
-                logger.error(f"Error stopping broadcast receiver: {e}")
-            receiver = None
         
         # Stop service manager
         if service_manager:

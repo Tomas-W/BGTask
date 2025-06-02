@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-from threading import Thread
 
 from src.managers.app_device_manager import DM
 from src.utils.logger import logger
@@ -8,12 +7,18 @@ from kivy.clock import Clock
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager
 
-class AppCommunicationManager:
+class AppCommunicationManager():
     def __init__(self, task_manager: "TaskManager"):
         self.task_manager = task_manager
         self.expiry_manager = task_manager.expiry_manager
         self.receiver = None
         self._init_receiver()
+
+        self.expiry_manager.bind(on_task_expired_remove_task_notifications=self._remove_notifications)
+        
+    def _remove_notifications(self, *args, **kwargs) -> None:
+        """Remove notifications from the app"""
+        self.send_action(DM.ACTION.REMOVE_TASK_NOTIFICATIONS)
 
     def _init_receiver(self) -> None:
         """Initialize broadcast receiver for service messages"""

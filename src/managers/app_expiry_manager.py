@@ -16,6 +16,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Expiry events
         self.register_event_type("on_task_expired_show_task_popup")
         self.register_event_type("on_task_expired_trigger_alarm")
+        self.register_event_type("on_task_expired_remove_task_notifications")
 
         # AlarmManager events
         self.register_event_type("on_task_cancelled_stop_alarm")
@@ -48,7 +49,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
                 expired_task = self.handle_task_expired()
                 if expired_task:
                     self.dispatch("on_task_expired_show_task_popup", task=expired_task)
-                
+                    self.dispatch("on_task_expired_remove_task_notifications")
+
                 if expired_task and not self._just_resumed:
                     self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
         
@@ -173,4 +175,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
     def on_task_snoozed_stop_alarm(self, *args, **kwargs):
         """Default handler for on_task_snoozed_stop_alarm event"""
+        pass
+
+    def on_task_expired_remove_task_notifications(self, *args, **kwargs):
+        """Default handler for on_task_expired_remove_task_notifications event"""
         pass

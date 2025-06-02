@@ -115,6 +115,7 @@ class ServiceActions:
         self.SNOOZE_B: Final[str] = "SNOOZE_B"
         self.CANCEL: Final[str] = "CANCEL"
         self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
+        self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
 
         # Service only
         self.OPEN_APP: Final[str] = "OPEN_APP"
