@@ -214,6 +214,8 @@ class StartScreen(Screen):
         
         if all(task["expired"] for task in self.current_task_data):
             self.tasks_container.set_expired(True)
+        else:
+            self.tasks_container.set_expired(False)
 
         end_time = time_.time()
         logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
