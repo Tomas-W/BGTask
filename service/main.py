@@ -1,10 +1,8 @@
-# service/main.py
-from jnius import autoclass                      # type: ignore
-from typing import Any
+from jnius import autoclass  # type: ignore
+from typing import Any, Optional
 
 from service.service_manager import ServiceManager
 from service.service_device_manager import DM
-
 from src.utils.logger import logger
 
 PythonService = autoclass("org.kivy.android.PythonService")
@@ -19,259 +17,245 @@ BuildVersion = autoclass("android.os.Build$VERSION")
 Looper = autoclass("android.os.Looper")
 Handler = autoclass("android.os.Handler")
 
-# Global ServiceManager
-service_manager: ServiceManager | None = None
-# Global wake lock
-wake_lock: Any | None = None
 
-def schedule_service_restart() -> None:
-    """Schedule a service restart using AlarmManager with exponential backoff"""
-    try:
+class BackgroundService:
+    """Main background service implementation"""
+    
+    WAKE_LOCK_TIMEOUT: int = 6 * 60 * 60 * 1000     # 6 hours
+    WAKE_LOCK_RENEWAL: int = 5 * 60 * 60 * 1000     # 5 hours
+    MAX_RETRY_DELAY: int = 300000                   # 5 minutes
+    WAKE_LOCK_TAG: str = "BGTask::ServiceWakeLock"
+    
+    def __init__(self) -> None:
+        self._service_manager: Optional[ServiceManager] = None
+        self._wake_lock: Optional[Any] = None
+        self._retry_count: int = 0
+        self._handler: Optional[Any] = None
+
+    @property
+    def context(self) -> Any:
+        """Gets and returns the Application context."""
         context = PythonService.mService.getApplicationContext()
         if not context:
-            logger.error("Failed to get application context for service restart")
-            return
-
-        # Create intent for service restart
-        intent = Intent(context, PythonService.mService.getClass())
-        intent.setAction(f"{context.getPackageName()}.{DM.ACTION.RESTART_SERVICE}")
+            raise RuntimeError("Failed to get application context")
         
-        # Create pending intent with proper flags
-        flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_ONE_SHOT
-        if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
-            flags |= PendingIntent.FLAG_IMMUTABLE
-        pending_intent = PendingIntent.getService(
-            context, 
-            0, 
-            intent, 
-            flags
+        return context
+
+    def _setup_wake_lock_renewal(self) -> None:
+        """Sets up automatic wake lock renewal."""
+        if Looper.myLooper() is None:
+            Looper.prepare()
+        
+        self._handler = Handler(Looper.getMainLooper())
+        
+        def renew_wake_lock() -> None:
+            try:
+                if self._wake_lock and self._wake_lock.isHeld():
+                    # Acquire new wake lock and schedule next renewal
+                    self._wake_lock.acquire(BackgroundService.WAKE_LOCK_TIMEOUT)
+                    self._handler.postDelayed(
+                        renew_wake_lock, 
+                        BackgroundService.WAKE_LOCK_RENEWAL
+                    )
+                    logger.debug("Renewed wake lock")
+            
+            except Exception as e:
+                logger.error(f"Wake lock renewal failed: {e}")
+                self.acquire_wake_lock()
+
+        # Schedule first renewal
+        self._handler.postDelayed(
+            renew_wake_lock, 
+            BackgroundService.WAKE_LOCK_RENEWAL
         )
 
-        # Get alarm manager
-        alarm_manager = context.getSystemService(Context.ALARM_SERVICE)
-        if not alarm_manager:
-            logger.error("Failed to get AlarmManager")
-            return
+    def acquire_wake_lock(self) -> None:
+        """Acquires and maintains a wake lock."""
+        try:
+            # Get Android power manager service
+            power_manager = self.context.getSystemService(Context.POWER_SERVICE)
+            if not power_manager:
+                raise RuntimeError("Failed to get PowerManager")
 
-        # Calculate retry delay with exponential backoff
-        if not hasattr(schedule_service_restart, "retry_count"):
-            schedule_service_restart.retry_count = 0
-        schedule_service_restart.retry_count += 1
+            self.release_wake_lock()
+
+            # Create new wake lock with partial wake lock flag
+            # Keeps CPU running but allows screen to turn off
+            self._wake_lock = power_manager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE,
+                BackgroundService.WAKE_LOCK_TAG
+            )
+            
+            # Acquire wake lock and setup auto-renewal
+            self._wake_lock.acquire(BackgroundService.WAKE_LOCK_TIMEOUT)
+            self._setup_wake_lock_renewal()
+            logger.debug("Acquired wake lock with auto-renewal")
+
+        except Exception as e:
+            logger.error(f"Wake lock acquisition failed: {e}")
+            self.schedule_restart()
+
+    def release_wake_lock(self) -> None:
+        """Releases the wake lock."""
+        try:
+            if self._wake_lock and self._wake_lock.isHeld():
+                self._wake_lock.release()
+                logger.debug("Released wake lock")
         
-        # Max delay of 5 minutes
-        delay = min(300000, 1000 * (2 ** schedule_service_restart.retry_count))
-        
-        # Schedule restart with exact timing based on Android version
-        trigger_time = SystemClock.elapsedRealtime() + delay
-        
-        if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
-            # Use setExactAndAllowWhileIdle for maximum reliability
+        finally:
+            self._wake_lock = None
+
+    def schedule_restart(self) -> None:
+        """Schedules Service restart with exponential backoff."""
+        try:
+            intent = Intent(self.context, PythonService.mService.getClass())
+            intent.setAction(f"{self.context.getPackageName()}.{DM.ACTION.RESTART_SERVICE}")
+            
+            # Set flags for pending intent
+            flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_ONE_SHOT
+            if BuildVersion.SDK_INT >= 31:  # Android 12+
+                flags |= PendingIntent.FLAG_IMMUTABLE
+
+            # Create pending intent for restart
+            pending_intent = PendingIntent.getService(
+                self.context, 0, intent, flags
+            )
+            # Get alarm manager for scheduling
+            alarm_manager = self.context.getSystemService(Context.ALARM_SERVICE)
+            if not alarm_manager:
+                raise RuntimeError("Failed to get AlarmManager")
+            # Calculate delay
+            self._retry_count += 1
+            delay = min(
+                BackgroundService.MAX_RETRY_DELAY, 
+                1000 * (2 ** self._retry_count)
+            )
+            trigger_time = SystemClock.elapsedRealtime() + delay
+
+            # Schedule based on Android version
+            self._schedule_alarm(alarm_manager, trigger_time, pending_intent)
+            logger.debug(f"Scheduled restart with {delay}ms delay")
+
+        except Exception as e:
+            logger.error(f"Restart scheduling failed: {e}")
+            self._start()
+    
+    def _schedule_alarm(self, alarm_manager: Any, trigger_time: int, pending_intent: Any) -> None:
+        """Schedules the alarm using the appropriate method based on Android version."""
+        if BuildVersion.SDK_INT >= 31:    # Android 12+
             alarm_manager.setExactAndAllowWhileIdle(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 trigger_time,
                 pending_intent
             )
-        elif BuildVersion.SDK_INT >= 23:  # Android 6.0 or higher
-            # Use setAlarmClock as fallback
+        elif BuildVersion.SDK_INT >= 23:  # Android 6.0+
             alarm_manager.setAlarmClock(
                 AlarmManager.AlarmClockInfo(trigger_time, pending_intent),
                 pending_intent
             )
-        else:
-            # Use setExact for older versions
+        else:                             # Android 5.0+
             alarm_manager.setExact(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 trigger_time,
                 pending_intent
             )
-        logger.debug(f"Scheduled service restart with {delay}ms delay")
 
-    except Exception as e:
-        logger.error(f"Error scheduling service restart: {e}")
-        # Attempt immediate restart as fallback
+    def _start(self) -> None:
+        """Starts the Service."""
         try:
-            start_service()
-        except Exception as e2:
-            logger.error(f"Error in fallback service restart: {e2}")
+            intent = Intent(self.context, PythonService.mService.getClass())
+            intent.setAction(f"{self.context.getPackageName()}.{DM.ACTION.RESTART_SERVICE}")
+            
+            if BuildVersion.SDK_INT >= 26:  # Android 8.0+
+                self.context.startForegroundService(intent)
+            else:
+                self.context.startService(intent)
+            logger.debug("Started service")
 
-def acquire_wake_lock() -> None:
-    """Acquire a wake lock to keep the service running"""
-    global wake_lock
-    try:
-        context = PythonService.mService.getApplicationContext()
-        if not context:
-            logger.error("Failed to get application context for wake lock")
-            return
+        except Exception as e:
+            logger.error(f"Service start failed: {e}")
 
-        power_manager = context.getSystemService(Context.POWER_SERVICE)
-        if not power_manager:
-            logger.error("Failed to get PowerManager")
-            return
+    def on_start_command(self, intent: Optional[Any], flags: int, start_id: int) -> int:
+        """Handles the Service start command."""
+        try:
+            self._retry_count = 0
+            if not PythonService.mService:
+                raise RuntimeError("PythonService.mService is None")
+            
+            # Auto-restart and wake lock
+            PythonService.mService.setAutoRestartService(True)
+            self.acquire_wake_lock()
 
-        # Release existing wake lock if any
-        release_wake_lock()
-
-        # Create wake lock with proper flags for maximum reliability
-        wake_lock = power_manager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK | 
-            PowerManager.ON_AFTER_RELEASE,
-            "BGTask::ServiceWakeLock"
-        )
-        
-        # Set a timeout that will auto-renew
-        wake_lock.acquire(6 * 60 * 60 * 1000)  # 6 hours timeout
-        
-        # Schedule wake lock renewal using a Handler on the main thread
-        Looper = autoclass("android.os.Looper")
-        Handler = autoclass("android.os.Handler")
-        
-        # Prepare looper for the current thread if needed
-        if Looper.myLooper() is None:
-            Looper.prepare()
-        
-        handler = Handler(Looper.getMainLooper())
-        
-        def renew_wake_lock():
-            try:
-                if wake_lock and wake_lock.isHeld():
-                    wake_lock.acquire(6 * 60 * 60 * 1000)  # Renew for another 6 hours
-                    handler.postDelayed(renew_wake_lock, 5 * 60 * 60 * 1000)  # Schedule next renewal in 5 hours
-                    logger.debug("Renewed wake lock")
-            except Exception as e:
-                logger.error(f"Error renewing wake lock: {e}")
-                # Try to reacquire wake lock
-                try:
-                    acquire_wake_lock()
-                except Exception as e2:
-                    logger.error(f"Error reacquiring wake lock: {e2}")
-        
-        # Schedule first renewal in 5 hours
-        handler.postDelayed(renew_wake_lock, 5 * 60 * 60 * 1000)
-        logger.debug("Acquired wake lock with auto-renewal")
-
-    except Exception as e:
-        logger.error(f"Error acquiring wake lock: {e}")
-        # Try to recover by scheduling service restart
-        schedule_service_restart()
-
-def release_wake_lock() -> None:
-    """Release the wake lock if held"""
-    global wake_lock
-    try:
-        if wake_lock:
-            if wake_lock.isHeld():
-                wake_lock.release()
-                logger.debug("Released wake lock")
-            wake_lock = None
-    except Exception as e:
-        logger.error(f"Error releasing wake lock: {e}")
-        wake_lock = None  # Ensure it's cleared even on error
-
-def start_service() -> None:
-    """Start the service"""
-    try:
-        context = PythonService.mService.getApplicationContext()
-        if not context:
-            logger.error("Failed to get application context for service start")
-            return
-
-        intent = Intent(context, PythonService.mService.getClass())
-        intent.setAction(f"{context.getPackageName()}.{DM.ACTION.RESTART_SERVICE}")
-        
-        if BuildVersion.SDK_INT >= 26:  # Android 8.0 or higher
-            context.startForegroundService(intent)
-        else:
-            context.startService(intent)
-        logger.debug("Started service")
-
-    except Exception as e:
-        logger.error(f"Error starting service: {e}")
-
-def on_start_command(intent: Any | None, flags: int, start_id: int) -> int:
-    """
-    Service onStartCommand callback.
-    - Enables auto-restart
-    - Initializes ServiceManager
-    - Initializes NotificationManager
-    - Starts Service
-    - Acquires wake lock
-    """
-    global service_manager
-    
-    try:
-        # Reset retry count on successful start
-        if hasattr(schedule_service_restart, "retry_count"):
-            schedule_service_restart.retry_count = 0
-
-        # Enable auto-restart
-        if not PythonService.mService:
-            logger.error("PythonService.mService is None")
+            # Initialize and start service manager if needed
+            if not self._service_manager:
+                self._service_manager = ServiceManager()
+                self._service_manager.run_service()
+            
             return Service.START_STICKY
+
+        except Exception as e:
+            logger.error(f"Error handling start command: {e}")
+            self.schedule_restart()
+            return Service.START_STICKY
+
+    def on_destroy(self) -> None:
+        """Handles Service destruction."""
+        try:
+            self.release_wake_lock()
             
-        PythonService.mService.setAutoRestartService(True)
-
-        # Acquire wake lock
-        acquire_wake_lock()
-
-        # Initialize ServiceManager
-        if service_manager is None:
-            service_manager = ServiceManager()
-            # service_manager._init_notification_manager()
+            # Clean up service manager
+            if self._service_manager:
+                self._service_manager._running = False
+                self._service_manager.cancel_alarm_and_notifications()
+                self._service_manager = None
             
-            # Start service loop
-            service_manager.run_service()
+            # Schedule restart
+            self.schedule_restart()
+            logger.debug("Service destroyed")
         
-        return Service.START_STICKY
+        except Exception as e:
+            logger.error(f"Destroy handler failed: {e}")
+            self.schedule_restart()
 
-    except Exception as e:
-        logger.error(f"Error in on_start_command: {e}")
-        schedule_service_restart()
-        return Service.START_STICKY
+    # def on_task_removed(self) -> None:
+    #     """Handles onTaskRemoved event.
+    #     Called when the app is removed from recent apps.
+    #     First tries to restart immediately, then falls back to scheduled restart.
+    #     """
+    #     try:
+    #         logger.debug("Service task removed")
+            
+    #         # Try immediate restart first
+    #         try:
+    #             self._start()
+    #             logger.critical("Service started immediately after task removal")
+    #         except Exception as start_error:
+    #             logger.critical(f"Immediate start failed after task removal: {start_error}")
+    #             # Fall back to scheduled restart if immediate start fails
+    #             self.schedule_restart()
+        
+    #     except Exception as e:
+    #         logger.error(f"Task removal handler failed: {e}")
+    #         self.schedule_restart()
 
-def on_destroy() -> None:
-    """Service onDestroy callback"""
-    global service_manager, wake_lock
-    
-    try:
-        # Release wake lock
-        release_wake_lock()
-        
-        # Stop service manager
-        if service_manager:
-            service_manager._running = False
-            service_manager.cancel_alarm_and_notifications()
-            service_manager = None
-        
-        # Schedule service restart
-        schedule_service_restart()
-        
-        logger.debug("Service destroyed")
-    
-    except Exception as e:
-        logger.error(f"Error in on_destroy: {e}")
-        schedule_service_restart()
 
-def on_task_removed(root_intent: Any) -> None:
-    """Service onTaskRemoved callback"""
-    try:
-        logger.debug("Service task removed")
-        schedule_service_restart()
-    
-    except Exception as e:
-        logger.error(f"Error in on_task_removed: {e}")
-        schedule_service_restart()
+# Global service instance
+_service: Optional[BackgroundService] = None
+
 
 def main() -> None:
-    """Main entry point for the background service"""
+    """Service entry point."""
+    global _service
     try:
         logger.trace("Starting background service")
-        on_start_command(intent=None,
-                         flags=0,
-                         start_id=1)
+        _service = BackgroundService()
+        _service.on_start_command(None, 0, 1)
     
     except Exception as e:
         logger.error(f"Error in Service main: {e}")
-        on_destroy()
+        if _service:
+            _service.on_destroy()
+
 
 if __name__ == "__main__":
     main()
