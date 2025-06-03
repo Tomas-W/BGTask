@@ -14,7 +14,7 @@ PythonActivity = autoclass("org.kivy.android.PythonActivity")
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager 
     from src.managers.app_expiry_manager import AppExpiryManager
-    from managers.tasks.task_manager_utils import Task
+    from managers.tasks.task import Task
 
 class AppCommunicationManager():
     """

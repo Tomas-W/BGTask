@@ -8,7 +8,7 @@ from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
 from src.managers.app_expiry_manager import AppExpiryManager
-from managers.tasks.task_manager_utils import Task
+from managers.tasks.task import Task
 
 from src.managers.app_device_manager import DM
 

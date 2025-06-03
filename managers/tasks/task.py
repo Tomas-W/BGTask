@@ -1,14 +1,13 @@
 import uuid
 
-from functools import lru_cache
 from datetime import datetime, timedelta
+from functools import lru_cache
 
 from managers.device.device_manager import DM
 
+
 class Task:
-    """
-    Represents a Task with a message and timestamp.
-    """
+    """Represents a Task"""
     def __init__(self, task_id=None, message="", timestamp=None, alarm_name=None,
                  vibrate=False, keep_alarming=False, expired=False, snooze_time=False):
         self.task_id = task_id if task_id else str(uuid.uuid4())
@@ -21,7 +20,7 @@ class Task:
         self.snooze_time = snooze_time
 
     def to_dict(self) -> dict:
-        """Convert Task to dictionary for serialization."""
+        """Convert Task to dictionary."""
         timestamp = self.timestamp if type(self.timestamp) == datetime else datetime.fromisoformat(self.timestamp)
         return {
             "task_id": self.task_id,
@@ -36,7 +35,7 @@ class Task:
     
     @classmethod
     def to_class(cls, data: dict) -> "Task":
-        """Convert dictionary to Task class."""
+        """Convert dictionary to Task object."""
         keep_alarming = data.get("keep_alarming", False)
         return Task(
             task_id=data["task_id"],
@@ -50,7 +49,7 @@ class Task:
         )
 
     def to_json(self) -> dict:
-        """Convert Task to JSON dict."""
+        """Convert Task object to JSON dictionary."""
         return {
             "task_id": self.task_id,
             "timestamp": self.timestamp.isoformat(),

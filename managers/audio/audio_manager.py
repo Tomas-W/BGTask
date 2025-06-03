@@ -3,7 +3,7 @@ import threading
 
 from datetime import datetime
 
-from managers.tasks.task_manager_utils import Task
+from managers.tasks.task import Task
 from managers.device.device_manager import DM
 from src.utils.logger import logger
 

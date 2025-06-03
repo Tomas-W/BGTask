@@ -13,7 +13,7 @@ from managers.device.device_manager_utils import (
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
-    from managers.tasks.task_manager_utils import Task
+    from managers.tasks.task import Task
 
 
 class DeviceManager:

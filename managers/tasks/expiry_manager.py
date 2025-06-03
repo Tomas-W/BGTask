@@ -1,15 +1,23 @@
 import json
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from managers.tasks.task_manager_utils import Task
+from managers.tasks.task import Task
 from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 
+if TYPE_CHECKING:
+    from managers.audio.audio_manager import AudioManager
+
 
 class ExpiryManager():
+
+    START_TASK_MESSAGE: str = "No upcoming tasks!\nPress + to add a new one."
+    SNOOZE_A_SECONDS: int = 60
+    SNOOZE_B_SECONDS: int = 3600
+
     """
     Base class for managing Tasks expiration.
     - Is extended upon my AppExpiryManager and ServiceExpiryManager.
@@ -17,9 +25,12 @@ class ExpiryManager():
     """	
     def __init__(self):
         super().__init__()
+
+        self.audio_manager: "AudioManager" | None = None
+
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
-            logger.error(f"Task file not found: {self.task_file_path}")
+            logger.error(f"Error validating Task file: {self.task_file_path}")
             return
         
         self.expired_task: Task | None = None
@@ -28,10 +39,10 @@ class ExpiryManager():
 
         self._need_refresh_tasks: bool = False
 
-        self.SNOOZE_A_SECONDS: int = 60
-        self._SNOOZE_B_SECONDS: int = 3600
+        self.SNOOZE_A_SECONDS: int = ExpiryManager.SNOOZE_A_SECONDS
+        self._SNOOZE_B_SECONDS: int = ExpiryManager.SNOOZE_B_SECONDS
     
-    def _bind_audio_manager(self, audio_manager) -> None:
+    def _bind_audio_manager(self, audio_manager: "AudioManager") -> None:
         """
         Binds the audio manager to the ExpiryManager.
         Cannot init immediately due to loading order.
@@ -109,20 +120,22 @@ class ExpiryManager():
     def handle_task_expired(self) -> Task | None:
         """
         Handles Task expiration by setting it as the expired Task and getting the next current Task.
-        Returns the expired Task for notifications/alarms.
+        Refreshes active and current Tasks.
+        Returns the expired Task (for notifications/alarms).
         """
         if not self.current_task:
             return None
         
-        # Mark previous expired Task as expired (without user interaction)
+        # Mark previous expired Task as expired
         if self.expired_task:
             self.expired_task.expired = False
             self._save_task_changes(self.expired_task.task_id, {"expired": False})
         
+        # Set current Task as expired
         self.expired_task = self.current_task
-        logger.debug(f"Set task {self.expired_task.task_id} as expired task")
+        logger.trace(f"Set task {self.expired_task.task_id} as expired task")
         
-        # Re-load Tasks
+        # Re-load Tasks but don't reset expired Task
         self.refresh_active_tasks()
         self.refresh_current_task()
 
@@ -136,8 +149,8 @@ class ExpiryManager():
     
     def _has_time_overlap(self, timestamp: datetime) -> bool:
         """Checks if the snoozed Task or current Task would overlap with another Task."""
+        task_to_check = self.expired_task or self.current_task
         for task in self.active_tasks:
-            task_to_check = self.expired_task or self.current_task
             if task.task_id != task_to_check.task_id and not task.expired:
                     task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
                     # Check within 1 second range
@@ -149,7 +162,7 @@ class ExpiryManager():
     def clear_expired_task(self) -> None:
         """Clears the expired Task without saving changes."""
         if self.expired_task:
-            logger.debug(f"Clearing expired Task {self.expired_task.task_id}")
+            logger.trace(f"Clearing expired Task {self.expired_task.task_id}")
             self.expired_task = None
     
     def get_task_by_id(self, task_id: str) -> Task | None:
@@ -168,8 +181,10 @@ class ExpiryManager():
     
     def _get_start_task(self) -> Task:
         """Returns a start Task object."""
-        return Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
-                    message="No upcoming tasks!\nPress + to add a new one.",
+        start_time = datetime.now() - timedelta(minutes=1)
+        start_time = start_time.replace(second=0, microsecond=0)
+        return Task(timestamp=start_time,
+                    message=ExpiryManager.START_TASK_MESSAGE,
                     expired=True)
     
     def _save_task_changes(self, task_id: str, changes: dict) -> None:

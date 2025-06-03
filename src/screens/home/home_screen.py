@@ -16,7 +16,7 @@ from src.settings import SCREEN, LOADED, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
-    from managers.tasks.task_manager_utils import Task
+    from managers.tasks.task import Task
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):

@@ -7,7 +7,7 @@ from datetime import timedelta
 from jnius import autoclass  # type: ignore
 from typing import TYPE_CHECKING, Any
 
-from managers.tasks.task_manager_utils import Task
+from managers.tasks.task import Task
 
 from service.service_audio_manager import ServiceAudioManager
 from service.service_expiry_manager import ServiceExpiryManager

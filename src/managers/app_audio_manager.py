@@ -3,7 +3,7 @@ import os
 from kivy.app import App
 
 from managers.audio.audio_manager import AudioManager
-from managers.tasks.task_manager_utils import Task
+from managers.tasks.task import Task
 
 from src.managers.app_device_manager import DM
 from src.managers.permission_manager import PM
