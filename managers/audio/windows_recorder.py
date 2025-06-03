@@ -8,6 +8,11 @@ from src.utils.logger import logger
 
 class WindowsAudioRecorder:
     """Manages audio recording for Windows devices."""
+    CHANNELS = 1
+    RATE = 44100
+    CHUNK_SIZE = 1024
+    FORMAT = pyaudio.paInt16
+
     def __init__(self):
         self.current_path: str | None = None
         self.recording: bool = False
@@ -21,10 +26,10 @@ class WindowsAudioRecorder:
             self.pa = pyaudio.PyAudio()
         
         except Exception as e:
-            logger.error(f"Error initializing PyAudio: {e}")
+            logger.error(f"Error initializing recorder: {e}")
 
     def setup_recording(self, path: str) -> bool:
-        """Configure the recorder for a new recording session."""
+        """Configures the recorder for a new recording session."""
         try:
             self.current_path = path
             self.frames = []
@@ -35,7 +40,7 @@ class WindowsAudioRecorder:
             return False
     
     def start_recording(self) -> bool:
-        """Start recording audio."""
+        """Starts recording audio."""
         try:
             if self.recording:
                 logger.error(f"Already recording: {self.current_path}")
@@ -54,16 +59,16 @@ class WindowsAudioRecorder:
             
             # Open stream using callback
             self.stream = self.pa.open(
-                format=self.pyaudio.paInt16,
-                channels=1,
-                rate=44100,
+                format=WindowsAudioRecorder.FORMAT,
+                channels=WindowsAudioRecorder.CHANNELS,
+                rate=WindowsAudioRecorder.RATE,
                 input=True,
-                frames_per_buffer=1024,
+                frames_per_buffer=WindowsAudioRecorder.CHUNK_SIZE,
                 stream_callback=callback
             )
             
             self.stream.start_stream()
-            logger.trace(f"Recording started: {self.current_path}")
+            logger.trace(f"Started recording: {self.current_path}")
             return True
         
         except Exception as e:
@@ -72,9 +77,10 @@ class WindowsAudioRecorder:
             return False
     
     def stop_recording(self) -> bool:
+        """Stops the recording and releases resources."""
         try:
             if not self.recording:
-                logger.error("Not recording, nothing to stop.")
+                logger.error("Error stopping recording - not recording")
                 return False
             
             self.recording = False
@@ -84,17 +90,16 @@ class WindowsAudioRecorder:
                 self.stream.stop_stream()
                 self.stream.close()
                 self.stream = None
-                logger.trace("Recording stopped.")
-            
+
             # Save recording to WAV file
             if self.frames and self.current_path:
                 wf = self.wave.open(self.current_path, "wb")
-                wf.setnchannels(1)
-                wf.setsampwidth(self.pa.get_sample_size(self.pyaudio.paInt16))
-                wf.setframerate(44100)
+                wf.setnchannels(WindowsAudioRecorder.CHANNELS)
+                wf.setsampwidth(self.pa.get_sample_size(WindowsAudioRecorder.FORMAT))
+                wf.setframerate(WindowsAudioRecorder.RATE)
                 wf.writeframes(b"".join(self.frames))
                 wf.close()
-                logger.trace(f"Recording stopped and saved: {self.current_path}")
+                logger.trace(f"Stopped and saved recording: {self.current_path}")
                 return True
             
             else:
@@ -106,7 +111,7 @@ class WindowsAudioRecorder:
             return False
 
     def release(self) -> bool:
-        """Release recorder resources without stopping (for cleanup)."""
+        """Releases recorder resources without stopping (for cleanup)."""
         try:
             if self.stream:
                 self.stream.stop_stream()

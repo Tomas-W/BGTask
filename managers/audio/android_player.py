@@ -5,6 +5,13 @@ from src.utils.logger import logger
 
 
 class AndroidAudioPlayer:
+    VIBRATION_DURATION = 1000  # milliseconds
+    # Java classes
+    MEDIA_PLAYER = "android.media.MediaPlayer"
+    CONTEXT = "android.content.Context"
+    PYTHON_ACTIVITY = "org.kivy.android.PythonActivity"
+    PYTHON_SERVICE = "org.kivy.android.PythonService"
+
     """Manages audio playback and vibration for Android devices."""
     def __init__(self):
         self.audio_manager: Any | None = None
@@ -15,38 +22,41 @@ class AndroidAudioPlayer:
         self.service: Any | None = self._get_service()
     
     def _get_service(self) -> Any | None:
-        """Get the service context"""
+        """Gets the service context."""
         try:
             # Ran from Service
-            PythonService = self._get_java_class("org.kivy.android.PythonService")
+            PythonService = self._get_java_class(AndroidAudioPlayer.PYTHON_SERVICE)
             return PythonService.mService
+        
         except:
             # Ran from App
             return None
 
     def bind_audio_manager(self, audio_manager: Any | None) -> None:
-        """Bind the main audio manager for state management"""
+        """Binds main AudioManager to the player."""
         self.audio_manager = audio_manager
 
     def _get_java_class(self, class_name: str) -> Any:
-        """Lazy load Java classes"""
+        """Lazy load Java classes."""
         if class_name not in self._java_classes:
             self._java_classes[class_name] = autoclass(class_name)
+        
         return self._java_classes[class_name]
 
     def play(self, path: str) -> bool:
         """
-        Play audio file.
+        Plays an audio file.
         Stops any playing audio before playing new one.
         """
         try:
             self.stop()
             
-            MediaPlayer = self._get_java_class("android.media.MediaPlayer")
+            MediaPlayer = self._get_java_class(AndroidAudioPlayer.MEDIA_PLAYER)
             self.media_player = MediaPlayer()
             self.media_player.setDataSource(path)
             self.media_player.prepare()
             self.media_player.start()
+            logger.trace(f"Playing audio: {path}")
             return True
             
         except Exception as e:
@@ -78,8 +88,8 @@ class AndroidAudioPlayer:
             logger.error(f"Error checking is_playing status: {e}")
             return False
 
-    def vibrate(self, duration: int = 1000) -> bool:
-        """Vibrate the device for a specified duration."""
+    def vibrate(self, duration: int = VIBRATION_DURATION) -> bool:
+        """Vibrates the device for a specified duration."""
         try:
             if not self.vibrator:
                 self.vibrator = self._get_vibrator()
@@ -95,9 +105,9 @@ class AndroidAudioPlayer:
             return False
     
     def _get_vibrator(self) -> Any | None:
-        """Get the vibrator"""
-        Context = self._get_java_class("android.content.Context")
-        PythonActivity = self._get_java_class("org.kivy.android.PythonActivity")
+        """Gets the vibrator service."""
+        Context = self._get_java_class(AndroidAudioPlayer.CONTEXT)
+        PythonActivity = self._get_java_class(AndroidAudioPlayer.PYTHON_ACTIVITY)
         try:
             if self.service:
                 # Ran from Service
@@ -106,7 +116,7 @@ class AndroidAudioPlayer:
                 # Ran from App
                 return PythonActivity.mActivity.getSystemService(Context.VIBRATOR_SERVICE)
             else:
-                logger.error("No Android context available for vibration")
+                logger.error("Error getting vibrator - no context available")
                 return None
         
         except Exception as e:
@@ -114,7 +124,7 @@ class AndroidAudioPlayer:
             return None
     
     def stop_vibrator(self) -> bool:
-        """Stop the vibrator and reset it."""
+        """Stops the vibrator and resets it."""
         try:
             if self.vibrator:
                 self.vibrator.cancel()

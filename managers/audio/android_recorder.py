@@ -6,6 +6,12 @@ from src.utils.logger import logger
 
 class AndroidAudioRecorder:
     """Manages audio recording for Android devices."""
+    # Java classes
+    MEDIA_RECORDER = "android.media.MediaRecorder"
+    AUDIO_SOURCE = "android.media.MediaRecorder$AudioSource"
+    OUTPUT_FORMAT = "android.media.MediaRecorder$OutputFormat"
+    AUDIO_ENCODER = "android.media.MediaRecorder$AudioEncoder"
+
     def __init__(self):
         self.recorder: Any | None = None
         self.recording: bool = False
@@ -16,15 +22,16 @@ class AndroidAudioRecorder:
         """Lazy load Java classes."""
         if class_name not in self._java_classes:
             self._java_classes[class_name] = autoclass(class_name)
+        
         return self._java_classes[class_name]
 
     def setup_recording(self, path: str) -> bool:
-        """Configure the recorder for a new recording session."""
+        """Configures the recorder for a new recording session."""
         try:
-            MediaRecorder = self._get_java_class("android.media.MediaRecorder")
-            AudioSource = self._get_java_class("android.media.MediaRecorder$AudioSource")
-            OutputFormat = self._get_java_class("android.media.MediaRecorder$OutputFormat")
-            AudioEncoder = self._get_java_class("android.media.MediaRecorder$AudioEncoder")
+            MediaRecorder = self._get_java_class(AndroidAudioRecorder.MEDIA_RECORDER)
+            AudioSource = self._get_java_class(AndroidAudioRecorder.AUDIO_SOURCE)
+            OutputFormat = self._get_java_class(AndroidAudioRecorder.OUTPUT_FORMAT)
+            AudioEncoder = self._get_java_class(AndroidAudioRecorder.AUDIO_ENCODER)
             
             # Reset existing recorder
             if self.recorder:
@@ -48,19 +55,19 @@ class AndroidAudioRecorder:
             return False
 
     def start_recording(self) -> bool:
-        """Start recording audio."""
+        """Starts recording audio."""
         try:
             if self.recording:
                 logger.error(f"Already recording: {self.current_path}")
                 return False
             
             if not self.recorder:
-                logger.error("Recorder not found, setup recording first.")
+                logger.error("Error starting recording - recorder not found")
                 return False
             
             self.recorder.start()
             self.recording = True
-            logger.trace(f"Recording started: {self.current_path}")
+            logger.trace(f"Started recording: {self.current_path}")
             return True
         
         except Exception as e:
@@ -68,21 +75,21 @@ class AndroidAudioRecorder:
             return False
 
     def stop_recording(self) -> bool:
-        """Stop the recording and release resources."""
+        """Stops the recording and releases resources."""
         try:
             if not self.recording:
-                logger.error("Not recording, nothing to stop.")
+                logger.error("Error stopping recording - not recording")
                 return False
             
             if not self.recorder:
-                logger.error("Recorder not found, setup recording first.")
+                logger.error("Error stopping recording - recorder not found")
                 return False
 
             self.recorder.stop()
             self.recorder.release()
             self.recorder = None
             self.recording = False
-            logger.trace(f"Recording stopped and saved: {self.current_path}")
+            logger.trace(f"Stopped and saved recording: {self.current_path}")
             return True
         
         except Exception as e:
@@ -91,7 +98,7 @@ class AndroidAudioRecorder:
             return False
 
     def release(self) -> bool:
-        """Release recorder resources without stopping (for cleanup)."""
+        """Releases recorder resources without stopping (for cleanup)."""
         try:
             if self.recorder:
                 self.recorder.release()

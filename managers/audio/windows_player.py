@@ -11,12 +11,12 @@ class WindowsAudioPlayer:
         self.sound: Any | None = None
 
     def bind_audio_manager(self, audio_manager: Any | None) -> None:
-        """Bind the main audio manager for state management."""
+        """Binds main AudioManager to the player."""
         self.audio_manager = audio_manager
 
     def play(self, path: str) -> bool:
         """
-        Play audio file.
+        Plays an audio file.
         Stops any playing audio before playing new one.
         """
         try:
@@ -26,18 +26,19 @@ class WindowsAudioPlayer:
             if sound:
                 sound.play()
                 self.sound = sound
+                logger.trace(f"Playing audio: {path}")
                 return True
             
             else:
-                logger.error(f"Could not load sound: {path}")
+                logger.error(f"Error playing audio: could not load sound: {path}")
                 return False
         
         except Exception as e:
-            logger.error(f"Error playing audio on Windows: {e}")
+            logger.error(f"Error playing audio: {e}")
             return False
     
     def stop(self) -> bool:
-        """Stop any playing audio."""
+        """Stops any playing audio."""
         try:
             if not self.sound or not self.sound.state == "play":
                 return True
@@ -47,7 +48,7 @@ class WindowsAudioPlayer:
             return True
         
         except Exception as e:
-            logger.error(f"Error stopping audio on Windows: {e}")
+            logger.error(f"Error stopping audio: {e}")
             return False
     
     def is_playing(self) -> bool:
