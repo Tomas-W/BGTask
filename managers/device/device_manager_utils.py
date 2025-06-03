@@ -5,6 +5,7 @@ from typing import Final
 from service import SERVICE_DIR
 from src import SRC_DIR
 
+
 class Dirs:
     """Contains directories for the App and Service."""
     def __init__(self, is_android: bool):
@@ -33,6 +34,7 @@ class Dirs:
             return os.path.join(os.environ["ANDROID_PRIVATE"], directory)
         else:
             return os.path.join(directory)
+
 
 class Paths(Dirs):
     """Contains file paths for the App and Service."""
@@ -72,6 +74,7 @@ class Paths(Dirs):
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
 
+
 class Dates:
     """Contains date format patterns for string formatting for the App and Service."""
     def __init__(self):
@@ -96,6 +99,7 @@ class Dates:
         
         # Recording
         self.RECORDING: Final[str] = "%H_%M_%S"             # 14_30_45
+
 
 class Extensions:
     """Contains file extensions for the App and Service."""
@@ -134,6 +138,7 @@ class ActionTargets:
         self.SERVICE: Final[str] = "SERVICE"
         self.APP: Final[str] = "APP"
 
+
 class NotificationChannels:
     """
     Contains constants for notification channels.
@@ -142,6 +147,7 @@ class NotificationChannels:
     def __init__(self):
         self.FOREGROUND: str = "foreground_channel"
         self.TASKS: str = "tasks_channel"
+
 
 class NotificationPriority:
     """
@@ -157,6 +163,7 @@ class NotificationPriority:
         self.HIGH: int = NotificationCompat.PRIORITY_HIGH
         self.MAX: int = NotificationCompat.PRIORITY_MAX
 
+
 class NotificationImportance:
     """
     Contains constants for notification channel importance.
@@ -169,6 +176,7 @@ class NotificationImportance:
         self.LOW: int = AndroidNotificationManager.IMPORTANCE_LOW
         self.DEFAULT: int = AndroidNotificationManager.IMPORTANCE_DEFAULT
         self.HIGH: int = AndroidNotificationManager.IMPORTANCE_HIGH
+
 
 class PendingIntents:
     """

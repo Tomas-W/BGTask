@@ -3,7 +3,7 @@ import sys
 import time
 
 from datetime import timedelta
-from typing import Final
+from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
     Dirs, Paths, Dates, Extensions,
@@ -12,37 +12,52 @@ from managers.device.device_manager_utils import (
 )
 from src.utils.logger import logger
 
+if TYPE_CHECKING:
+    from managers.tasks.task_manager_utils import Task
+
 
 class DeviceManager:
     """
     Contains constants and basic functions for the App and Service.
     """
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.is_android: bool = self._device_is_android()
+        if not hasattr(self, "is_android"):  # Only initialize once
+            self.is_android: bool = self._device_is_android()
 
-        # Initialize paths
-        self.DIR: Final[Dirs] = Dirs(self.is_android)
-        self.PATH: Final[Paths] = Paths(self.is_android)
-        self.DATE: Final[Dates] = Dates()
-        self.EXT: Final[Extensions] = Extensions()
+            self.DIR: Final[Dirs] = Dirs(self.is_android)
+            self.PATH: Final[Paths] = Paths(self.is_android)
+            self.DATE: Final[Dates] = Dates()
+            self.EXT: Final[Extensions] = Extensions()
+    	
+            # Communication
+            self.ACTION: Final[Actions] = Actions()
+            self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
+            self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
 
-        self.ACTION: Final[Actions] = Actions()
-        self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
-        self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
-
-        if self.is_android:
-            self.CHANNEL: Final[NotificationChannels] = NotificationChannels()
-            self.PRIORITY: Final[NotificationPriority] = NotificationPriority()
-            self.IMPORTANCE: Final[NotificationImportance] = NotificationImportance()
-            self.INTENT: Final[PendingIntents] = PendingIntents()
+            # Service communication & notifications
+            if self.is_android:
+                self.CHANNEL: Final[NotificationChannels] = NotificationChannels()
+                self.PRIORITY: Final[NotificationPriority] = NotificationPriority()
+                self.IMPORTANCE: Final[NotificationImportance] = NotificationImportance()
+                self.INTENT: Final[PendingIntents] = PendingIntents()
 
     def _device_is_android(self) -> bool:
-        """Returns whether the app is running on Android."""
+        """Returns whether the App is running on Android."""
         return sys.platform == "linux" and "ANDROID_DATA" in os.environ
 
     @staticmethod
-    def get_task_log(task) -> str:
-        """Returns the task log."""
+    def get_task_log(task: "Task") -> str:
+        """
+        Returns a formatted string of the Task.
+        - Format: id | timestamp + snooze_time
+        """
         id = task.task_id[:8]
         task_time = task.timestamp + timedelta(seconds=task.snooze_time)
         return f"{id} | {task_time}"
@@ -52,7 +67,7 @@ class DeviceManager:
         try:
             with open(path, "w") as f:
                 f.write("1")
-            logger.debug(f"Wrote flag file: {path.split('/')[-1]}")
+            logger.trace(f"Wrote flag file: {path.split('/')[-1]}")
         
         except Exception as e:
             logger.error(f"Error writing flag file {path.split('/')[-1]}: {e}")
@@ -70,7 +85,7 @@ class DeviceManager:
         """Removes a flag file at the given path."""
         try:
             os.remove(path)
-            logger.debug(f"Removed flag file: {path.split('/')[-1]}")
+            logger.trace(f"Removed flag file: {path.split('/')[-1]}")
         
         except Exception as e:
             logger.error(f"Error removing flag file {path.split('/')[-1]}: {e}")
@@ -80,22 +95,21 @@ class DeviceManager:
         if not os.path.isdir(dir_path):
             try:
                 os.makedirs(dir_path, exist_ok=True)
-                logger.debug(f"Created directory: {dir_path}")
                 return True
             
             except PermissionError:
-                logger.error(f"Permission denied: Cannot create directory {dir_path}. Check app permissions.")
+                logger.error(f"PermissionError: Cannot create directory {dir_path}")
                 return False
             except FileNotFoundError:
-                logger.error(f"Invalid path: {dir_path} does not exist.")
+                logger.error(f"FileNotFoundError: {dir_path}")
                 return False
             except OSError as e:
-                logger.error(f"OS error while creating {dir_path}: {e}")
+                logger.error(f"OSError: {e}")
                 return False
 
     def validate_file(self, path: str, max_attempts: int = 3) -> bool:
         """
-        Validate and create a file if it doesn't exist.
+        Validates and creates a file if it doesn't exist.
         Adds a small delay for Windows.
         """
         for attempt in range(max_attempts):
@@ -111,10 +125,10 @@ class DeviceManager:
                             return True
             
             except Exception as e:
-                logger.warning(f"File verification attempt {attempt+1} failed: {e}")
+                logger.warning(f"Error validating file: {path} (attempt {attempt+1}): {e}")
                 return False
         
-        logger.error(f"Failed to verify audio file: {path}")
+        logger.error(f"Error validating file: {path}")
         return False
     
     def get_storage_path(self, path: str) -> str:
@@ -130,46 +144,3 @@ class DeviceManager:
 
 
 DM = DeviceManager()
-
-
-def start_profiler():
-    import cProfile
-    profile = cProfile.Profile()
-    profile.enable()
-    return profile
-
-
-def stop_profiler(profile):
-    profile.disable()
-        
-    profiler_dir = os.path.join(os.getcwd(), "profiler", "data")
-    os.makedirs(profiler_dir, exist_ok=True)
-    
-    profile_path = os.path.join(profiler_dir, "myapp.profile")
-    profile.dump_stats(profile_path)
-
-    if DM.is_android:
-        try:
-            from android.storage import primary_external_storage_path  # type: ignore
-            from jnius import autoclass  # type: ignore
-            import shutil
-            
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            
-            ext_path = primary_external_storage_path()
-            dest_dir = os.path.join(ext_path, "Documents", "BGTask")
-            
-            if not os.path.exists(dest_dir):
-                os.makedirs(dest_dir, exist_ok=True)
-            
-            dest_file = os.path.join(dest_dir, f"profile_{timestamp}.profile")
-            shutil.copy2(profile_path, dest_file)
-            
-            MediaScannerConnection = autoclass("android.media.MediaScannerConnection")
-            activity = autoclass("org.kivy.android.PythonActivity").mActivity
-            MediaScannerConnection.scanFile(activity, [dest_file], None, None)
-
-            print(f"Profile exported to: {dest_file}")
-            
-        except Exception as e:
-            print(f"Error exporting profile: {str(e)}")
