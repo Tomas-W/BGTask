@@ -278,6 +278,13 @@ class ExpiryManager():
         except Exception as e:
             logger.error(f"Error saving Task changes: {e}")
     
+    def log_expiry_tasks(self) -> None:
+        logger.debug(f"Current task: {DM.get_task_log(self.current_task) if self.current_task else None}")
+        logger.debug(f"Expired task: {DM.get_task_log(self.expired_task) if self.expired_task else None}")
+        logger.debug("Active tasks:")
+        for task in self.active_tasks:
+            logger.debug(f"  {DM.get_task_log(task)}")
+    
     @staticmethod
     def get_effective_time(task: Task) -> datetime:
         """Returns the Task's timestamp + snooze_time."""

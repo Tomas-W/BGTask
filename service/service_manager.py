@@ -1,19 +1,18 @@
-# service/service_manager.py
 import time
 
 from jnius import autoclass  # type: ignore
-
-from managers.tasks.task import Task
+from typing import Any
 
 from service.service_audio_manager import ServiceAudioManager
 from service.service_expiry_manager import ServiceExpiryManager
+from service.service_notification_manager import ServiceNotificationManager
 from service.service_communication_manager import ServiceCommunicationManager
+from managers.tasks.task import Task
 
 from service.service_utils import get_service_timestamp
 from managers.device.device_manager import DM
 
 from src.utils.logger import logger
-
 
 Context = autoclass("android.content.Context")
 Intent = autoclass("android.content.Intent")
@@ -22,15 +21,15 @@ RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcess
 Service = autoclass("android.app.Service")
 
 
-LOOP_INTERVAL = 10                       # = 10 seconds
-SERVICE_HEARTBEAT_TICK = 6               # = 60 seconds
-FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
-LOOP_SYNC_TICK = 360                     # = 1 hour
-
-MAX_LOOP_DEVIATION = 4                   # = 4 seconds
-
-
 class ServiceManager:
+
+    LOOP_INTERVAL = 10                       # = 10 seconds
+    SERVICE_HEARTBEAT_TICK = 6               # = 60 seconds
+    FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
+    LOOP_SYNC_TICK = 360                     # = 1 hour
+
+    MAX_LOOP_DEVIATION = 4                   # = 4 seconds
+
     """
     Manages the Android background service and Task monitoring, it:
     - Monitors the current Task for expiration
@@ -42,8 +41,6 @@ class ServiceManager:
     def __init__(self):
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
-
-        from service.service_notification_manager import ServiceNotificationManager
         self.notification_manager: ServiceNotificationManager = ServiceNotificationManager(PythonService.mService,
                                                                                            self.expiry_manager)
 
@@ -59,29 +56,26 @@ class ServiceManager:
         self._in_foreground: bool = False
 
         # ActivityManager
-        self._app_package_name = None
-        self._activity_manager = None
+        self._package_name: str | None = None
+        self._activity_manager: Any | None = None
         self._init_activity_manager()
 
         # Ticks
-        self.loop_sync_tick = 0
-        self.heartbeat_tick = 0
-        self.foreground_notification_tick = 0
+        self.loop_sync_tick: int = 0
+        self.heartbeat_tick: int = 0
+        self.foreground_notification_tick: int = 0
 
         # Loop timing
-        self._last_loop_time = 0
-        self._loop_interval = LOOP_INTERVAL
-        self._loop_synchronized = False
+        self._last_loop_time: float = 0
+        self._loop_synchronized: bool = False
     
     def run_service(self) -> None:
         """
-        Main service loop.
+        Main service loop. Inactive when app is in foreground.
+        - Flags service as running
         - Ensures loop is in sync with Task expiry
         - Ensures foreground notification is always active
-        - Updates Tasks when app's on_pause has set a flag file
-        - Checks for foreground notification updates
-        - Checks if the Task is expired
-        - If the Task is expired, show notification and get next Task
+        - Checks Task expiry
         """
         logger.debug("Starting main service loop")
         
@@ -90,41 +84,37 @@ class ServiceManager:
 
         # Set up loop
         self.flag_service_as_running()
-
         self.check_task_expiry()
         self.update_foreground_notification_info()
 
         self.synchronize_loop_start()
 
         while self._running:
-            self.loop_sync_tick += 1
-            self.heartbeat_tick += 1
-            self.foreground_notification_tick += 1
-
-            self._last_loop_time = time.time()
 
             logger.trace(f"Loop tick")
+            self._update_ticks()
+            self._update_loop_time()
 
             try:
                 # ############### ALWAYS RUNS ###############
-                self.synchronize_loop_cycle()                    # 1 hour
-
                 self.flag_service_as_running()                   # 60 seconds
+
+                self.synchronize_loop_cycle()                    # 1 hour
 
                 self.force_foreground_notification()             # 60 seconds
 
-                # ############### RUNS IN FOREGROUND ###############
+                # ############### RUNS IN FOREGROUND ########
                 if self.is_app_in_foreground():
-                    logger.debug("App is in foreground")
+                    logger.trace("App is in foreground")
 
                     self._in_foreground = True
                     time.sleep(self.get_loop_interval())
                     continue
                 
 
-                # ############### RUNS IN BACKGROUND ###############
+                # ############### RUNS IN BACKGROUND ########
                 else:
-                    logger.debug("App is in background")
+                    logger.trace("App is in background")
 
                     if self.expiry_manager.current_task is not None:
                         self.check_task_expiry()                     # 10 seconds
@@ -138,6 +128,16 @@ class ServiceManager:
                 time.sleep(self.get_loop_interval())
         
         self.audio_manager.stop_alarm()
+    
+    def _update_ticks(self) -> None:
+        """Update the ticks"""
+        self.loop_sync_tick += 1
+        self.heartbeat_tick += 1
+        self.foreground_notification_tick += 1
+    
+    def _update_loop_time(self) -> None:
+        """Update the loop time"""
+        self._last_loop_time = time.time()
     
     def cancel_alarm_and_notifications(self) -> None:
         """Cancels the alarm and notifications."""
@@ -168,12 +168,12 @@ class ServiceManager:
         If loop is off by more than LOOP_DEVIATION seconds, resynchronize.
         Synchronizes by sleeping until the next interval.
         """
-        if self.loop_sync_tick >= LOOP_SYNC_TICK:
+        if self.loop_sync_tick >= ServiceManager.LOOP_SYNC_TICK:
             self.loop_sync_tick = 0
             current_seconds = time.localtime().tm_sec
             seconds_from_boundary = current_seconds % 10
             
-            if seconds_from_boundary > MAX_LOOP_DEVIATION:
+            if seconds_from_boundary > ServiceManager.MAX_LOOP_DEVIATION:
                 seconds_to_wait = ((current_seconds + 9) // 10 * 10 + 1) - current_seconds
                 logger.debug(f"Loop drift detected: {seconds_from_boundary}s from boundary. "
                             f"Resynchronizing: waiting {seconds_to_wait} seconds")
@@ -181,18 +181,18 @@ class ServiceManager:
                 time.sleep(seconds_to_wait)
                 logger.debug("Loop resynchronization complete")
     
-    def get_loop_interval(self) -> None:
+    def get_loop_interval(self) -> float:
         """
         If loop took less than LOOP_INTERVAL seconds, return the difference,
          else return 0.
         """
         now = time.time()
         loop_time = now - self._last_loop_time
-        sleep_time = self._loop_interval - loop_time
+        sleep_time = ServiceManager.LOOP_INTERVAL - loop_time
 
         if sleep_time < 0:
-            logger.error(f"Loop took longer than LOOP_INTERVAL ({self._loop_interval}) seconds")
-            return 0
+            logger.error(f"Loop took longer than LOOP_INTERVAL ({ServiceManager.LOOP_INTERVAL}) seconds")
+            return 0.0
 
         return sleep_time
     
@@ -201,7 +201,7 @@ class ServiceManager:
         If service has been running for SERVICE_HEARTBEAT_TICK seconds,
          flag it as running.
         """
-        if self.heartbeat_tick >= SERVICE_HEARTBEAT_TICK:
+        if self.heartbeat_tick >= ServiceManager.SERVICE_HEARTBEAT_TICK:
             self.heartbeat_tick = 0
             self._flag_service_as_running()
     
@@ -221,7 +221,7 @@ class ServiceManager:
         If service has been running for FORCE_FOREGROUND_NOTIFICATION_TICK seconds,
          check if the foreground notification needs to be re-displayed.
         """
-        if self.foreground_notification_tick >= FORCE_FOREGROUND_NOTIFICATION_TICK:
+        if self.foreground_notification_tick >= ServiceManager.FORCE_FOREGROUND_NOTIFICATION_TICK:
             self.foreground_notification_tick = 0
             self._force_foreground_notification()
 
@@ -271,7 +271,7 @@ class ServiceManager:
     def is_app_in_foreground(self) -> bool:
         """Check if app is running in the foreground."""
         try:
-            if not self._activity_manager or not self._app_package_name:
+            if not self._activity_manager or not self._package_name:
                 return False
                 
             # Get running app processes
@@ -281,7 +281,7 @@ class ServiceManager:
                 
             # Check if our app is in foreground
             for process in running_apps:
-                if (process.processName == self._app_package_name and 
+                if (process.processName == self._package_name and 
                     process.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND):
                     return True
             return False
@@ -290,28 +290,35 @@ class ServiceManager:
             logger.error(f"Error checking app state: {e}")
             return False
     
-    def check_task_expiry(self) -> bool:
+    def check_task_expiry(self) -> None:
         """Returns True if the current Task is expired"""
-        logger.debug(f"Current task: {DM.get_task_log(self.expiry_manager.current_task) if self.expiry_manager.current_task else None}")
-        logger.debug(f"Expired task: {DM.get_task_log(self.expiry_manager.expired_task) if self.expiry_manager.expired_task else None}")
-        logger.debug("Active tasks:")
-
-        for task in self.expiry_manager.active_tasks:
-            logger.debug(f"      {DM.get_task_log(task)}")
+        self.expiry_manager.log_expiry_tasks()
             
-        if self.expiry_manager.is_task_expired():
-            logger.debug("Task expired, showing notification")
+        if not self.expiry_manager.is_task_expired():
+            return
+        
+        self._handle_task_expiry()
+    
+    def _handle_task_expiry(self) -> None:
+        """Handle the expiry of a task"""
+        logger.debug("Task expired, showing notification")
 
-            # First mark previous expired task as permanently expired
-            if self.expiry_manager.expired_task:
-                self.expiry_manager.expired_task.expired = True
-                self.expiry_manager._save_task_changes(self.expiry_manager.expired_task.task_id, {"expired": True})
-                logger.debug(f"Marked previous expired task {self.expiry_manager.expired_task.task_id} as permanently expired")
+        if self.expiry_manager.expired_task:
+            self._mark_task_as_permanently_expired()
 
-            # Then handle the new task's expiry
-            expired_task = self.expiry_manager.handle_task_expired()
-            if expired_task:
-                self.notify_user_of_expiry(expired_task)
+        expired_task = self.expiry_manager.handle_task_expired()
+        if expired_task:
+            self.notify_user_of_expiry(expired_task)
+
+    def _mark_task_as_permanently_expired(self) -> None:
+        """Mark the expired task as permanently expired"""
+        self.expiry_manager.expired_task.expired = True
+        self.expiry_manager._save_task_changes(
+            self.expiry_manager.expired_task.task_id, 
+            {"expired": True}
+        )
+        logger.trace(f"Marked previous expired task {self.expiry_manager.expired_task.task_id} as permanently expired")
+
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""
@@ -346,18 +353,12 @@ class ServiceManager:
         except Exception as e:
             logger.error(f"Error launching app: {e}")
     
-    # def _init_notification_manager(self) -> None:
-    #     """Initialize the NotificationManager"""
-    #     if self.notification_manager is None:
-    #         from service.service_notification_manager import ServiceNotificationManager  # type: ignore
-    #         self.notification_manager = ServiceNotificationManager(PythonService.mService)
-
     def _init_activity_manager(self) -> None:
         """Initialize ActivityManager and get package name"""
         try:
             context = PythonService.mService.getApplicationContext()
             self._activity_manager = context.getSystemService(Context.ACTIVITY_SERVICE)
-            self._app_package_name = context.getPackageName()
+            self._package_name = context.getPackageName()
             logger.debug("Initialized ActivityManager")
         
         except Exception as e:
