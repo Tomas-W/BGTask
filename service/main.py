@@ -2,7 +2,7 @@ from jnius import autoclass  # type: ignore
 from typing import Any, Optional
 
 from service.service_manager import ServiceManager
-from service.service_device_manager import DM
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 PythonService = autoclass("org.kivy.android.PythonService")

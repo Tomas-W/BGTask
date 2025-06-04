@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from functools import lru_cache
 
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 
 def is_widget_visible(widget, scroll_view):

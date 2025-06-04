@@ -62,34 +62,6 @@ class DeviceManager:
         task_time = task.timestamp + timedelta(seconds=task.snooze_time)
         message = task.message
         return f"{id} | {task_time} | {message[:8]}"
-
-    def write_flag_file(self, path: str) -> None:
-        """Writes a flag file to the given path."""
-        try:
-            with open(path, "w") as f:
-                f.write("1")
-            logger.trace(f"Wrote flag file: {path.split('/')[-1]}")
-        
-        except Exception as e:
-            logger.error(f"Error writing flag file {path.split('/')[-1]}: {e}")
-    
-    def check_flag_file(self, path: str) -> bool:
-        """Checks if a flag file exists at the given path."""
-        try:
-            return os.path.exists(path)
-        
-        except Exception as e:
-            logger.error(f"Error checking flag file {path.split('/')[-1]}: {e}")
-            return False
-    
-    def remove_flag_file(self, path: str) -> None:
-        """Removes a flag file at the given path."""
-        try:
-            os.remove(path)
-            logger.trace(f"Removed flag file: {path.split('/')[-1]}")
-        
-        except Exception as e:
-            logger.error(f"Error removing flag file {path.split('/')[-1]}: {e}")
     
     def validate_dir(self, dir_path) -> bool:
         """Validate and create a directory if it doesn't exist."""

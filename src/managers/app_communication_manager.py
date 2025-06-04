@@ -4,7 +4,7 @@ from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
 from kivy.clock import Clock
 
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 AndroidString = autoclass("java.lang.String")

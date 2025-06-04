@@ -10,7 +10,7 @@ from kivy.event import EventDispatcher
 from kivy.core.window import Window
 from kivy.utils import platform
 
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 from src.settings import SCREEN, LOADED
 kivy_time = time.time() - start_kivy_time

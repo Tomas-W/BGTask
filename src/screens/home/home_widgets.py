@@ -8,7 +8,7 @@ from src.utils.misc import get_task_header_text
 from src.utils.logger import logger
 from kivy.app import App
 
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 from src.settings import SPACE, SIZE, COL, STYLE, FONT, SCREEN
 
 

@@ -10,7 +10,7 @@ from kivy.event import EventDispatcher
 from src.managers.app_expiry_manager import AppExpiryManager
 from managers.tasks.task import Task
 
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 

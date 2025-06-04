@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from kivy.event import EventDispatcher
 
 from managers.tasks.expiry_manager import ExpiryManager
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 

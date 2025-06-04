@@ -5,7 +5,7 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 
 from src.settings import COL, SIZE, FONT, STYLE, STATE
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 
 class TopBarButton(Button):

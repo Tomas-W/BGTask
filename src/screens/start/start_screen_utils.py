@@ -4,8 +4,6 @@ from managers.device.device_manager import DM
 from src.managers.permission_manager import PM
 from src.utils.logger import logger
 
-from src.managers.app_device_manager import DM
-
 from kivy.clock import Clock
 
 

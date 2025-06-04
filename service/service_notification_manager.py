@@ -3,7 +3,7 @@ import time
 from jnius import autoclass  # type: ignore
 from typing import Any, TYPE_CHECKING
 
-from service.service_device_manager import DM
+from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 
@@ -86,8 +86,7 @@ class ServiceNotificationManager:
         
         # Add task_id to the intent
         intent.putExtra("task_id", AndroidString(task_id))
-        logger.debug(f"Adding task_id: {task_id} to intent")
-        
+                
         # Set flags based on Android version
         flags = PendingIntent.FLAG_UPDATE_CURRENT
         if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
@@ -104,7 +103,6 @@ class ServiceNotificationManager:
         elif action.endswith(DM.ACTION.OPEN_APP):
             request_code = DM.INTENT.OPEN_APP
         
-        logger.debug(f"Creating PendingIntent with request_code: {request_code}")
         return PendingIntent.getBroadcast(
             self.context, 
             request_code,

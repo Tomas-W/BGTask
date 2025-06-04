@@ -4,7 +4,7 @@ import math
 
 from managers.tasks.expiry_manager import ExpiryManager
 
-from service.service_device_manager import DM
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 if TYPE_CHECKING:

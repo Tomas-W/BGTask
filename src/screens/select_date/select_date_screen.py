@@ -16,7 +16,7 @@ from src.widgets.popups import POPUP
 from src.utils.logger import logger
 
 from src.settings import SPACE, STATE, SCREEN
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager

@@ -6,7 +6,7 @@ from src.widgets.containers import TopBarContainer
 from src.widgets.buttons import TopBarTitle, TopBarButton
 
 from src.settings import FONT, COL, SIZE, SPACE
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 class TopBarClosed():
     """

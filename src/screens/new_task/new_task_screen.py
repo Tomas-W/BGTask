@@ -10,7 +10,7 @@ from src.widgets.fields import TextField, ButtonField
 from src.utils.logger import logger
 
 from src.settings import SCREEN, STATE, TEXT, SPACE
-from src.managers.app_device_manager import DM
+from managers.device.device_manager import DM
 
 
 class NewTaskScreen(BaseScreen):

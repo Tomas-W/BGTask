@@ -1,11 +1,7 @@
 # service/service_manager.py
 import time
-import os
-
-from datetime import timedelta
 
 from jnius import autoclass  # type: ignore
-from typing import TYPE_CHECKING, Any
 
 from managers.tasks.task import Task
 
@@ -14,7 +10,7 @@ from service.service_expiry_manager import ServiceExpiryManager
 from service.service_communication_manager import ServiceCommunicationManager
 
 from service.service_utils import get_service_timestamp
-from service.service_device_manager import DM
+from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 
@@ -306,10 +302,13 @@ class ServiceManager:
         if self.expiry_manager.is_task_expired():
             logger.debug("Task expired, showing notification")
 
+            # First mark previous expired task as permanently expired
             if self.expiry_manager.expired_task:
-                # self.clean_up_previous_task()
-                self.notification_manager.cancel_all_notifications()
+                self.expiry_manager.expired_task.expired = True
+                self.expiry_manager._save_task_changes(self.expiry_manager.expired_task.task_id, {"expired": True})
+                logger.debug(f"Marked previous expired task {self.expiry_manager.expired_task.task_id} as permanently expired")
 
+            # Then handle the new task's expiry
             expired_task = self.expiry_manager.handle_task_expired()
             if expired_task:
                 self.notify_user_of_expiry(expired_task)

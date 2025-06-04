@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any, TYPE_CHECKING
 
 from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
 
-from service.service_device_manager import DM
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 AndroidString = autoclass("java.lang.String")
@@ -40,22 +40,22 @@ class ServiceCommunicationManager:
         self.package_name: str | None = None
         self.receiver: BroadcastReceiver | None = None
 
-        self.service_actions = [
+        self.service_actions: list[str] = [
             DM.ACTION.SNOOZE_A,
             DM.ACTION.SNOOZE_B,
             DM.ACTION.CANCEL,
             DM.ACTION.OPEN_APP,
         ]
-        self.app_actions = [
+        self.app_actions: list[str] = [
             DM.ACTION.UPDATE_TASKS,
             DM.ACTION.STOP_ALARM,
             DM.ACTION.REMOVE_TASK_NOTIFICATIONS,
         ]
-        self.boot_actions = [
+        self.boot_actions: list[str] = [
             DM.ACTION.BOOT_COMPLETED,
             DM.ACTION.RESTART_SERVICE,
         ]
-        self.all_actions = self.service_actions + self.app_actions + self.boot_actions
+        self.all_actions: list[str] = self.service_actions + self.app_actions + self.boot_actions
 
         self._init_context()
         self._init_receiver()
@@ -152,6 +152,7 @@ class ServiceCommunicationManager:
             if not task_id:
                 logger.error(f"Could not get task_id for action: {pure_action}")
                 return Service.START_STICKY
+            
             self._handle_service_action(pure_action, task_id)
             return Service.START_STICKY
 
