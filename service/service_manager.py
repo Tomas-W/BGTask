@@ -27,6 +27,7 @@ class ServiceManager:
     SERVICE_HEARTBEAT_TICK = 6               # = 60 seconds
     FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
     LOOP_SYNC_TICK = 360                     # = 1 hour
+    EXPIRY_LOG_TICK = 3                      # = 30 seconds
 
     MAX_LOOP_DEVIATION = 4                   # = 4 seconds
 
@@ -91,7 +92,6 @@ class ServiceManager:
 
         while self._running:
 
-            logger.trace(f"Loop tick")
             self._update_ticks()
             self._update_loop_time()
 
@@ -105,8 +105,6 @@ class ServiceManager:
 
                 # ############### RUNS IN FOREGROUND ########
                 if self.is_app_in_foreground():
-                    logger.trace("App is in foreground")
-
                     self._in_foreground = True
                     time.sleep(self.get_loop_interval())
                     continue
@@ -114,10 +112,10 @@ class ServiceManager:
 
                 # ############### RUNS IN BACKGROUND ########
                 else:
-                    logger.trace("App is in background")
+                    self.log_expiry_tasks()                      # 30 seconds
 
                     if self.expiry_manager.current_task is not None:
-                        self.check_task_expiry()                     # 10 seconds
+                        self.check_task_expiry()                 # 10 seconds
 
                     self._in_foreground = False
                 
@@ -134,7 +132,8 @@ class ServiceManager:
         self.loop_sync_tick += 1
         self.heartbeat_tick += 1
         self.foreground_notification_tick += 1
-    
+        self.expiry_log_tick += 1
+
     def _update_loop_time(self) -> None:
         """Update the loop time"""
         self._last_loop_time = time.time()
@@ -292,8 +291,6 @@ class ServiceManager:
     
     def check_task_expiry(self) -> None:
         """Returns True if the current Task is expired"""
-        self.expiry_manager.log_expiry_tasks()
-            
         if not self.expiry_manager.is_task_expired():
             return
         
@@ -319,6 +316,11 @@ class ServiceManager:
         )
         logger.trace(f"Marked previous expired task {self.expiry_manager.expired_task.task_id} as permanently expired")
 
+    def log_expiry_tasks(self) -> None:
+        """Logs the current and expired tasks"""
+        if self.expiry_log_tick >= ServiceManager.EXPIRY_LOG_TICK:
+            self.expiry_log_tick = 0
+            self.expiry_manager.log_expiry_tasks()
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""
