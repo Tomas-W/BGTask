@@ -60,7 +60,8 @@ class DeviceManager:
         """
         id = task.task_id[:8]
         task_time = task.timestamp + timedelta(seconds=task.snooze_time)
-        return f"{id} | {task_time}"
+        message = task.message
+        return f"{id} | {task_time} | {message[:8]}"
 
     def write_flag_file(self, path: str) -> None:
         """Writes a flag file to the given path."""

@@ -167,12 +167,11 @@ class ExpiryManager():
     
     def get_task_by_id(self, task_id: str) -> Task | None:
         """Get a Task object by its ID."""
-        if self.current_task and self.current_task.task_id == task_id:
-            return self.current_task
-        
+        # First check expired task
         if self.expired_task and self.expired_task.task_id == task_id:
             return self.expired_task
         
+        # Then check active tasks
         for task in self.active_tasks:
             if task.task_id == task_id:
                 return task

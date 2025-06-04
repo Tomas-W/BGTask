@@ -84,7 +84,7 @@ class AppCommunicationManager():
         Handles actions received from the broadcast receiver.
         - Returns early if the target is not ACTION_TARGET.APP
         - Extracts pure action from intent
-        - Extracts task_data from the intent if present
+        - Extracts task_id from the intent if present
         - Schedules the actions effect handler
         """
         try:
@@ -99,18 +99,18 @@ class AppCommunicationManager():
             
             logger.debug(f"AppCommunicationManager received intent with target: {target} and action: {pure_action}")
             
-            # Extract Task data from intent extras
-            task_data = self._get_task_data(intent)
+            # Extract task_id from intent extras
+            task_id = intent.getStringExtra("task_id")
             
             # Schedule the actions effect
             Clock.schedule_once(
-                lambda dt: self.handle_action(pure_action, task_data), 
+                lambda dt: self.handle_action(pure_action, task_id), 
                 0
             )
         except Exception as e:
             logger.error(f"Error receiving Service action: {e}")
 
-    def handle_action(self, action: str, task_data: dict | None = None) -> None:
+    def handle_action(self, action: str, task_id: str | None = None) -> None:
         """
         Calls the appropriate method based on the action received from the receiver.
         """
@@ -119,12 +119,12 @@ class AppCommunicationManager():
                 self._stop_alarm_action()
             
             elif action == DM.ACTION.UPDATE_TASKS:
-                self._update_tasks_action(task_data)
+                self._update_tasks_action(task_id)
             
         except Exception as e:
             logger.error(f"Error handling service action: {e}")
 
-    def send_action(self, action: str):
+    def send_action(self, action: str, task_id: str | None = None) -> None:
         """
         Send a broadcast action with ACTION_TARGET: SERVICE.
         """
@@ -148,8 +148,12 @@ class AppCommunicationManager():
             intent.putExtra(DM.ACTION_TARGET.TARGET,
                             AndroidString(DM.ACTION_TARGET.SERVICE))
             
+            # Add task_id if provided
+            if task_id:
+                intent.putExtra("task_id", AndroidString(task_id))
+            
             self.context.sendBroadcast(intent)
-            logger.debug(f"Sent broadcast action: {action}")
+            logger.debug(f"Sent broadcast action: {action} with task_id: {task_id}")
         
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}")
@@ -163,24 +167,24 @@ class AppCommunicationManager():
         pure_action = action.split(".")[-1]
         return pure_action
     
-    def _get_task_data(self, intent: Any) -> dict | None:
-        """Extracts and returns task_data from the intent extras, or None."""
-        task_data = None
-        if intent.hasExtra("task_id"):
-            task_id = intent.getStringExtra("task_id")
-            if task_id:
-                task_data = {"task_id": task_id,
-                             "notification_type": intent.getStringExtra("notification_type")}
-        return task_data
+    # def _get_task_data(self, intent: Any) -> dict | None:
+    #     """Extracts and returns task_data from the intent extras, or None."""
+    #     task_data = None
+    #     if intent.hasExtra("task_id"):
+    #         task_id = intent.getStringExtra("task_id")
+    #         if task_id:
+    #             task_data = {"task_id": task_id,
+    #                          "notification_type": intent.getStringExtra("notification_type")}
+    #     return task_data
 
-    def _get_task(self, task_data: dict | None = None) -> "Task | None":
-        """Extracts and returns Task object from task_data, or None."""
-        if task_data:
-            task_id = task_data["task_id"]
-            if task_id:
-                return self.task_manager.get_task_by_id(task_id)
+    # def _get_task(self, task_data: dict | None = None) -> "Task | None":
+    #     """Extracts and returns Task object from task_data, or None."""
+    #     if task_data:
+    #         task_id = task_data["task_id"]
+    #         if task_id:
+    #             return self.expiry_manager.get_task_by_id(task_id)
         
-        return None
+    #     return None
     
     def _remove_notifications(self, *args, **kwargs) -> None:
         """Sends action to Service to remove Task notifications."""
@@ -190,22 +194,23 @@ class AppCommunicationManager():
         """Stops the App alarm through the AudioManager."""
         self.expiry_manager.dispatch("on_task_cancelled_stop_alarm")
     
-    def _update_tasks_action(self, task_data: dict | None = None) -> None:
+    def _update_tasks_action(self, task_id: str | None = None) -> None:
         """
         Refreshes ExpiryManager, TaskManager Tasks and updates App UI.
-        Task data is only provided after snooze or cancel from a Service notification,
+        Task_id is only provided after snooze or cancel from a Service notification,
          for invalidation of cached Task data.
         """
+        logger.trace(f"_update_tasks_action with task_id: {task_id}")
         # Update AppExpiryManager
         self.task_manager.expiry_manager._refresh_tasks()
         # Update TaskManager
         self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
         self.task_manager.sort_active_tasks()
         
-        # If Task, a Task was snoozed or cancelled from a Service notification
+        # If task_id provided, a Task was snoozed or cancelled from a Service notification
         # Task cache must be invalidated in HomeScreen
-        # Otherwise, Task is None
-        task = self._get_task(task_data)
+        task = self.expiry_manager.get_task_by_id(task_id) if task_id else None
+        logger.trace(f"_update_tasks_action with task: {task}")
 
         # Refresh HomeScreen
         self.task_manager.dispatch(

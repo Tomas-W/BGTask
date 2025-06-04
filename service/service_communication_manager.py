@@ -125,12 +125,13 @@ class ServiceCommunicationManager:
                 return
                 
             logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
-            self.handle_action(pure_action, intent)
+            task_id = self._get_task_id(intent, pure_action)
+            self.handle_action(pure_action, task_id)
                 
         except Exception as e:
             logger.error(f"Error in broadcast receiver callback: {e}")
 
-    def handle_action(self, pure_action: str, intent: Any) -> int:
+    def handle_action(self, pure_action: str, task_id: str | None = None) -> int:
         """
         Processes the action through both service and app handlers.
         - Service handler processes service actions (snooze, cancel, etc.)
@@ -148,12 +149,15 @@ class ServiceCommunicationManager:
 
         # Check Service actions
         if any(pure_action.endswith(action) for action in self.service_actions):
-            self._handle_service_action(pure_action, intent)
+            if not task_id:
+                logger.error(f"Could not get task_id for action: {pure_action}")
+                return Service.START_STICKY
+            self._handle_service_action(pure_action, task_id)
             return Service.START_STICKY
 
         # Check App actions
         if any(pure_action.endswith(action) for action in self.app_actions):
-            self._handle_app_action(pure_action, intent)
+            self._handle_app_action(pure_action)
             return Service.START_STICKY
         
         logger.error(f"Error handling action: {pure_action}")
@@ -164,30 +168,23 @@ class ServiceCommunicationManager:
         from service.main import start_service
         start_service()
 
-    def _handle_service_action(self, pure_action: str, intent: Any) -> int:
+    def _handle_service_action(self, pure_action: str, task_id: str) -> int:
         """
         Handles service actions (snooze, cancel, etc.) and notification actions.
-        - Extracts task data from intent if present
         - Processes snooze/cancel actions from notifications
         - Updates service state and sends actions to App
         """
-        # Get task data for notification action
-        task_data = self._get_task_data(intent)
-        if not task_data:
-            logger.error(f"Could not get task data for action: {pure_action}")
-            return Service.START_STICKY
-
         # Snooze
         if pure_action.endswith(DM.ACTION.SNOOZE_A) or pure_action.endswith(DM.ACTION.SNOOZE_B):
-            self._snooze_action(pure_action, task_data)
+            self._snooze_action(pure_action, task_id)
         
         # Cancel and open app
         elif pure_action.endswith(DM.ACTION.CANCEL) or pure_action.endswith(DM.ACTION.OPEN_APP):
-            self._cancel_action(pure_action, task_data)
+            self._cancel_action(pure_action, task_id)
 
         return Service.START_STICKY
 
-    def _handle_app_action(self, pure_action: str, intent: Any) -> int:
+    def _handle_app_action(self, pure_action: str) -> int:
         """
         Handles app actions (update tasks, stop alarm).
         - Processes app communication actions
@@ -207,12 +204,12 @@ class ServiceCommunicationManager:
 
         return Service.START_STICKY
 
-    def send_action(self, action: str, task_data: dict | None = None) -> None:
+    def send_action(self, action: str, task_id: str | None = None) -> None:
         """
         Sends a broadcast action with ACTION_TARGET: APP and SERVICE.
         - Validates action before sending
         - Handles special OPEN_APP action
-        - Adds task data to intent if provided
+        - Adds task_id to intent if provided
         """
         if not self.context:
             logger.error("Cannot send action - no context available")
@@ -233,11 +230,11 @@ class ServiceCommunicationManager:
 
         try:
             intent = self._get_send_action_intent(action)
-            if task_data:
-                self._add_extras_to_intent(intent, task_data)
+            if task_id:
+                intent.putExtra("task_id", AndroidString(task_id))
             
             self.context.sendBroadcast(intent)
-            logger.debug(f"Sent broadcast action: {action} with data: {task_data}")
+            logger.debug(f"Sent broadcast action: {action} with task_id: {task_id}")
         
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
@@ -250,37 +247,48 @@ class ServiceCommunicationManager:
         intent.putExtra(DM.ACTION_TARGET.TARGET, AndroidString(DM.ACTION_TARGET.APP))
         return intent
     
-    def _add_extras_to_intent(self, intent: Any, task_data: dict) -> None:
-        """Adds extras to the intent."""
-        if "task_id" in task_data:
-            task_id = AndroidString(str(task_data["task_id"]))
-            intent.putExtra("task_id", task_id)
+    def _get_task_id(self, intent: Any, action: str | None = None) -> str | None:
+        """
+        Extracts and returns task_id from the intent extras, or None.
+        Falls back to current task's ID only for service actions that require it.
+        """
+        # Try to get task_id directly from intent extras
+        task_id = intent.getStringExtra("task_id")
+        
+        if task_id:
+            logger.debug(f"Using task_id from intent extras: {task_id}")
+            return task_id
+        
+        # Only fall back to current task for service actions that require task_id
+        if action and any(action.endswith(a) for a in [DM.ACTION.SNOOZE_A, DM.ACTION.SNOOZE_B, DM.ACTION.CANCEL, DM.ACTION.OPEN_APP]):
+            if self.expiry_manager.current_task:
+                logger.debug(f"No task_id in intent, using current task_id: {self.expiry_manager.current_task.task_id}")
+                return self.expiry_manager.current_task.task_id
+        
+        logger.debug("No task_id in intent and no fallback needed")
+        return None
 
-        if "notification_type" in task_data:
-            notif_type = AndroidString(str(task_data["notification_type"]))
-            intent.putExtra("notification_type", notif_type)
-    
-    def _snooze_action(self, action: str, task_data: dict) -> None:
+    def _snooze_action(self, action: str, task_id: str) -> None:
         """Handles snooze actions from notifications."""
         # Service side
-        self.expiry_manager.snooze_task(action)
+        self.expiry_manager.snooze_task(action, task_id)
         self.audio_manager.stop_alarm()
         self.service_manager.update_foreground_notification_info()
         # App side
-        self.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+        self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
 
-    def _cancel_action(self, action: str, task_data: dict) -> None:
+    def _cancel_action(self, action: str, task_id: str) -> None:
         """
         Handles cancel and open app actions from notifications.
         Same functionality for both actions, except OPEN_APP opens the App in the end.
         """
         # Service side
-        self.expiry_manager.cancel_task()
+        self.expiry_manager.cancel_task(task_id)
         self.audio_manager.stop_alarm()
         self.service_manager.update_foreground_notification_info()
         # App side
-        self.send_action(DM.ACTION.UPDATE_TASKS, task_data)
+        self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
         # Open app
         if action.endswith(DM.ACTION.OPEN_APP):
@@ -313,25 +321,3 @@ class ServiceCommunicationManager:
         
         pure_action = action.split(".")[-1]
         return pure_action
-
-    def _get_task_data(self, intent: Any) -> dict | None:
-        """Extracts and returns task data from the intent extras, or None."""
-        task_data = None
-        notification_type = intent.getStringExtra("notification_type")
-        
-        # If interected with foreground notification
-        # Task is current task
-        if notification_type == DM.NOTIFICATION_TYPE.FOREGROUND and self.expiry_manager.current_task:
-            task_data = {
-                "task_id": self.expiry_manager.current_task.task_id,
-                "notification_type": notification_type
-            }
-        # If interected with expired notification
-        # Task is expired task
-        elif notification_type == DM.NOTIFICATION_TYPE.EXPIRED and self.expiry_manager.expired_task:
-            task_data = {
-                "task_id": self.expiry_manager.expired_task.task_id,
-                "notification_type": notification_type
-            }
-        
-        return task_data

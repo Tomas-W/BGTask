@@ -18,8 +18,6 @@ from service.service_device_manager import DM
 
 from src.utils.logger import logger
 
-if TYPE_CHECKING:
-    from service.service_notification_manager import ServiceNotificationManager
 
 Context = autoclass("android.content.Context")
 Intent = autoclass("android.content.Intent")
@@ -46,11 +44,13 @@ class ServiceManager:
     - Writes timestamp to flag file periodically
     """
     def __init__(self):
-        from service.service_notification_manager import ServiceNotificationManager
-        self.notification_manager = ServiceNotificationManager(PythonService.mService)
-    
         self.audio_manager: ServiceAudioManager = ServiceAudioManager()
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
+
+        from service.service_notification_manager import ServiceNotificationManager
+        self.notification_manager: ServiceNotificationManager = ServiceNotificationManager(PythonService.mService,
+                                                                                           self.expiry_manager)
+
         self.communication_manager = ServiceCommunicationManager(
             service_manager=self,
             audio_manager=self.audio_manager,

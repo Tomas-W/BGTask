@@ -18,19 +18,19 @@ class ServiceExpiryManager(ExpiryManager):
         super().__init__()
         self.audio_manager: "ServiceAudioManager" = audio_manager
     
-    def snooze_task(self, action: str) -> None:
+    def snooze_task(self, action: str, task_id: str | None = None) -> None:
         """
         Snoozes a Task from notification.
         - Gets expired Task or current Task (if no expired Task exists).
         - Updates the snooze time.
         - Refreshes the Tasks and gets new current Task.
         """
-        snoozed_task = self.expired_task or self.current_task
+        snoozed_task = self.get_task_by_id(task_id)
         if not snoozed_task:
-            logger.error("No Task to snooze")
+            logger.error(f"Task with id {task_id} not found for snoozing")
             self.audio_manager.stop_alarm()
             return
-        
+
         logger.debug(f"Called snooze_task for: {DM.get_task_log(snoozed_task)}")
 
         # Update snooze time
@@ -69,20 +69,20 @@ class ServiceExpiryManager(ExpiryManager):
 
         logger.debug(f"Task {snoozed_task.task_id} snoozed for {snooze_seconds/60:.1f} minutes ({snooze_seconds}s). Total snooze: {snoozed_task.snooze_time/60:.1f}m")
     
-    def cancel_task(self, task_id: str | None = None) -> None:
+    def cancel_task(self, task_id: str) -> None:
         """
         Cancels the expired task if it exists, otherwise cancels current task.
         User can cancel current task with the foreground notification.
         """
-        if task_id is not None:
-            cancelled_task = self.get_task_by_id(task_id)
-        else:
-            cancelled_task = self.expired_task or self.current_task
-        if not cancelled_task:
-            logger.error("No Task to cancel")
-            self.audio_manager.stop_alarm()
-            return
-        
+        # if task_id is not None:
+        #     cancelled_task = self.get_task_by_id(task_id)
+        # else:
+        #     cancelled_task = self.expired_task or self.current_task
+        # if not cancelled_task:
+        #     logger.error("No Task to cancel")
+        #     self.audio_manager.stop_alarm()
+        #     return
+        cancelled_task = self.get_task_by_id(task_id)
         logger.debug(f"Called cancel_task for: {DM.get_task_log(cancelled_task)}")
         # Mark as expired after user action
         cancelled_task.expired = True
