@@ -450,7 +450,7 @@ class PopupManager:
         app = App.get_running_app()
         expiry_manager = app.task_manager.expiry_manager
         
-        expiry_manager.snooze_task(task_id, DM.ACTION.SNOOZE_A)
+        expiry_manager.snooze_task(DM.ACTION.SNOOZE_A, task_id)
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""

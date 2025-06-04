@@ -1,4 +1,5 @@
 import json
+import math
 
 from datetime import datetime, timedelta
 from typing import Any, TYPE_CHECKING
@@ -41,6 +42,94 @@ class ExpiryManager():
 
         self.SNOOZE_A_SECONDS: int = ExpiryManager.SNOOZE_A_SECONDS
         self._SNOOZE_B_SECONDS: int = ExpiryManager.SNOOZE_B_SECONDS
+    
+    def _has_time_overlap(self, timestamp: datetime) -> bool:
+        """Checks if the timestamp would overlap with another Task."""
+        for task in self.active_tasks:
+            task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
+            if task_effective_time == timestamp:
+                return True
+        
+        return False
+    
+    def snooze_task(self, action: str, task_id: str) -> int | bool:
+        """Snoozes a Task by ID and action."""
+        # Snoozed newly expired or foreground notification Task
+        logger.critical(f"Snoozing task_id: {task_id}")
+        snoozed_task = self.get_task_by_id(task_id)
+        old_task = False
+        if not snoozed_task:
+            # Old expired Task, search in expired Tasks aswell
+            snoozed_task = self._search_expired_task(task_id)
+            old_task = True
+        
+        if not snoozed_task:
+            logger.error(f"Task {task_id} not found for snoozing")
+            return
+        
+        task_expiration = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time)
+        now = datetime.now()
+
+        if now > task_expiration or old_task:
+            # Snoozed through Task notification
+            # Task is already expired > add time since expiration
+            time_diff_seconds = math.floor((now - task_expiration).total_seconds() / 10) * 10  # Round down to nearest 10 seconds
+        else:
+            # Snoozed through foreground notification
+            # Task is not expired > no need to add time
+            time_diff_seconds = 0
+
+        # Update snooze time
+        if action.endswith(DM.ACTION.SNOOZE_A):
+            snooze_seconds = self.SNOOZE_A_SECONDS
+        elif action.endswith(DM.ACTION.SNOOZE_B):
+            snooze_seconds = self._SNOOZE_B_SECONDS
+        else:
+            return False
+        
+        # Always add the time that has passed since original expiration
+        added_snooze_time = snooze_seconds + time_diff_seconds
+        
+        # Calculate new timestamp
+        new_timestamp = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time + added_snooze_time)
+        # Check for overlaps with other Tasks
+        while self._has_time_overlap(new_timestamp):
+            logger.debug(f"Task {snoozed_task.task_id} would overlap with another task, adding 10 seconds")
+            added_snooze_time += 10
+            new_timestamp = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time + added_snooze_time)
+        
+        # If snoozed, clear expired Task
+        if snoozed_task == self.expired_task:
+            self.expired_task = None
+        
+        # Save changes
+        self._save_task_changes(snoozed_task.task_id, {
+            "snooze_time": snoozed_task.snooze_time + added_snooze_time,
+            "expired": False
+        })
+
+        logger.trace(f"Task {DM.get_task_log(snoozed_task)} snoozed for {added_snooze_time/60:.1f}m plus {time_diff_seconds/60}m waiting time.")
+        logger.trace(f"Last added snooze time: {added_snooze_time}s")
+
+        self._handle_snoozed_task(snoozed_task)
+    
+    def cancel_task(self, task_id: str) -> None:
+        """Cancels a Task by ID."""
+        cancelled_task = self.get_task_by_id(task_id)
+        if not cancelled_task:
+            # Cancelling old expired Task through notification
+            # No need to handle
+            return
+        
+        # Save changes to file
+        self._save_task_changes(cancelled_task.task_id, {"expired": True})
+
+        # Clear expired task if it was cancelled
+        if cancelled_task == self.expired_task:
+            self.expired_task = None
+        
+        logger.debug(f"Called cancel_task for: {DM.get_task_log(cancelled_task)}")
+        self._handle_cancelled_task(cancelled_task)
     
     def _bind_audio_manager(self, audio_manager: "AudioManager") -> None:
         """
@@ -126,14 +215,9 @@ class ExpiryManager():
         if not self.current_task:
             return None
         
-        # Mark previous expired Task as expired
-        if self.expired_task:
-            self.expired_task.expired = False
-            self._save_task_changes(self.expired_task.task_id, {"expired": False})
-        
-        # Set current Task as expired
+        # Store current task as expired before refreshing
         self.expired_task = self.current_task
-        logger.trace(f"Set task {self.expired_task.task_id} as expired task")
+        logger.trace(f"Task {self.expired_task.task_id} expired")
         
         # Re-load Tasks but don't reset expired Task
         self.refresh_active_tasks()
@@ -146,18 +230,6 @@ class ExpiryManager():
         self.expired_task = None
         self.refresh_active_tasks()
         self.refresh_current_task()
-    
-    def _has_time_overlap(self, timestamp: datetime) -> bool:
-        """Checks if the snoozed Task or current Task would overlap with another Task."""
-        task_to_check = self.expired_task or self.current_task
-        for task in self.active_tasks:
-            if task.task_id != task_to_check.task_id and not task.expired:
-                    task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
-                    # Check within 1 second range
-                    if abs((timestamp - task_effective_time).total_seconds()) < 1:
-                        return True
-        
-        return False
     
     def clear_expired_task(self) -> None:
         """Clears the expired Task without saving changes."""
@@ -178,13 +250,14 @@ class ExpiryManager():
         
         return None
     
-    def _get_start_task(self) -> Task:
-        """Returns a start Task object."""
-        start_time = datetime.now() - timedelta(minutes=1)
-        start_time = start_time.replace(second=0, microsecond=0)
-        return Task(timestamp=start_time,
-                    message=ExpiryManager.START_TASK_MESSAGE,
-                    expired=True)
+    def _search_expired_task(self, task_id: str) -> "Task | None":
+        """Searches for the expired task"""
+        tasks_data = self._get_task_data()
+        for task_data in tasks_data.values():
+            for task in task_data:
+                if task["task_id"] == task_id:
+                    return task
+        return None
     
     def _save_task_changes(self, task_id: str, changes: dict) -> None:
         """Saves Task changes to file"""
@@ -196,6 +269,7 @@ class ExpiryManager():
                         task.update(changes)
                         with open(self.task_file_path, "w") as f:
                             json.dump(task_data, f, indent=2)
+                        
                         import time
                         time.sleep(0.1)
                         logger.debug(f"Saved changes for Task {task_id}: {changes}")
