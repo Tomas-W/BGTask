@@ -126,12 +126,12 @@ class ServiceCommunicationManager:
                 
             logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
             task_id = self._get_task_id(intent, pure_action)
-            self.handle_action(pure_action, task_id)
+            self.handle_action(intent,pure_action, task_id)
                 
         except Exception as e:
             logger.error(f"Error in broadcast receiver callback: {e}")
 
-    def handle_action(self, pure_action: str, task_id: str | None = None) -> int:
+    def handle_action(self, intent: Any, pure_action: str, task_id: str | None = None) -> int:
         """
         Processes the action through both service and app handlers.
         - Service handler processes service actions (snooze, cancel, etc.)
@@ -143,12 +143,12 @@ class ServiceCommunicationManager:
         if pure_action in self.boot_actions:
             self._handle_boot_action(pure_action)
             return Service.START_STICKY
-        
+
         # Cancel all notifications for any non-boot action
         self.notification_manager.cancel_all_notifications()
 
         # Check Service actions
-        if any(pure_action.endswith(action) for action in self.service_actions):
+        if self._is_service_action(pure_action):
             if not task_id:
                 logger.error(f"Could not get task_id for action: {pure_action}")
                 return Service.START_STICKY
@@ -157,12 +157,20 @@ class ServiceCommunicationManager:
             return Service.START_STICKY
 
         # Check App actions
-        if any(pure_action.endswith(action) for action in self.app_actions):
+        if self._is_app_action(pure_action):
             self._handle_app_action(pure_action)
             return Service.START_STICKY
         
         logger.error(f"Error handling action: {pure_action}")
         return Service.START_STICKY
+    
+    def _is_service_action(self, pure_action: str) -> bool:
+        """Checks if the action is a service action."""
+        return any(pure_action.endswith(action) for action in self.service_actions)
+    
+    def _is_app_action(self, pure_action: str) -> bool:
+        """Checks if the action is an app action."""
+        return any(pure_action.endswith(action) for action in self.app_actions)
 
     def _handle_boot_action(self, pure_action: str) -> None:
         """Handles boot actions."""
@@ -201,7 +209,7 @@ class ServiceCommunicationManager:
         
         # Remove task notifications
         elif pure_action.endswith(DM.ACTION.REMOVE_TASK_NOTIFICATIONS):
-            self.notification_manager.cancel_all_notifications()
+            self._remove_task_notifications_action()
 
         return Service.START_STICKY
 
@@ -291,10 +299,11 @@ class ServiceCommunicationManager:
         # App side
         self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
+        self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
         # Open app
         if action.endswith(DM.ACTION.OPEN_APP):
             self.service_manager._open_app()
-    
+        
     def _update_tasks_action(self) -> None:
         """Refreshes ExpiryManager Tasks and updates foreground notification."""
         try:
@@ -313,6 +322,10 @@ class ServiceCommunicationManager:
         
         except Exception as e:
             logger.error(f"Error handling STOP_ALARM: {e}")
+    
+    def _remove_task_notifications_action(self) -> None:
+        """Removes all task notifications."""
+        self.notification_manager.cancel_all_notifications()
     
     def _get_pure_action(self, intent: Any) -> str | None:
         """Extracts and returns the pure action from the intent, or None."""

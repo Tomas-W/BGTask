@@ -307,9 +307,10 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is pausing")
         if hasattr(self, "task_manager"):
             # Check if user interacted with a notification
-            self.task_manager._checked_background_cancelled_tasks = False
+            # self.task_manager._checked_background_cancelled_tasks = False
             # Signal to ExpiryManager to refresh tasks
-            self.task_manager.expiry_manager._need_refresh_tasks = True
+            # self.task_manager.expiry_manager._need_refresh_tasks = True
+            pass
         return True
     
     def on_stop(self):
@@ -328,7 +329,7 @@ class TaskApp(App, EventDispatcher):
 
         if hasattr(self, "task_manager"):
             # Notify Service to stop alarm
-            self._stop_service_alarm()
+            # self._stop_service_alarm()
             # Notify to trigger without alarm
             self.task_manager.expiry_manager._just_resumed = True
             

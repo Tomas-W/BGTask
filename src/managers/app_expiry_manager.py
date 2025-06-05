@@ -26,7 +26,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.register_event_type("on_task_cancelled_stop_alarm")
         self.register_event_type("on_task_snoozed_stop_alarm")
 
-        self._just_resumed = False
+        self._just_resumed = True
 
         self.tick = 0
     
@@ -41,9 +41,9 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
             for task in self.active_tasks:
                 logger.debug(f"      {DM.get_task_log(task)}")
         
-        if self._need_refresh_tasks:
-            self._refresh_tasks()
-            self._need_refresh_tasks = False
+        # if self._need_refresh_tasks:
+        #     self._refresh_tasks()
+        #     self._need_refresh_tasks = False
 
         if self.is_task_expired():
             logger.debug("Task expired, showing notification")
@@ -56,7 +56,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
                     self.dispatch("on_task_expired_remove_task_notifications")
 
                 if expired_task and not self._just_resumed:
-                    self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
+                    # self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
+                    pass
         
         self._just_resumed = False
 
@@ -118,6 +119,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
     
     def on_task_expired_show_task_popup(self, *args, **kwargs):
         """Default handler for on_task_expired_show_task_popup event"""
+        logger.debug(f"Received show_task_popup with args: {args}")
+        logger.debug(f"Received show_task_popup with kwargs: {kwargs}")
         pass
 
     def on_task_cancelled_stop_alarm(self, *args, **kwargs):

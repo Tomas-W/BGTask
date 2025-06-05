@@ -52,7 +52,7 @@ class TaskManager(EventDispatcher):
         self.task_to_edit: Task | None = None
 
         # Alarm attributes
-        self._checked_background_cancelled_tasks: bool = False
+        # self._checked_background_cancelled_tasks: bool = False
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
     

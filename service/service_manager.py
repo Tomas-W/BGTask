@@ -65,6 +65,7 @@ class ServiceManager:
         self.loop_sync_tick: int = 0
         self.heartbeat_tick: int = 0
         self.foreground_notification_tick: int = 0
+        self.expiry_log_tick: int = 0
 
         # Loop timing
         self._last_loop_time: float = 0

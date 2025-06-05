@@ -38,7 +38,7 @@ class ExpiryManager():
         self.active_tasks: list[Task] = self._get_active_tasks()
         self.current_task: Task | None = self.get_current_task()
 
-        self._need_refresh_tasks: bool = False
+        # self._need_refresh_tasks: bool = False
 
         self.SNOOZE_A_SECONDS: int = ExpiryManager.SNOOZE_A_SECONDS
         self._SNOOZE_B_SECONDS: int = ExpiryManager.SNOOZE_B_SECONDS
@@ -250,13 +250,13 @@ class ExpiryManager():
         
         return None
     
-    def _search_expired_task(self, task_id: str) -> "Task | None":
+    def _search_expired_task(self, task_id: str) -> Task | None:
         """Searches for the expired task"""
         tasks_data = self._get_task_data()
         for task_data in tasks_data.values():
             for task in task_data:
                 if task["task_id"] == task_id:
-                    return task
+                    return Task.to_class(task)
         return None
     
     def _save_task_changes(self, task_id: str, changes: dict) -> None:

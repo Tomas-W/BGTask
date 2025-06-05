@@ -17,12 +17,17 @@ NotificationCompat = autoclass("androidx.core.app.NotificationCompat")
 PendingIntent = autoclass("android.app.PendingIntent")
 PowerManager = autoclass("android.os.PowerManager")
 
-
 if TYPE_CHECKING:
     from service.service_expiry_manager import ServiceExpiryManager
 
 
 class ServiceNotificationManager:
+
+    WAKE_LOCK_STRING: str = "BGTask::TaskNotificationWakeLock"
+    WAKE_LOCK_TIMEOUT: int = 1000
+
+    ANDROID_12: int = 31
+
     """Manages all Android notifications for the background service.
     - Foreground notification: Keeps the service alive and shows current Task status
     - Task notifications: High-priority alerts for expired Tasks
@@ -47,7 +52,7 @@ class ServiceNotificationManager:
         self._init_tasks_channel()
     
     def _init_foreground_channel(self) -> None:
-        """Initialize the foreground channel"""
+        """Initializes the foreground channel."""
         try:
             foreground_channel = NotificationChannel(
                 DM.CHANNEL.FOREGROUND,
@@ -62,7 +67,7 @@ class ServiceNotificationManager:
             logger.error(f"Error creating foreground channel: {e}")
     
     def _init_tasks_channel(self) -> None:
-        """Initialize the tasks channel"""
+        """Initializes the Tasks channel."""
         try:
             tasks_channel = NotificationChannel(
                 DM.CHANNEL.TASKS,
@@ -79,29 +84,19 @@ class ServiceNotificationManager:
             logger.error(f"Error creating tasks channel: {e}")
     
     def create_action_intent(self, action: str, task_id: str) -> Any | None:
-        """Create a broadcast intent for notification button actions with task_id"""
+        """Creates a broadcast intent for notification button actions with task_id."""
         intent = Intent()
         intent.setAction(f"{self.package_name}.{action}")
         intent.setPackage(self.package_name)
         
-        # Add task_id to the intent
+        # Add task_id
         intent.putExtra("task_id", AndroidString(task_id))
-                
-        # Set flags based on Android version
-        flags = PendingIntent.FLAG_UPDATE_CURRENT
-        if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
-            flags |= PendingIntent.FLAG_IMMUTABLE
+
+        # Flags based on Android version
+        flags = self._get_flags(action)
         
-        # Use different request codes for different actions
-        request_code = 0
-        if action.endswith(DM.ACTION.SNOOZE_A):
-            request_code = DM.INTENT.SNOOZE_A
-        elif action.endswith(DM.ACTION.SNOOZE_B):
-            request_code = DM.INTENT.SNOOZE_B
-        elif action.endswith(DM.ACTION.CANCEL):
-            request_code = DM.INTENT.CANCEL
-        elif action.endswith(DM.ACTION.OPEN_APP):
-            request_code = DM.INTENT.OPEN_APP
+        # Request code based on action
+        request_code = self._get_request_code(action)
         
         return PendingIntent.getBroadcast(
             self.context, 
@@ -109,26 +104,44 @@ class ServiceNotificationManager:
             intent,
             flags
         )
+
+    def _get_flags(self, action: str) -> int:
+        """Returns the flags based on the action."""
+        flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if BuildVersion.SDK_INT >= ServiceNotificationManager.ANDROID_12:
+            flags |= PendingIntent.FLAG_IMMUTABLE
+        return flags
+    
+    def _get_request_code(self, action: str) -> int:
+        """Returns the request code based on the action."""
+        if action.endswith(DM.ACTION.SNOOZE_A):
+            return DM.INTENT.SNOOZE_A
+        elif action.endswith(DM.ACTION.SNOOZE_B):
+            return DM.INTENT.SNOOZE_B
+        elif action.endswith(DM.ACTION.CANCEL):
+            return DM.INTENT.CANCEL
+        elif action.endswith(DM.ACTION.OPEN_APP):
+            return DM.INTENT.OPEN_APP
+        else:
+            return 0
     
     def create_app_open_intent(self, task_id: str | None = None) -> Any | None:
-        """Create a PendingIntent to open the app's main activity"""
+        """Creates a PendingIntent to open the App's main activity."""
         try:
-            # Get the launch intent
+            # Launch intent
             intent = self.context.getPackageManager().getLaunchIntentForPackage(self.package_name)
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
             
-            # Add task_id if provided
+            # Add task_id
             if task_id:
                 intent.putExtra("task_id", AndroidString(task_id))
             
-            # Set proper flags based on Android version
-            flags = PendingIntent.FLAG_UPDATE_CURRENT
-            if BuildVersion.SDK_INT >= 31:  # Android 12 or higher
-                flags |= PendingIntent.FLAG_IMMUTABLE
+            # Flags based on Android version
+            flags = self._get_flags(DM.ACTION.OPEN_APP)
             
             return PendingIntent.getActivity(
                 self.context,
-                0,  # Request code
+                DM.INTENT.OPEN_APP,
                 intent,
                 flags
             )
@@ -136,8 +149,54 @@ class ServiceNotificationManager:
             logger.error(f"Error creating app open intent: {e}")
             return None
     
+    def show_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
+        """Shows a foreground notification with optional action buttons."""
+        # Get icon resource
+        icon_id = self._get_icon_resource()
+        if icon_id is None:
+            logger.error("No valid icon found, cannot show notification")
+            return
+
+        # Create base notification
+        builder = self._create_notification_builder(
+            DM.CHANNEL.FOREGROUND,
+            title,
+            message,
+            icon_id,
+            DM.PRIORITY.LOW
+        )
+        if builder is None:
+            return
+
+        # Set foreground-specific properties
+        builder.setOngoing(True)        # Make persistent
+        builder.setAutoCancel(False)    # Prevent auto-cancellation
+        builder.setOnlyAlertOnce(True)  # Prevent re-alerting
+
+        # Get current task for intent and buttons
+        task = self.expiry_manager.expired_task or self.expiry_manager.current_task
+        task_id = task.task_id if task else None
+
+        # Add click to open app
+        if task_id:
+            app_intent = self.create_app_open_intent(task_id=task_id)
+            if app_intent:
+                builder.setContentIntent(app_intent)
+
+        # Add action buttons if requested
+        if with_buttons and task_id:
+            self._add_notification_buttons(builder, task_id)
+
+        # Show notification
+        try:
+            notification = builder.build()
+            self.service.startForeground(1, notification)
+            logger.debug("Showed foreground notification")
+        except Exception as e:
+            logger.error(f"Error showing foreground notification: {e}")
+    
     def _get_icon_resource(self) -> int | None:
-        """Get the notification icon resource ID"""
+        """Returns the notification icon resource ID."""
         try:
             drawable = autoclass(f"{self.package_name}.R$drawable")
             return getattr(drawable, "notification_icon")
@@ -145,190 +204,128 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error getting notification icon: {e}")
             try:
-                # Fallback to app icon
+                # Fallback to App icon
                 return self.context.getApplicationInfo().icon
 
             except Exception as e:
                 logger.error(f"Error getting app icon: {e}")
                 return None
     
-    def show_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
-        """Show a foreground notification with optional action buttons"""
+    def _create_notification_builder(self, channel: str, title: str, message: str, icon_id: int, priority: int) -> NotificationBuilder | None:
+        """Creates a notification builder with basic settings."""
         try:
-            icon_id = self._get_icon_resource()
-            if icon_id is None:
-                logger.error("No valid icon found, cannot show notification")
-                return
-            
-            try:
-                # Create notification builder
-                builder = NotificationBuilder(self.context, DM.CHANNEL.FOREGROUND)
-                builder.setContentTitle(AndroidString(title))
-                builder.setContentText(AndroidString(message))
-                builder.setSmallIcon(icon_id)
-                builder.setPriority(DM.PRIORITY.LOW)
-                builder.setOngoing(True)        # Make persistent
-                builder.setAutoCancel(False)    # Prevent auto-cancellation
-                builder.setOnlyAlertOnce(True)  # Prevent re-alerting
-            
-            except Exception as e:
-                logger.error(f"Error creating notification builder: {e}")
-            
-            try:
-                # Add click action to open app (without canceling task)
-                # Use expired task if available, otherwise use current task
-                task = self.expiry_manager.expired_task or self.expiry_manager.current_task
-                task_id = task.task_id if task else None
-                app_intent = self.create_app_open_intent(task_id=task_id)
-                if app_intent:
-                    builder.setContentIntent(app_intent)
-            
-            except Exception as e:
-                logger.error(f"Error creating app open intent: {e}")
-            
-            if with_buttons:
-                # Use expired task if available, otherwise use current task
-                task = self.expiry_manager.expired_task or self.expiry_manager.current_task
-                if task:
-                    task_id = task.task_id
-                    try:
-                        # Add Snooze A button
-                        snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A, task_id)
-                        if snooze_intent:
-                            builder.addAction(
-                                0,  # No icon for buttons
-                                AndroidString("Snooze 1m"),
-                                snooze_intent
-                            )
-                    
-                    except Exception as e:
-                        logger.error(f"Error adding snooze button: {e}")
-                    
-                    try:
-                        # Add Snooze B button
-                        snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B, task_id)
-                        if snooze_intent:
-                            builder.addAction(
-                                0,  # No icon for buttons
-                                AndroidString("Snooze 1h"),
-                                snooze_intent
-                            )
-                    
-                    except Exception as e:
-                        logger.error(f"Error adding snooze button: {e}")
-                    
-                    try:
-                        # Add Cancel button
-                        cancel_intent = self.create_action_intent(DM.ACTION.CANCEL, task_id)
-                        if cancel_intent:
-                            builder.addAction(
-                                0,  # No icon for buttons
-                                AndroidString("Cancel"),
-                                cancel_intent
-                            )
-                    
-                    except Exception as e:
-                        logger.error(f"Error adding cancel button: {e}")
-            
-            
-            try:
-                # Build and show notification
-                notification = builder.build()
-                self.service.startForeground(1, notification)
-                logger.debug("Showed foreground notification")
-            
-            except Exception as e:
-                logger.error(f"Error showing foreground notification: {e}")
-        
-        except Exception as e:
-            logger.error(f"Error in show_foreground_notification: {e}")
-    
-    def show_task_notification(self, title: str, message: str) -> None:
-        """Show a high-priority task notification with buttons"""
-        try:
-            icon_id = self._get_icon_resource()
-            if icon_id is None:
-                logger.error("No valid icon found, cannot show notification")
-                return
-            
-            if not self.expiry_manager.expired_task:
-                logger.error("No expired task to show notification for")
-                return
-            
-            task_id = self.expiry_manager.expired_task.task_id
-            
-            # Create notification builder
-            builder = NotificationBuilder(self.context, DM.CHANNEL.TASKS)
+            builder = NotificationBuilder(self.context, channel)
             builder.setContentTitle(AndroidString(title))
             builder.setContentText(AndroidString(message))
             builder.setSmallIcon(icon_id)
-            
-            # Set maximum priority and visibility
-            builder.setPriority(DM.PRIORITY.MAX)
+            builder.setPriority(priority)
+            return builder
+        except Exception as e:
+            logger.error(f"Error creating notification builder: {e}")
+            return None
+
+    def _add_notification_buttons(self, builder: Any, task_id: str) -> None:
+        """Adds action buttons to the notification."""
+        actions = [
+            (DM.ACTION.SNOOZE_A, "Snooze 1m"),
+            (DM.ACTION.SNOOZE_B, "Snooze 1h"),
+            (DM.ACTION.CANCEL, "Cancel")
+        ]
+        
+        for action, label in actions:
+            try:
+                intent = self.create_action_intent(action, task_id)
+                if intent:
+                    builder.addAction(0, AndroidString(label), intent)
+            except Exception as e:
+                logger.error(f"Error adding {label} button: {e}")
+    
+    def _create_task_notification_builder(self, title: str, message: str, icon_id: int, task_id: str) -> Any | None:
+        """Creates a notification builder with task-specific settings."""
+        builder = self._create_notification_builder(
+            DM.CHANNEL.TASKS,
+            title,
+            message,
+            icon_id,
+            DM.PRIORITY.MAX
+        )
+        if builder is None:
+            return None
+
+        try:
+            # Set task-specific properties
             builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  # Show on lock screen
             builder.setAutoCancel(True)
-            
+
             # Add full screen intent to wake up screen
             full_screen_intent = self.create_app_open_intent(task_id=task_id)
             if full_screen_intent:
                 builder.setFullScreenIntent(full_screen_intent, True)
-            
+
             # Add delete intent to cancel task when notification is swiped
             delete_intent = self.create_action_intent(DM.ACTION.CANCEL, task_id)
             if delete_intent:
                 builder.setDeleteIntent(delete_intent)
-            
+
             # Add click action to open app via broadcast
             app_intent = self.create_action_intent(DM.ACTION.OPEN_APP, task_id)
             if app_intent:
                 builder.setContentIntent(app_intent)
-            
-            # Add Snooze A button
-            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_A, task_id)
-            if snooze_intent:
-                builder.addAction(
-                    0,  # No icon for buttons
-                    AndroidString("Snooze 1m"),
-                    snooze_intent
-                )
-            
-            # Add Snooze B button
-            snooze_intent = self.create_action_intent(DM.ACTION.SNOOZE_B, task_id)
-            if snooze_intent:
-                builder.addAction(
-                    0,  # No icon for buttons
-                    AndroidString("Snooze 1h"),
-                    snooze_intent
-                )
-            
-            # Add Cancel button
-            cancel_intent = self.create_action_intent(DM.ACTION.CANCEL, task_id)
-            if cancel_intent:
-                builder.addAction(
-                    0,  # No icon for buttons
-                    AndroidString("Cancel"),
-                    cancel_intent
-                )
-            
-            # Show notification with a unique ID
+
+            return builder
+        except Exception as e:
+            logger.error(f"Error setting up task notification: {e}")
+            return None
+
+    def _wake_up_screen(self) -> None:
+        """Attempts to wake up the screen if it's locked."""
+        try:
+            power_manager = self.context.getSystemService(Context.POWER_SERVICE)
+            wake_lock = power_manager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                ServiceNotificationManager.WAKE_LOCK_STRING
+            )
+            wake_lock.acquire(ServiceNotificationManager.WAKE_LOCK_TIMEOUT)
+            wake_lock.release()
+        except Exception as e:
+            logger.error(f"Error waking up screen: {e}")
+
+    def show_task_notification(self, title: str, message: str) -> None:
+        """Shows a high-priority task notification with buttons."""
+        # Validate prerequisites
+        icon_id = self._get_icon_resource()
+        if icon_id is None:
+            logger.error("No valid icon found, cannot show notification")
+            return
+
+        if not self.expiry_manager.expired_task:
+            logger.error("No expired task to show notification for")
+            return
+
+        task_id = self.expiry_manager.expired_task.task_id
+
+        # Create and configure notification
+        builder = self._create_task_notification_builder(title, message, icon_id, task_id)
+        if builder is None:
+            return
+
+        # Add action buttons
+        self._add_notification_buttons(builder, task_id)
+
+        # Show notification
+        try:
+            # Generate unique notification ID
             self.current_notification_id = int(time.time())
-            self.notification_manager.notify(self.current_notification_id, builder.build())
-            # Add to active notifications set
+            notification = builder.build()
+            
+            # Show notification and track it
+            self.notification_manager.notify(self.current_notification_id, notification)
             self.active_notification_ids.add(self.current_notification_id)
             logger.debug(f"Showed task notification with ID: {self.current_notification_id}")
-            
-            # Wake up screen if locked
-            try:
-                power_manager = self.context.getSystemService(Context.POWER_SERVICE)
-                wake_lock = power_manager.newWakeLock(
-                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                    "BGTask::TaskNotificationWakeLock"
-                )
-                wake_lock.acquire(1000)  # Wake for 1 second
-                wake_lock.release()
-            except Exception as e:
-                logger.error(f"Error waking up screen: {e}")
-        
+
+            # Attempt to wake up screen
+            self._wake_up_screen()
+
         except Exception as e:
             logger.error(f"Error showing task notification: {e}")
     

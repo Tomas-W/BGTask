@@ -38,6 +38,9 @@ class AppCommunicationManager():
         self._init_context()
         self._init_receiver()
 
+        self.send_action(DM.ACTION.STOP_ALARM)
+        logger.critical("STOP_ALARM sent")
+
     def _init_context(self) -> None:
         """Initializes the App context and package name."""
         try:
@@ -66,6 +69,7 @@ class AppCommunicationManager():
             actions = [
                 f"{self.package_name}.{DM.ACTION.STOP_ALARM}",
                 f"{self.package_name}.{DM.ACTION.UPDATE_TASKS}",
+                f"{self.package_name}.{DM.ACTION.SHOW_TASK_POPUP}",
             ]
 
             # Create and start receiver
@@ -110,16 +114,20 @@ class AppCommunicationManager():
         except Exception as e:
             logger.error(f"Error receiving Service action: {e}")
 
-    def handle_action(self, action: str, task_id: str | None = None) -> None:
+    def handle_action(self, pure_action: str, task_id: str | None = None) -> None:
         """
         Calls the appropriate method based on the action received from the receiver.
         """
         try:
-            if action == DM.ACTION.STOP_ALARM:
+            if pure_action == DM.ACTION.STOP_ALARM:
                 self._stop_alarm_action()
             
-            elif action == DM.ACTION.UPDATE_TASKS:
+            elif pure_action == DM.ACTION.UPDATE_TASKS:
                 self._update_tasks_action(task_id)
+            
+            elif pure_action == DM.ACTION.SHOW_TASK_POPUP:
+                task = self.expiry_manager._search_expired_task(task_id)
+                self._show_task_popup_action(task)
             
         except Exception as e:
             logger.error(f"Error handling service action: {e}")
@@ -167,25 +175,6 @@ class AppCommunicationManager():
         pure_action = action.split(".")[-1]
         return pure_action
     
-    # def _get_task_data(self, intent: Any) -> dict | None:
-    #     """Extracts and returns task_data from the intent extras, or None."""
-    #     task_data = None
-    #     if intent.hasExtra("task_id"):
-    #         task_id = intent.getStringExtra("task_id")
-    #         if task_id:
-    #             task_data = {"task_id": task_id,
-    #                          "notification_type": intent.getStringExtra("notification_type")}
-    #     return task_data
-
-    # def _get_task(self, task_data: dict | None = None) -> "Task | None":
-    #     """Extracts and returns Task object from task_data, or None."""
-    #     if task_data:
-    #         task_id = task_data["task_id"]
-    #         if task_id:
-    #             return self.expiry_manager.get_task_by_id(task_id)
-        
-    #     return None
-    
     def _remove_notifications(self, *args, **kwargs) -> None:
         """Sends action to Service to remove Task notifications."""
         self.send_action(DM.ACTION.REMOVE_TASK_NOTIFICATIONS)
@@ -220,4 +209,11 @@ class AppCommunicationManager():
         # Refresh StartScreen
         self.task_manager.dispatch(
             "on_task_edit_refresh_start_screen"
+        )
+    
+    def _show_task_popup_action(self, task: "Task") -> None:
+        """Shows the task popup."""
+        self.expiry_manager.dispatch(
+            "on_task_expired_show_task_popup",
+            task=task
         )
