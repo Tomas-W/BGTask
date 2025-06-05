@@ -7,11 +7,11 @@ from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 AndroidString = autoclass("java.lang.String")
+BuildVersion = autoclass("android.os.Build$VERSION")
 Intent = autoclass("android.content.Intent")
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
 PendingIntent = autoclass("android.app.PendingIntent")
-FLAG_UPDATE_CURRENT = 0x04000000  # PendingIntent flag
 
 if TYPE_CHECKING:
     from service.service_manager import ServiceManager
@@ -240,38 +240,35 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
     
-    def send_action_with_pending_intent(self, action: str, extras: dict | None = None) -> None:
+    def send_action_with_shared_preferences(self, action: str, extras: dict | None = None) -> None:
         """
-        Sends a pending intent for actions that need to be received even if the App is not running.
-        Needs to be received by _app_has_pending_intents in main.py.
+        Stores a message in SharedPreferences that the App can read when it starts.
         """
         try:
-            # Create intent
-            intent = Intent()
-            intent.setClassName(self.package_name, f"{self.package_name}.MainActivity")
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            # Get SharedPreferences
+            Context = autoclass('android.content.Context')
+            prefs = self.context.getSharedPreferences("pending_actions", Context.MODE_PRIVATE)
+            editor = prefs.edit()
+
+            # Store the action and extras
+            editor.putString("action", action)
+            if extras:
+                for key, value in extras.items():
+                    editor.putString(key, str(value))
             
-            # Add action
-            if extras is None:
-                extras = {}
-            extras["pending_action"] = action
-            
-            # Add extras
-            for key, value in extras.items():
-                intent.putExtra(key, AndroidString(str(value)))
-            
-            # Create and send pending intent
-            pending_intent = PendingIntent.getActivity(
-                self.context,
-                0,
-                intent,
-                FLAG_UPDATE_CURRENT
-            )
-            pending_intent.send()
-            logger.debug(f"Sent activity pending intent for action: {action} with extras: {extras}")
-        
+            # Commit the changes synchronously to ensure they're saved
+            editor.commit()
+            logger.debug(f"Stored pending action: {action} with extras: {extras}")
+
         except Exception as e:
-            logger.error(f"Error sending pending intent: {e}", exc_info=True)
+            logger.error(f"Error storing pending action: {e}", exc_info=True)
+    
+    def _get_flags(self, action: str) -> int:
+        """Returns the flags based on the action."""
+        flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if BuildVersion.SDK_INT >= 31:  # Android 12
+            flags |= PendingIntent.FLAG_IMMUTABLE
+        return flags
     
     def _get_send_action_intent(self, action: str) -> Any:
         """Returns an intent for the given action."""
@@ -319,15 +316,17 @@ class ServiceCommunicationManager:
         self.expiry_manager.cancel_task(task_id)
         self.audio_manager.stop_alarm()
         self.service_manager.update_foreground_notification_info()
-        # App side
+        
+        # App side - Send both broadcast and pending intent
         self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
         self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
-        self.send_action_with_pending_intent(DM.ACTION.SHOW_TASK_POPUP, {"task_id": task_id})
-        # Open app
-        if action.endswith(DM.ACTION.OPEN_APP):
-            self.service_manager._open_app()
         
+        # For showing popup, only send pending intent if app needs to be launched
+        if action.endswith(DM.ACTION.OPEN_APP):
+            self.send_action_with_shared_preferences(DM.ACTION.SHOW_TASK_POPUP, {"task_id": task_id})
+            self.service_manager._open_app()
+
     def _update_tasks_action(self) -> None:
         """Refreshes ExpiryManager Tasks and updates foreground notification."""
         try:

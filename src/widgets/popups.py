@@ -414,6 +414,10 @@ class PopupManager:
         
         total_time = time.time() - start_time
         logger.critical(f"Time taken to initialize PopupManager: {total_time}")
+
+        from kivy.app import App
+        app = App.get_running_app()
+        app.popup_ready = True
     
     def _handle_task_popup(self, *args, **kwargs):
         """

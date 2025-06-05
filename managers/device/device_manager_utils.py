@@ -189,6 +189,7 @@ class PendingIntents:
         self.SNOOZE_A: int = 12
         self.SNOOZE_B: int = 13
         self.CANCEL: int = 14
+        self.SHOW_TASK_POPUP: int = 15
 
 
 class NotificationType:

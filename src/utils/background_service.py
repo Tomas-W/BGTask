@@ -55,46 +55,47 @@ def start_background_service():
     return None
 
 
-def _app_has_pending_intents() -> tuple[str, dict] | None:
+def check_shared_preferences() -> tuple[str, dict] | None:
     """
-    Checks for any pending intents.
-    Returns a tuple of (action, extras) if a pending intent is found.
-    Returns None if no pending intent is found.
+    Checks for any pending actions in SharedPreferences.
+    Returns a tuple of (action, extras) if a pending action is found.
     """
     try:
-        from src.utils.logger import logger
         from jnius import autoclass  # type: ignore
 
-        # Get activity
+        # Get activity and context
         PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        Context = autoclass('android.content.Context')
+        
         if not hasattr(PythonActivity, "mActivity"):
-            logger.debug("No activity available for checking pending intents")
             return None
 
-        # Get intent
-        activity = PythonActivity.mActivity
-        intent = activity.getIntent()
-        if not intent:
-            logger.debug("No intent found in activity")
+        # Get SharedPreferences
+        context = PythonActivity.mActivity.getApplicationContext()
+        prefs = context.getSharedPreferences("pending_actions", Context.MODE_PRIVATE)
+        
+        # Get action
+        action = prefs.getString("action", None)
+        if not action:
             return None
-
-        # Get extras
+            
+        # Get all extras
         extras = {}
-        bundle = intent.getExtras()
-        if bundle:
-            for key in bundle.keySet():
-                value = bundle.getString(key)
+        all_keys = prefs.getAll().keySet()
+        for key in all_keys:
+            if key != "action":
+                value = prefs.getString(key, None)
                 if value:
                     extras[key] = value
-
-        # Verify pending action
-        if "pending_action" in extras:
-            logger.debug(f"Found pending intent with action: {extras['pending_action']} and extras: {extras}")
-            return extras["pending_action"], extras
-
-        logger.debug("No pending intent found")
-        return None
+                    
+        # Clear the stored action
+        editor = prefs.edit()
+        editor.clear()
+        editor.commit()
+        
+        print(f"Found pending action: {action} with extras: {extras}")
+        return action, extras
 
     except Exception as e:
-        logger.error(f"Error checking pending intents: {e}", exc_info=True)
+        print(f"Error checking pending actions: {e}")
         return None

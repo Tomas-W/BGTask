@@ -112,7 +112,9 @@ class TaskApp(App, EventDispatcher):
         self.starting_time = starting_time
         self.kivy_time = kivy_time
         self.start_app_time = start_app_time
-    
+        
+        self.popup_ready = False
+
     def build(self):
         """
         Builds the app.
@@ -331,33 +333,69 @@ class TaskApp(App, EventDispatcher):
         Checks for pending intents and handles them.
         """
         super().on_start()
-        from src.utils.background_service import _app_has_pending_intents
-        result = _app_has_pending_intents()
+        from src.utils.background_service import check_shared_preferences
+        result = check_shared_preferences()
         if result:
-            Clock.schedule_once(lambda dt: self._handle_pending_intent(*result), 0.8)
+            print("Found pending intent, starting popup system check...")
+            self._wait_for_popup_system(result)
+
+    def _wait_for_popup_system(self, pending_intent_result: tuple[str, dict]):
+        """
+        Polls every 0.2 seconds until popup system is ready.
+        Then handles the pending intent.
+        """
+        pure_action, extras = pending_intent_result
         
+        def check_popup_ready(dt):
+            if not hasattr(self, 'popup_ready') or not self.popup_ready:
+                # Not ready yet, schedule another check
+                print("Popup system not ready, waiting...")
+                Clock.schedule_once(check_popup_ready, 0.2)
+            else:
+                # Ready! Handle the intent
+                print("Popup system ready, handling pending intent...")
+                self._handle_pending_intent(pure_action, extras)
+        
+        # Start the polling
+        Clock.schedule_once(check_popup_ready, 0)
+
     def _handle_pending_intent(self, pure_action: str, extras: dict | None = None) -> None:
         """Handle the pending intent action and extras"""
-        self.logger.error(f"Handling pending intent with action: {pure_action} and extras: {extras}")
+        try:
+            print(f"Handling pending intent with action: {pure_action} and extras: {extras}")
 
-        if pure_action == DM.ACTION.SHOW_TASK_POPUP:
-            self._handle_show_task_popup(extras)
-    
+            if not extras:
+                print("No extras provided with pending intent")
+                return
+
+            if pure_action == DM.ACTION.SHOW_TASK_POPUP:
+                self._handle_show_task_popup(extras)
+            else:
+                print(f"Unknown pending intent action: {pure_action}")
+            
+        except Exception as e:
+            print(f"Error handling pending intent: {e}")
+
     def _handle_show_task_popup(self, extras: dict):
-        """
-        Handles the show task popup intent.
-        """
-        if "task_id" in extras:
+        """Handles the show task popup intent."""
+        try:
+            if "task_id" not in extras:
+                self.logger.warning("No task_id in extras for show task popup")
+                return
+            
             task_id = extras["task_id"]
-            task = self.task_manager.expiry_manager.get_task_by_id(task_id)
+            task = self.task_manager.expiry_manager._search_expired_task(task_id)
             if task:
-                self.logger.error(f"Showing popup for pending intent task: {task}")
+                self.logger.debug(f"Showing popup for pending intent task: {task}")
                 self.task_manager.expiry_manager.dispatch(
                     "on_task_expired_show_task_popup",
                     task=task
                 )
             else:
-                self.logger.debug(f"No task found for task_id: {task_id}") 
+                self.logger.warning(f"No task found for task_id: {task_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error showing task popup: {e}")
 
 
 if __name__ == "__main__":
