@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from src.managers.app_expiry_manager import AppExpiryManager
     from managers.tasks.task import Task
 
+
 class AppCommunicationManager():
     """
     Manages communication between the App and the Service.

@@ -9,13 +9,14 @@ from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
+    from src.managers.app_task_manager import AppTaskManager
     from managers.tasks.task import Task
 
 
 class AppExpiryManager(ExpiryManager, EventDispatcher):
-    def __init__(self, task_manager):
+    def __init__(self, task_manager: "AppTaskManager"):
         super().__init__()
-        self.task_manager = task_manager
+        self.task_manager: "AppTaskManager" = task_manager
 
         # Expiry events
         self.register_event_type("on_task_expired_show_task_popup")
@@ -26,12 +27,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.register_event_type("on_task_cancelled_stop_alarm")
         self.register_event_type("on_task_snoozed_stop_alarm")
 
-        self._just_resumed = True
-
-        self.log_tick = 0
+        self._just_resumed: bool = True
+        self.log_tick: int = 0
     
     def check_task_expiry(self, *args, **kwargs) -> bool:
-        """Returns True if the current Task is expired"""
+        """Returns True if the current Task is expired."""
         self.log_tick += 1
         self.log_expiry_tasks()
 
@@ -54,6 +54,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
     def _handle_cancelled_task(self, cancelled_task: "Task") -> None:
         """
         Cancels a Task by ID.
+        - Stops the alarm.
+        - Refreshes ExpiryManager.
+        - Refreshes HomeScreen.
+        - Refreshes StartScreen.
+        - Refreshes ServiceExpiryManager.
         """
         # Stop alarm
         self.dispatch("on_task_cancelled_stop_alarm")
@@ -70,10 +75,12 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
     
     def _handle_snoozed_task(self, snoozed_task: "Task") -> None:
         """
-        Snoozes a Task by from Popup.
-        - Gets expired Task or current Task (if no expired Task exists).
-        - Updates the snooze time.
-        - Refreshes the Tasks and gets new current Task.
+        Snoozes a Task through a Popup.
+        - Stops the alarm.
+        - Refreshes ExpiryManager.
+        - Refreshes HomeScreen.
+        - Refreshes StartScreen.
+        - Refreshes ServiceExpiryManager.
         """
         # Stop alarm
         self.dispatch("on_task_snoozed_stop_alarm")
@@ -89,26 +96,26 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         logger.trace(f"_handle_snoozed_task updated Task: {DM.get_task_log(snoozed_task)}")
     
     def log_expiry_tasks(self) -> None:
-        """Logs the expiry tasks"""
+        """Logs the expiry Tasks."""
         if self.log_tick % 10 == 0:
             self._log_expiry_tasks()
     
     def on_task_expired_trigger_alarm(self, *args, **kwargs):
-        """Default handler for on_task_expired_trigger_alarm event"""
+        """Default handler for on_task_expired_trigger_alarm event."""
         pass
     
     def on_task_expired_show_task_popup(self, *args, **kwargs):
-        """Default handler for on_task_expired_show_task_popup event"""
+        """Default handler for on_task_expired_show_task_popup event."""
         pass
 
     def on_task_cancelled_stop_alarm(self, *args, **kwargs):
-        """Default handler for on_task_cancelled_stop_alarm event"""
+        """Default handler for on_task_cancelled_stop_alarm event."""
         pass
 
     def on_task_snoozed_stop_alarm(self, *args, **kwargs):
-        """Default handler for on_task_snoozed_stop_alarm event"""
+        """Default handler for on_task_snoozed_stop_alarm event."""
         pass
 
     def on_task_expired_remove_task_notifications(self, *args, **kwargs):
-        """Default handler for on_task_expired_remove_task_notifications event"""
+        """Default handler for on_task_expired_remove_task_notifications event."""
         pass

@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 class ExpiryManager():
 
-    START_TASK_MESSAGE: str = "No upcoming tasks!\nPress + to add a new one."
     SNOOZE_A_SECONDS: int = 60
     SNOOZE_B_SECONDS: int = 3600
 
@@ -38,24 +37,54 @@ class ExpiryManager():
         self.active_tasks: list[Task] = self._get_active_tasks()
         self.current_task: Task | None = self.get_current_task()
 
-        # self._need_refresh_tasks: bool = False
-
         self.SNOOZE_A_SECONDS: int = ExpiryManager.SNOOZE_A_SECONDS
         self._SNOOZE_B_SECONDS: int = ExpiryManager.SNOOZE_B_SECONDS
     
-    def _has_time_overlap(self, timestamp: datetime) -> bool:
-        """Checks if the timestamp would overlap with another Task."""
-        for task in self.active_tasks:
-            task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
-            if task_effective_time == timestamp:
-                return True
-        
-        return False
-    
     def snooze_task(self, action: str, task_id: str) -> int | bool:
-        """Snoozes a Task by ID and action."""
-        # Snoozed newly expired or foreground notification Task
+        """
+        Snoozes a Task by ID and action.
+        - Adds time since Task expired.
+        - Adds action's snooze time.
+        - Adds time to avoid overlapping with other Tasks.
+        - Main Manager handles the snoozed Task.
+        """
         logger.critical(f"Snoozing task_id: {task_id}")
+
+        # Snoozed newly expired or foreground notification Task
+        result = self._get_snoozed_task(task_id)
+        if not result:
+            # No snoozed Task found
+            return False
+        
+        # Get time between expiry and user snoozing
+        snoozed_task, is_old_task = result
+        time_since_expiry = self._get_time_since_expiry(snoozed_task, is_old_task)
+        # Get action's snooze time
+        snooze_seconds = self._get_snooze_seconds(action)
+        # Add time to avoid overlapping with other Tasks
+        overlap_time = self._get_overlap_time(snoozed_task, snooze_seconds, time_since_expiry)
+        # Total
+        total_snooze_time = snooze_seconds + \
+                            time_since_expiry + \
+                            overlap_time
+        
+        # Clear if snoozed expired Task
+        if snoozed_task == self.expired_task:
+            self.expired_task = None
+        
+        # Save changes
+        self._save_task_changes(snoozed_task.task_id, {
+            "snooze_time": snoozed_task.snooze_time + total_snooze_time,
+            "expired": False
+        })
+
+        logger.trace(f"Task {DM.get_task_log(snoozed_task)} snoozed for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
+        logger.trace(f"Last added snooze time: {total_snooze_time}s")
+
+        self._handle_snoozed_task(snoozed_task)
+    
+    def _get_snoozed_task(self, task_id: str) -> tuple[Task, bool] | None:
+        """Returns the snoozed task by ID."""
         snoozed_task = self.get_task_by_id(task_id)
         old_task = False
         if not snoozed_task:
@@ -65,54 +94,57 @@ class ExpiryManager():
         
         if not snoozed_task:
             logger.error(f"Task {task_id} not found for snoozing")
-            return
+            return None
         
+        return snoozed_task, old_task
+    
+    def _get_time_since_expiry(self, snoozed_task: Task, is_old_task: bool) -> int:
+        """Returns the time since the snoozed Task expired."""
         task_expiration = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time)
         now = datetime.now()
 
-        if now > task_expiration or old_task:
+        if now > task_expiration or is_old_task:
             # Snoozed through Task notification
             # Task is already expired > add time since expiration
-            time_diff_seconds = math.floor((now - task_expiration).total_seconds() / 10) * 10  # Round down to nearest 10 seconds
+            time_since_expiry = math.floor((now - task_expiration).total_seconds() / 10) * 10  # Round down to nearest 10 seconds
         else:
             # Snoozed through foreground notification
             # Task is not expired > no need to add time
-            time_diff_seconds = 0
+            time_since_expiry = 0
 
-        # Update snooze time
+        return time_since_expiry
+    
+    def _get_snooze_seconds(self, action: str) -> int:
+        """Returns the snooze seconds based on the action."""
         if action.endswith(DM.ACTION.SNOOZE_A):
-            snooze_seconds = self.SNOOZE_A_SECONDS
+            return self.SNOOZE_A_SECONDS
         elif action.endswith(DM.ACTION.SNOOZE_B):
-            snooze_seconds = self._SNOOZE_B_SECONDS
+            return self._SNOOZE_B_SECONDS
         else:
-            return False
+            return 0
+    
+    def _get_overlap_time(self, snoozed_task: Task, snooze_seconds: int, time_since_expiry: int) -> int:
+        """Returns the extra overlap time needed to avoid overlapping with other Tasks."""
+        task_snooze = snoozed_task.snooze_time + snooze_seconds + time_since_expiry
+        new_timestamp = snoozed_task.timestamp + timedelta(seconds=task_snooze)
         
-        # Always add the time that has passed since original expiration
-        added_snooze_time = snooze_seconds + time_diff_seconds
-        
-        # Calculate new timestamp
-        new_timestamp = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time + added_snooze_time)
-        # Check for overlaps with other Tasks
+        overlap_time = 0
         while self._has_time_overlap(new_timestamp):
             logger.debug(f"Task {snoozed_task.task_id} would overlap with another task, adding 10 seconds")
-            added_snooze_time += 10
-            new_timestamp = snoozed_task.timestamp + timedelta(seconds=snoozed_task.snooze_time + added_snooze_time)
+            overlap_time += 10
+            new_timestamp = snoozed_task.timestamp + timedelta(seconds=task_snooze + overlap_time)
         
-        # If snoozed, clear expired Task
-        if snoozed_task == self.expired_task:
-            self.expired_task = None
+        return overlap_time
+
+    def _has_time_overlap(self, timestamp: datetime) -> bool:
+        """Returns True if the timestamp overlaps with another Task."""
+        for task in self.active_tasks:
+            task_effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
+            if task_effective_time == timestamp:
+                return True
         
-        # Save changes
-        self._save_task_changes(snoozed_task.task_id, {
-            "snooze_time": snoozed_task.snooze_time + added_snooze_time,
-            "expired": False
-        })
+        return False
 
-        logger.trace(f"Task {DM.get_task_log(snoozed_task)} snoozed for {added_snooze_time/60:.1f}m plus {time_diff_seconds/60}m waiting time.")
-        logger.trace(f"Last added snooze time: {added_snooze_time}s")
-
-        self._handle_snoozed_task(snoozed_task)
-    
     def cancel_task(self, task_id: str) -> None:
         """Cancels a Task by ID."""
         cancelled_task = self.get_task_by_id(task_id)

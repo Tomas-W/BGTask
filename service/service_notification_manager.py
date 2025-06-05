@@ -263,12 +263,12 @@ class ServiceNotificationManager:
             if full_screen_intent:
                 builder.setFullScreenIntent(full_screen_intent, True)
 
-            # Add delete intent to cancel task when notification is swiped
+            # Add delete intent to cancel Task when notification is swiped
             delete_intent = self.create_action_intent(DM.ACTION.CANCEL, task_id)
             if delete_intent:
                 builder.setDeleteIntent(delete_intent)
 
-            # Add click action to open app via broadcast
+            # Add click action to open App through broadcast
             app_intent = self.create_action_intent(DM.ACTION.OPEN_APP, task_id)
             if app_intent:
                 builder.setContentIntent(app_intent)
@@ -293,7 +293,7 @@ class ServiceNotificationManager:
 
     def show_task_notification(self, title: str, message: str) -> None:
         """Shows a high-priority task notification with buttons."""
-        # Validate prerequisites
+        # Validate
         icon_id = self._get_icon_resource()
         if icon_id is None:
             logger.error("No valid icon found, cannot show notification")
@@ -315,11 +315,11 @@ class ServiceNotificationManager:
 
         # Show notification
         try:
-            # Generate unique notification ID
+            # Generate notification ID
             self.current_notification_id = int(time.time())
             notification = builder.build()
             
-            # Show notification and track it
+            # Show and track notification
             self.notification_manager.notify(self.current_notification_id, notification)
             self.active_notification_ids.add(self.current_notification_id)
             logger.debug(f"Showed task notification with ID: {self.current_notification_id}")
@@ -331,7 +331,7 @@ class ServiceNotificationManager:
             logger.error(f"Error showing task notification: {e}")
     
     def cancel_all_notifications(self) -> None:
-        """Cancel all active notifications"""
+        """Cancels all active notifications."""
         if not self.active_notification_ids:
             return
         
@@ -351,7 +351,7 @@ class ServiceNotificationManager:
             logger.error(f"Error cancelling all notifications: {e}")
     
     def cancel_current_notification(self) -> None:
-        """Cancel the current Task notification if it exists"""
+        """Cancels the current Task notification if it exists."""
         if self.current_notification_id is not None:
             try:
                 self.notification_manager.cancel(self.current_notification_id)
@@ -362,7 +362,7 @@ class ServiceNotificationManager:
                 logger.error(f"Error cancelling notification: {e}")
     
     def remove_notification(self) -> None:
-        """Remove the foreground notification"""
+        """Removes the foreground notification."""
         try:
             self.service.stopForeground(True)
         
@@ -370,7 +370,7 @@ class ServiceNotificationManager:
             logger.error(f"Error removing notification: {e}")
     
     def _has_foreground_notification(self) -> bool:
-        """Check if the foreground notification is active"""
+        """Returns True if the foreground notification is active."""
         try:
             return len(self.notification_manager.getActiveNotifications()) > 0
         
@@ -379,6 +379,6 @@ class ServiceNotificationManager:
             return False
     
     def ensure_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
-        """Ensure the foreground notification is active, show it if it's not"""
+        """Ensures the foreground notification is active, shows it if it's not."""
         logger.debug("Foreground notification not active, restoring it")
         self.show_foreground_notification(title, message, with_buttons)

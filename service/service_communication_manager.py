@@ -166,11 +166,11 @@ class ServiceCommunicationManager:
         return Service.START_STICKY
     
     def _is_service_action(self, pure_action: str) -> bool:
-        """Checks if the action is a service action."""
+        """Checks if the action is a Service action."""
         return any(pure_action.endswith(action) for action in self.service_actions)
     
     def _is_app_action(self, pure_action: str) -> bool:
-        """Checks if the action is an app action."""
+        """Checks if the action is an App action."""
         return any(pure_action.endswith(action) for action in self.app_actions)
 
     def _handle_boot_action(self, pure_action: str) -> None:
@@ -228,15 +228,6 @@ class ServiceCommunicationManager:
         if not DM.validate_action(action):
             logger.error(f"Invalid action: {action}")
             return
-        
-        # Early return for OPEN_APP action
-        if action == DM.ACTION.OPEN_APP:
-            logger.critical("OPEN_APP action received")
-            logger.critical("OPEN_APP action received")
-            logger.critical("OPEN_APP action received")
-            logger.critical("Thought was not possible")
-            self.service_manager._open_app()
-            return
 
         try:
             intent = self._get_send_action_intent(action)
@@ -251,25 +242,21 @@ class ServiceCommunicationManager:
     
     def send_action_with_pending_intent(self, action: str, extras: dict | None = None) -> None:
         """
-        Sends a pending intent that will launch the activity.
-        Used when we need to ensure the action is received even if the app is not running.
-        
-        Args:
-            action: The action to send
-            extras: Dictionary of extra data to include in the intent (e.g. {"task_id": "123"})
+        Sends a pending intent for actions that need to be received even if the App is not running.
+        Needs to be received by _app_has_pending_intents in main.py.
         """
         try:
-            # Create intent for the activity
+            # Create intent
             intent = Intent()
             intent.setClassName(self.package_name, f"{self.package_name}.MainActivity")
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
             
-            # Add our action and extras
+            # Add action
             if extras is None:
                 extras = {}
             extras["pending_action"] = action
             
-            # Add extras to intent
+            # Add extras
             for key, value in extras.items():
                 intent.putExtra(key, AndroidString(str(value)))
             
@@ -299,14 +286,12 @@ class ServiceCommunicationManager:
         Extracts and returns task_id from the intent extras, or None.
         Falls back to current task's ID only for service actions that require it.
         """
-        # Try to get task_id directly from intent extras
-        task_id = intent.getStringExtra("task_id")
-        
+        task_id = intent.getStringExtra("task_id")        
         if task_id:
             logger.debug(f"Using task_id from intent extras: {task_id}")
             return task_id
         
-        # Only fall back to current task for service actions that require task_id
+        # Fallback to current Task's ID
         if action and any(action.endswith(a) for a in [DM.ACTION.SNOOZE_A, DM.ACTION.SNOOZE_B, DM.ACTION.CANCEL, DM.ACTION.OPEN_APP]):
             if self.expiry_manager.current_task:
                 logger.debug(f"No task_id in intent, using current task_id: {self.expiry_manager.current_task.task_id}")

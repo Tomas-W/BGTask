@@ -300,27 +300,13 @@ class TaskApp(App, EventDispatcher):
         self.logger = logger
     
     def on_pause(self):
-        """
-        App is paused by the OS (e.g., user switches to another app).
-        Creates a flag file to indicate Tasks need updating in the service.
-        """
         super().on_pause()
         self.logger.debug("App is pausing")
-        if hasattr(self, "task_manager"):
-            # Check if user interacted with a notification
-            # self.task_manager._checked_background_cancelled_tasks = False
-            # Signal to ExpiryManager to refresh tasks
-            # self.task_manager.expiry_manager._need_refresh_tasks = True
-            pass
         return True
     
     def on_stop(self):
-        """
-        App is being stopped.
-        Save last open time and ensure the background service is running.
-        """
         super().on_stop()
-        self.logger.debug("App is stopping - saving last open for background service")
+        self.logger.debug("App is stopping")
     
     def on_resume(self):
         """
@@ -331,28 +317,18 @@ class TaskApp(App, EventDispatcher):
         self.logger.debug("App is resuming - checking for expired tasks")
 
         if hasattr(self, "task_manager"):
-            # Notify Service to stop alarm
-            # self._stop_service_alarm()
-            # Notify to trigger without alarm
-            self.task_manager.expiry_manager._just_resumed = True
-            
-            # First reload tasks from file to ensure we have latest data
-            start_time = time.time()
+            # Reload Apps Tasks and UI
             self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
-            # Finally rebuild the display with updated data
             self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
-            self.logger.critical(f"Reloading Tasks on_resume took: {time.time() - start_time:.4f}")
     
     def _stop_service_alarm(self):
-        """
-        Sends a broadcast to stop the service alarm.
-        """
+        """Sends a broadcast to stop the service alarm."""
         if self.communication_manager:
             self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
     
     def on_start(self):
         """
-        App is being started.
+        Checks for pending intents and handles them.
         """
         super().on_start()
         from src.utils.background_service import _app_has_pending_intents
@@ -364,9 +340,15 @@ class TaskApp(App, EventDispatcher):
         """Handle the pending intent action and extras"""
         self.logger.error(f"Handling pending intent with action: {pure_action} and extras: {extras}")
 
-        if pure_action == DM.ACTION.SHOW_TASK_POPUP and extras and "task_id" in extras:
+        if pure_action == DM.ACTION.SHOW_TASK_POPUP:
+            self._handle_show_task_popup(extras)
+    
+    def _handle_show_task_popup(self, extras: dict):
+        """
+        Handles the show task popup intent.
+        """
+        if "task_id" in extras:
             task_id = extras["task_id"]
-            # Get the task and show popup
             task = self.task_manager.expiry_manager.get_task_by_id(task_id)
             if task:
                 self.logger.error(f"Showing popup for pending intent task: {task}")
@@ -376,8 +358,6 @@ class TaskApp(App, EventDispatcher):
                 )
             else:
                 self.logger.debug(f"No task found for task_id: {task_id}") 
-
-    
 
 
 if __name__ == "__main__":
