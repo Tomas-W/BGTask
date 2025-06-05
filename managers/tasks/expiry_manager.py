@@ -278,7 +278,7 @@ class ExpiryManager():
         except Exception as e:
             logger.error(f"Error saving Task changes: {e}")
     
-    def log_expiry_tasks(self) -> None:
+    def _log_expiry_tasks(self) -> None:
         logger.debug(f"Current task: {DM.get_task_log(self.current_task) if self.current_task else None}")
         logger.debug(f"Expired task: {DM.get_task_log(self.expired_task) if self.expired_task else None}")
         logger.debug("Active tasks:")

@@ -304,6 +304,7 @@ class TaskApp(App, EventDispatcher):
         App is paused by the OS (e.g., user switches to another app).
         Creates a flag file to indicate Tasks need updating in the service.
         """
+        super().on_pause()
         self.logger.debug("App is pausing")
         if hasattr(self, "task_manager"):
             # Check if user interacted with a notification
@@ -318,6 +319,7 @@ class TaskApp(App, EventDispatcher):
         App is being stopped.
         Save last open time and ensure the background service is running.
         """
+        super().on_stop()
         self.logger.debug("App is stopping - saving last open for background service")
     
     def on_resume(self):
@@ -325,6 +327,7 @@ class TaskApp(App, EventDispatcher):
         App is resumed from a paused state.
         Check for any expired tasks that might have occurred while paused.
         """
+        super().on_resume()
         self.logger.debug("App is resuming - checking for expired tasks")
 
         if hasattr(self, "task_manager"):
@@ -351,7 +354,30 @@ class TaskApp(App, EventDispatcher):
         """
         App is being started.
         """
-        print("on_start")
+        super().on_start()
+        from src.utils.background_service import _app_has_pending_intents
+        result = _app_has_pending_intents()
+        if result:
+            Clock.schedule_once(lambda dt: self._handle_pending_intent(*result), 0.8)
+        
+    def _handle_pending_intent(self, pure_action: str, extras: dict | None = None) -> None:
+        """Handle the pending intent action and extras"""
+        self.logger.error(f"Handling pending intent with action: {pure_action} and extras: {extras}")
+
+        if pure_action == DM.ACTION.SHOW_TASK_POPUP and extras and "task_id" in extras:
+            task_id = extras["task_id"]
+            # Get the task and show popup
+            task = self.task_manager.expiry_manager.get_task_by_id(task_id)
+            if task:
+                self.logger.error(f"Showing popup for pending intent task: {task}")
+                self.task_manager.expiry_manager.dispatch(
+                    "on_task_expired_show_task_popup",
+                    task=task
+                )
+            else:
+                self.logger.debug(f"No task found for task_id: {task_id}") 
+
+    
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ AndroidString = autoclass("java.lang.String")
 Intent = autoclass("android.content.Intent")
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
+PendingIntent = autoclass("android.app.PendingIntent")
+FLAG_UPDATE_CURRENT = 0x04000000  # PendingIntent flag
 
 if TYPE_CHECKING:
     from service.service_manager import ServiceManager
@@ -94,8 +96,7 @@ class ServiceCommunicationManager:
                 actions=actions
             )
             self.receiver.start()
-            logger.debug(f"Started broadcast receiver for actions: {actions}")
-            
+
         except Exception as e:
             logger.error(f"Error initializing broadcast receiver: {e}")
     
@@ -248,6 +249,43 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
     
+    def send_action_with_pending_intent(self, action: str, extras: dict | None = None) -> None:
+        """
+        Sends a pending intent that will launch the activity.
+        Used when we need to ensure the action is received even if the app is not running.
+        
+        Args:
+            action: The action to send
+            extras: Dictionary of extra data to include in the intent (e.g. {"task_id": "123"})
+        """
+        try:
+            # Create intent for the activity
+            intent = Intent()
+            intent.setClassName(self.package_name, f"{self.package_name}.MainActivity")
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            
+            # Add our action and extras
+            if extras is None:
+                extras = {}
+            extras["pending_action"] = action
+            
+            # Add extras to intent
+            for key, value in extras.items():
+                intent.putExtra(key, AndroidString(str(value)))
+            
+            # Create and send pending intent
+            pending_intent = PendingIntent.getActivity(
+                self.context,
+                0,
+                intent,
+                FLAG_UPDATE_CURRENT
+            )
+            pending_intent.send()
+            logger.debug(f"Sent activity pending intent for action: {action} with extras: {extras}")
+        
+        except Exception as e:
+            logger.error(f"Error sending pending intent: {e}", exc_info=True)
+    
     def _get_send_action_intent(self, action: str) -> Any:
         """Returns an intent for the given action."""
         intent = Intent()
@@ -300,6 +338,7 @@ class ServiceCommunicationManager:
         self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
         self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
+        self.send_action_with_pending_intent(DM.ACTION.SHOW_TASK_POPUP, {"task_id": task_id})
         # Open app
         if action.endswith(DM.ACTION.OPEN_APP):
             self.service_manager._open_app()

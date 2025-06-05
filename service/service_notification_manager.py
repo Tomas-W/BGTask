@@ -211,7 +211,7 @@ class ServiceNotificationManager:
                 logger.error(f"Error getting app icon: {e}")
                 return None
     
-    def _create_notification_builder(self, channel: str, title: str, message: str, icon_id: int, priority: int) -> NotificationBuilder | None:
+    def _create_notification_builder(self, channel: str, title: str, message: str, icon_id: int, priority: int) -> Any | None:
         """Creates a notification builder with basic settings."""
         try:
             builder = NotificationBuilder(self.context, channel)
@@ -220,6 +220,7 @@ class ServiceNotificationManager:
             builder.setSmallIcon(icon_id)
             builder.setPriority(priority)
             return builder
+        
         except Exception as e:
             logger.error(f"Error creating notification builder: {e}")
             return None

@@ -321,7 +321,7 @@ class ServiceManager:
         """Logs the current and expired tasks"""
         if self.expiry_log_tick >= ServiceManager.EXPIRY_LOG_TICK:
             self.expiry_log_tick = 0
-            self.expiry_manager.log_expiry_tasks()
+            self.expiry_manager._log_expiry_tasks()
     
     def clean_up_previous_task(self) -> None:
         """Cleans up the previous Task's alarm and notifications"""

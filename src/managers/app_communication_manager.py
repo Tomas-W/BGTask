@@ -78,8 +78,7 @@ class AppCommunicationManager():
                 actions=actions
             )
             self.receiver.start()
-            logger.debug(f"Started broadcast receiver for actions: {actions}")
-            
+                    
         except Exception as e:
             logger.error(f"Error initializing broadcast receiver: {e}")
 

@@ -28,22 +28,12 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
         self._just_resumed = True
 
-        self.tick = 0
+        self.log_tick = 0
     
     def check_task_expiry(self, *args, **kwargs) -> bool:
         """Returns True if the current Task is expired"""
-        self.tick += 1
-        if self.tick % 10 == 0:
-            logger.debug(f"Current task: {DM.get_task_log(self.current_task) if self.current_task else None}")
-            logger.debug(f"Expired task: {DM.get_task_log(self.expired_task) if self.expired_task else None}")
-            logger.debug("Active tasks:")
-
-            for task in self.active_tasks:
-                logger.debug(f"      {DM.get_task_log(task)}")
-        
-        # if self._need_refresh_tasks:
-        #     self._refresh_tasks()
-        #     self._need_refresh_tasks = False
+        self.log_tick += 1
+        self.log_expiry_tasks()
 
         if self.is_task_expired():
             logger.debug("Task expired, showing notification")
@@ -97,21 +87,11 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
         logger.trace(f"_handle_snoozed_task updated Task: {DM.get_task_log(snoozed_task)}")
-
-    # def check_expired_tasksbydate(self, instance, date: str):
-    #     """Check if all Tasks are expired for a given date"""
-    #     logger.debug(f"Checking expired tasks by date: {date}")
-    #     from src.utils.misc import get_task_header_text
-    #     formatted_date = get_task_header_text(date)
-        
-    #     for task_group in self.active_task_widgets:
-    #         if task_group.date_str == formatted_date:
-    #             if all(task.expired for task in task_group.tasks):
-    #                 task_group.tasks_container.set_expired(True)
-    #                 task_group.all_expired = True
-    #                 logger.debug(f"All tasks expired for date: {formatted_date}")
-    #                 return
-    #     logger.debug(f"No expired tasks found for date: {formatted_date}")
+    
+    def log_expiry_tasks(self) -> None:
+        """Logs the expiry tasks"""
+        if self.log_tick % 10 == 0:
+            self._log_expiry_tasks()
     
     def on_task_expired_trigger_alarm(self, *args, **kwargs):
         """Default handler for on_task_expired_trigger_alarm event"""
@@ -119,8 +99,6 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
     
     def on_task_expired_show_task_popup(self, *args, **kwargs):
         """Default handler for on_task_expired_show_task_popup event"""
-        logger.debug(f"Received show_task_popup with args: {args}")
-        logger.debug(f"Received show_task_popup with kwargs: {kwargs}")
         pass
 
     def on_task_cancelled_stop_alarm(self, *args, **kwargs):
