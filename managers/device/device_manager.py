@@ -6,9 +6,9 @@ from datetime import timedelta
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions,
+    Dirs, Paths, Dates, Extensions, Settings,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
-    NotificationType, Actions, ActionTargets, SharedPreferences
+    NotificationType, Actions, ActionTargets, SharedPreferencesTypes, SharedPreferences
 )
 from src.utils.logger import logger
 
@@ -35,12 +35,16 @@ class DeviceManager:
             self.PATH: Final[Paths] = Paths(self.is_android)
             self.DATE: Final[Dates] = Dates()
             self.EXT: Final[Extensions] = Extensions()
+            self.SETTINGS: Final[Settings] = Settings()
     	
             # Communication
             self.ACTION: Final[Actions] = Actions()
             self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
             self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
-            self.PREFERENCES: Final[SharedPreferences] = SharedPreferences()
+
+            # SharedPreferences
+            self.PREFERENCE_TYPE: Final[SharedPreferencesTypes] = SharedPreferencesTypes()
+            self.PREFERENCE: Final[SharedPreferences] = SharedPreferences()
 
             # Service communication & notifications
             if self.is_android:
@@ -48,6 +52,7 @@ class DeviceManager:
                 self.PRIORITY: Final[NotificationPriority] = NotificationPriority()
                 self.IMPORTANCE: Final[NotificationImportance] = NotificationImportance()
                 self.INTENT: Final[PendingIntents] = PendingIntents()
+        
 
     def _device_is_android(self) -> bool:
         """Returns whether the App is running on Android."""

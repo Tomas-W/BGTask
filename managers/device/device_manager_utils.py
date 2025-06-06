@@ -202,9 +202,25 @@ class NotificationType:
         self.EXPIRED: str = "expired"
 
 
+class SharedPreferencesTypes:
+    """
+    Contains constants for shared preferences types.
+    """
+    def __init__(self):
+        self.ACTIONS: str = "ACTIONS"
+
+
 class SharedPreferences:
     """
     Contains constants for shared preferences.
     """
     def __init__(self):
-        self.ACTIONS: str = "ACTIONS"
+        self.SHOW_TASK_POPUP: str = "SHOW_TASK_POPUP"
+
+
+class Settings:
+    """
+    Contains constants for settings.
+    """
+    def __init__(self):
+        self.HEARTBEAT_SEDCONDS: int = 120

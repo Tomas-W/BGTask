@@ -3,7 +3,9 @@ from typing import Any, TYPE_CHECKING
 from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
 
+from service.service_preference_manager import ServicePreferencesManager
 from managers.device.device_manager import DM
+
 from src.utils.logger import logger
 
 AndroidString = autoclass("java.lang.String")
@@ -38,6 +40,8 @@ class ServiceCommunicationManager:
         self.expiry_manager: "ServiceExpiryManager" = expiry_manager
         self.notification_manager: "ServiceNotificationManager" = notification_manager
 
+        self.preferences_manager: ServicePreferencesManager | None = None
+
         self.context: Any | None = None
         self.package_name: str | None = None
         self.receiver: BroadcastReceiver | None = None
@@ -61,6 +65,7 @@ class ServiceCommunicationManager:
 
         self._init_context()
         self._init_receiver()
+        self._init_preferences_manager()
 
     def _init_context(self) -> None:
         """Initializes the Service context and package name."""
@@ -99,6 +104,10 @@ class ServiceCommunicationManager:
 
         except Exception as e:
             logger.error(f"Error initializing broadcast receiver: {e}")
+    
+    def _init_preferences_manager(self) -> None:
+        """Initializes the preferences manager."""
+        self.preferences_manager = ServicePreferencesManager(self.context)
     
     def _get_receiver_actions(self) -> list[str]:
         """Converts and returns pure actions to receiver actions."""
@@ -245,29 +254,6 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
     
-    def send_action_with_shared_preferences(self, pref_type: str, extras: dict) -> None:
-        """
-        Stores values in SharedPreferences that the App can read when it starts.
-        
-        Args:
-            pref_type: The SharedPreferences file to use (e.g. DM.PREFERENCES.ACTIONS)
-            extras: Key-value pairs to store
-        """
-        try:
-            Context = autoclass('android.content.Context')
-            prefs = self.context.getSharedPreferences(pref_type, Context.MODE_PRIVATE)
-            editor = prefs.edit()
-
-            # Store all key-value pairs
-            for key, value in extras.items():
-                editor.putString(key, str(value))
-            
-            editor.commit()
-            logger.debug(f"Stored preferences in {pref_type}: {extras}")
-
-        except Exception as e:
-            logger.error(f"Error storing preferences: {e}", exc_info=True)
-    
     def _get_flags(self, action: str) -> int:
         """Returns the flags based on the action."""
         flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -326,11 +312,11 @@ class ServiceCommunicationManager:
         self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
         # Send both action and SharedPreferences
-        # Apps receiver deletes the SharedPreferences if action is received
+        # Apps action_handler deletes the SharedPreferences if action is received
         self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
-        self.send_action_with_shared_preferences(
-            pref_type=DM.PREFERENCES.ACTIONS,
-            extras={"show_task_popup": task_id}
+        self.preferences_manager.set_preferences(
+            pref_type=DM.PREFERENCE_TYPE.ACTIONS,
+            extras={DM.PREFERENCE.SHOW_TASK_POPUP: task_id},
         )
                 
         if action.endswith(DM.ACTION.OPEN_APP):

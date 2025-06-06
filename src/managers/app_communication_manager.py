@@ -133,8 +133,8 @@ class AppCommunicationManager():
                 from src.utils.background_service import get_and_delete_shared_preference
                 # Delete SharedPreferences
                 task_id = get_and_delete_shared_preference(
-                    pref_type=DM.PREFERENCES.ACTIONS,
-                    key="show_task_popup"
+                    pref_type=DM.PREFERENCE_TYPE.ACTIONS,
+                    key=DM.PREFERENCE.SHOW_TASK_POPUP
                 )
             
         except Exception as e:

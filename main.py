@@ -168,6 +168,7 @@ class TaskApp(App, EventDispatcher):
         Clock.schedule_once(self._load_secondary_components, 0.05)
 
     def _load_secondary_components(self, dt):
+        self._init_preference_manager()
         self._init_communication_manager()
         self._init_audio_manager()
         self._init_main_screens()
@@ -207,6 +208,17 @@ class TaskApp(App, EventDispatcher):
         self.audio_manager = AppAudioManager()
         LOADED.AUDIO_MANAGER = True
         self.logger.critical(f"Loading AudioManager time: {time.time() - start_time:.4f}")
+    
+    def _init_preference_manager(self):
+        if hasattr(self, "preference_manager"):
+            return
+        
+        # AppPreferencesManager
+        start_time = time.time()
+        from src.managers.app_preference_manager import AppPreferencesManager
+        self.preference_manager = AppPreferencesManager()
+        LOADED.PREFERENCE_MANAGER = True
+        print(f"Loading PreferenceManager time: {time.time() - start_time:.4f}")
     
     def _init_communication_manager(self):
         # AppToServiceCommunicator
@@ -301,84 +313,91 @@ class TaskApp(App, EventDispatcher):
         from src.utils.logger import logger
         self.logger = logger
     
+    def on_stop(self):
+        super().on_stop()
+        self.logger.debug("App is stopping")
+    
     def on_pause(self):
         super().on_pause()
         self.logger.debug("App is pausing")
         return True
     
-    def on_stop(self):
-        super().on_stop()
-        self.logger.debug("App is stopping")
+    def on_start(self):
+        """
+        Called after StartScreen's pre_enter.
+        - Checks SharedPreferences for actions send while App was closed
+        """
+        super().on_start()
+        print("ON START ON START ON START ON START ON START ON START")
+
+        self._check_start_actions()
     
     def on_resume(self):
         """
         App is resumed from a paused state.
-        Check for any expired tasks that might have occurred while paused.
+        - Reloads TaskManager's Tasks and Screens UI
         """
         super().on_resume()
-        self.logger.debug("App is resuming - checking for expired tasks")
+        self.logger.debug("App is resuming")
 
         if hasattr(self, "task_manager"):
-            # Reload Apps Tasks and UI
-            self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
-            self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
+            self._reload_tasks_and_ui()
     
-    def _stop_service_alarm(self):
-        """Sends a broadcast to stop the service alarm."""
-        if self.communication_manager:
-            self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
+    def _reload_tasks_and_ui(self) -> None:
+        """Reloads TaskManager's Tasks and Screens UI."""
+        self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
+        self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
     
-    def on_start(self):
+    def _check_start_actions(self) -> None:
         """
-        Checks for pending task popups.
+        Checks SharedPreferences for actions send while App was closed.
+        - Show Task Popup
         """
-        super().on_start()
-        print("ON START ON START ON START ON START ON START ON START")
-        print("ON START ON START ON START ON START ON START ON START")
-        from src.utils.background_service import get_and_delete_shared_preference
+        if not hasattr(self, "preference_manager"):
+            self._init_preference_manager()
         
-        # Check for pending task popup
-        task_id = get_and_delete_shared_preference(
-            pref_type=DM.PREFERENCES.ACTIONS,
-            key="show_task_popup"
+        # Check need show Task popup
+        task_id = self.preference_manager.get_and_delete_preference(
+            pref_type=DM.PREFERENCE_TYPE.ACTIONS,
+            key=DM.PREFERENCE.SHOW_TASK_POPUP
         )
         if task_id:
-            print("Found pending task popup, starting popup system check...")
+            print("Found pending Task popup action, waiting for PopupManager...")
             self._wait_for_popup_system(task_id)
 
-    def _wait_for_popup_system(self, task_id: str):
+    def _wait_for_popup_system(self, task_id: str) -> None:
         """
-        Polls every 0.2 seconds until popup system is ready.
-        Then handles the task popup.
+        Polls every 0.2 seconds until PopupManager is ready.
+        Then handles the Task popup.
         """
         def check_popup_ready(dt):
             if not hasattr(self, 'popup_ready') or not self.popup_ready:
-                # Not ready yet, schedule another check
-                print("Popup system not ready, waiting...")
+                # Not ready, schedule another check
+                print("PopupManager not ready, waiting...")
                 Clock.schedule_once(check_popup_ready, 0.2)
             else:
-                # Ready! Handle the popup
-                print("Popup system ready, showing task popup...")
+                # Ready, handle the popup
+                print("PopupManager ready, showing Task popup...")
                 self._handle_show_task_popup(task_id)
         
         # Start the polling
         Clock.schedule_once(check_popup_ready, 0)
 
-    def _handle_show_task_popup(self, task_id: str):
-        """Handles showing the task popup."""
+    def _handle_show_task_popup(self, task_id: str) -> None:
+        """Handles showing the Task popup."""
         try:
             task = self.task_manager.expiry_manager._search_expired_task(task_id)
             if task:
-                self.logger.debug(f"Showing popup for pending intent task: {task}")
+                self.logger.debug(f"Showing popup from SharedPreferences: {DM.get_task_log(task)}")
                 self.task_manager.expiry_manager.dispatch(
                     "on_task_expired_show_task_popup",
                     task=task
                 )
             else:
-                self.logger.warning(f"No task found for task_id: {task_id}")
+                self.logger.warning(f"No Task found for task_id: {task_id}")
             
         except Exception as e:
-            self.logger.error(f"Error showing task popup: {e}")
+            self.logger.error(f"Error showing Task popup: {e}")
 
 
 if __name__ == "__main__":

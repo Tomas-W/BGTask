@@ -141,6 +141,7 @@ class Loaded:
     TASK_MANAGER = False
     AUDIO_MANAGER = False
     COMMUNICATION_MANAGER = False
+    PREFERENCE_MANAGER = False
 
 class StrEnum(str, enum.Enum):
     """String Enum that can be compared directly with strings."""
