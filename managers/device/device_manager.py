@@ -8,7 +8,7 @@ from typing import Final, TYPE_CHECKING
 from managers.device.device_manager_utils import (
     Dirs, Paths, Dates, Extensions,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
-    NotificationType, Actions, ActionTargets
+    NotificationType, Actions, ActionTargets, SharedPreferences
 )
 from src.utils.logger import logger
 
@@ -40,6 +40,7 @@ class DeviceManager:
             self.ACTION: Final[Actions] = Actions()
             self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
             self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
+            self.PREFERENCES: Final[SharedPreferences] = SharedPreferences()
 
             # Service communication & notifications
             if self.is_android:

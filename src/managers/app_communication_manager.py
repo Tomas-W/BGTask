@@ -126,8 +126,16 @@ class AppCommunicationManager():
                 self._update_tasks_action(task_id)
             
             elif pure_action == DM.ACTION.SHOW_TASK_POPUP:
+                logger.critical("SHOW_TASK_POPUP received")
                 task = self.expiry_manager._search_expired_task(task_id)
                 self._show_task_popup_action(task)
+
+                from src.utils.background_service import get_and_delete_shared_preference
+                # Delete SharedPreferences
+                task_id = get_and_delete_shared_preference(
+                    pref_type=DM.PREFERENCES.ACTIONS,
+                    key="show_task_popup"
+                )
             
         except Exception as e:
             logger.error(f"Error handling service action: {e}")

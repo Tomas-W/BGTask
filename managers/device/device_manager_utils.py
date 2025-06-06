@@ -200,3 +200,11 @@ class NotificationType:
     def __init__(self):
         self.FOREGROUND: str = "foreground"
         self.EXPIRED: str = "expired"
+
+
+class SharedPreferences:
+    """
+    Contains constants for shared preferences.
+    """
+    def __init__(self):
+        self.ACTIONS: str = "ACTIONS"

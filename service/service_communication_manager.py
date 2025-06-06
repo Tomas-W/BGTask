@@ -124,6 +124,11 @@ class ServiceCommunicationManager:
             if not pure_action:
                 logger.error("Error receiving callback - intent with null action")
                 return
+            
+            # Handle SharedPreferences actions
+            if pure_action == DM.ACTION.SHOW_TASK_POPUP:
+                self.receiver.setResultCode(1)
+                return
                 
             logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
             task_id = self._get_task_id(intent, pure_action)
@@ -240,28 +245,28 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
     
-    def send_action_with_shared_preferences(self, action: str, extras: dict | None = None) -> None:
+    def send_action_with_shared_preferences(self, pref_type: str, extras: dict) -> None:
         """
-        Stores a message in SharedPreferences that the App can read when it starts.
+        Stores values in SharedPreferences that the App can read when it starts.
+        
+        Args:
+            pref_type: The SharedPreferences file to use (e.g. DM.PREFERENCES.ACTIONS)
+            extras: Key-value pairs to store
         """
         try:
-            # Get SharedPreferences
             Context = autoclass('android.content.Context')
-            prefs = self.context.getSharedPreferences("pending_actions", Context.MODE_PRIVATE)
+            prefs = self.context.getSharedPreferences(pref_type, Context.MODE_PRIVATE)
             editor = prefs.edit()
 
-            # Store the action and extras
-            editor.putString("action", action)
-            if extras:
-                for key, value in extras.items():
-                    editor.putString(key, str(value))
+            # Store all key-value pairs
+            for key, value in extras.items():
+                editor.putString(key, str(value))
             
-            # Commit the changes synchronously to ensure they're saved
             editor.commit()
-            logger.debug(f"Stored pending action: {action} with extras: {extras}")
+            logger.debug(f"Stored preferences in {pref_type}: {extras}")
 
         except Exception as e:
-            logger.error(f"Error storing pending action: {e}", exc_info=True)
+            logger.error(f"Error storing preferences: {e}", exc_info=True)
     
     def _get_flags(self, action: str) -> int:
         """Returns the flags based on the action."""
@@ -317,16 +322,20 @@ class ServiceCommunicationManager:
         self.audio_manager.stop_alarm()
         self.service_manager.update_foreground_notification_info()
         
-        # App side - Send both broadcast and pending intent
+        # App side
         self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
         self.send_action(DM.ACTION.STOP_ALARM)
+        # Send both action and SharedPreferences
+        # Apps receiver deletes the SharedPreferences if action is received
         self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
-        
-        # For showing popup, only send pending intent if app needs to be launched
+        self.send_action_with_shared_preferences(
+            pref_type=DM.PREFERENCES.ACTIONS,
+            extras={"show_task_popup": task_id}
+        )
+                
         if action.endswith(DM.ACTION.OPEN_APP):
-            self.send_action_with_shared_preferences(DM.ACTION.SHOW_TASK_POPUP, {"task_id": task_id})
             self.service_manager._open_app()
-
+    
     def _update_tasks_action(self) -> None:
         """Refreshes ExpiryManager Tasks and updates foreground notification."""
         try:
