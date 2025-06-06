@@ -116,7 +116,6 @@ class TaskApp(App, EventDispatcher):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)        
-        self.popup_ready = False
         self.active_popup = None
 
     def build(self):
@@ -243,7 +242,7 @@ class TaskApp(App, EventDispatcher):
         Then handles the Task popup.
         """
         def check_popup_ready(dt):
-            if not hasattr(self, 'popup_ready') or not self.popup_ready:
+            if not LOADED.POPUP_MANAGER:
                 # Not ready, schedule another check
                 print("PopupManager not ready, waiting...")
                 Clock.schedule_once(check_popup_ready, 0.2)

@@ -236,7 +236,7 @@ class StartScreen(Screen):
         self._start_screen_finished = value
         from kivy.app import App
         app = App.get_running_app()
-        app.dispatch("on_start_screen_finished_load_app")
+        Clock.schedule_once(app._load_app, 0)
 
     def on_pre_enter(self) -> None:
         """
@@ -271,14 +271,9 @@ class StartScreen(Screen):
                 # When you want to hide the splash screen:
                 loadingscreen.hide_loading_screen()
             
-            finish_time = time.time()
-            from kivy.app import App
-            app = App.get_running_app()
-            kivy_time = app.kivy_time
-            total_time = finish_time - app.starting_time
-            logger.warning(f"KIVY TIME: {kivy_time:.4f}")
-            logger.warning(f"APP FIRST FRAME TIME: {finish_time - app.start_app_time:.4f}")
-            logger.warning(f"TOTAL FIRST FRAME TIME: {total_time:.4f}")\
+            from src.utils.timer import TIMER
+            TIMER.stop("start")
+            TIMER.stop("start_app")
             
             Clock.schedule_once(self.check_need_to_start_service, 0.1)
     
@@ -299,7 +294,7 @@ class StartScreen(Screen):
         
         
     def navigate_to_home_screen(self, slide_direction: str):
-        if not LOADED.HOME:
+        if not LOADED.HOME_SCREEN:
             from src.utils.logger import logger
             logger.error("Home screen not ready - cannot navigate to it")
             return

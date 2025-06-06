@@ -23,7 +23,7 @@ from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE, SIZE
+from src.settings import COL, SPACE, FONT, STATE, SIZE, LOADED
 from managers.device.device_manager import DM
 
 class BasePopup(Popup):
@@ -411,13 +411,8 @@ class PopupManager:
         app = App.get_running_app()
         self.task_manager = app.task_manager
         self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
-        
-        total_time = time.time() - start_time
-        logger.critical(f"Time taken to initialize PopupManager: {total_time}")
-
-        from kivy.app import App
-        app = App.get_running_app()
-        app.popup_ready = True
+    	
+        LOADED.POPUP_MANAGER = True
     
     def _handle_task_popup(self, *args, **kwargs):
         """
@@ -557,7 +552,10 @@ class PopupManager:
         self.show_task_popup(task=task)
 
 
+from src.utils.timer import TIMER
+TIMER.start("PopupManager")
+
 POPUP = PopupManager()
 
-total_time = time.time() - start_time
-logger.critical(f"Time taken to initialize popups: {total_time}")
+TIMER.stop("PopupManager")
+logger.timing(f"Loading PopupManager took: {TIMER.get_time('PopupManager')}")

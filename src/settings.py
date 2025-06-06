@@ -129,19 +129,20 @@ class Text:
 
 
 class Loaded:
-    START = False
-    HOME = False
-    NEW_TASK = False
-    SELECT_DATE = False
-    SELECT_ALARM = False
-    SAVED_ALARMS = False
-    SETTINGS = False
+    START_SCREEN = False
+    HOME_SCREEN = False
+    NEW_TASK_SCREEN = False
+    SELECT_DATE_SCREEN = False
+    SELECT_ALARM_SCREEN = False
+    SAVED_ALARMS_SCREEN = False
+    SETTINGS_SCREEN = False
 
     NAVIGATION_MANAGER = False
     TASK_MANAGER = False
     AUDIO_MANAGER = False
     COMMUNICATION_MANAGER = False
     PREFERENCE_MANAGER = False
+    POPUP_MANAGER = False
 
 class StrEnum(str, enum.Enum):
     """String Enum that can be compared directly with strings."""

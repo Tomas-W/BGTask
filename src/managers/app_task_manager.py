@@ -27,8 +27,13 @@ class TaskManager(EventDispatcher):
             return
         
         self.navigation_manager = App.get_running_app().navigation_manager
-        # if DM.is_android:
+        
+        from src.utils.timer import TIMER
+        TIMER.start("AppExpiryManager")
         self.expiry_manager = AppExpiryManager(self)
+        TIMER.stop("AppExpiryManager")
+        logger.timing(f"Loading AppExpiryManager took: {TIMER.get_time('AppExpiryManager')}")
+
         self.communication_manager = None  #Connected in main.py
 
         # Events

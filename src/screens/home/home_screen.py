@@ -195,7 +195,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         If the edit/delete icons are visible, toggle them off first.
         Also deselect any selected task.
         """
-        if not LOADED.NEW_TASK:
+        if not LOADED.NEW_TASK_SCREEN:
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         
@@ -288,6 +288,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         if not self.tasks_loaded:
             self.scroll_container.scroll_view.scroll_y = 1.0
             self.tasks_loaded = True
+        
+        from src.utils.timer import TIMER
+        all_logs = TIMER.get_all_logs()
+        for log in all_logs:
+            logger.timing(log)
     
     def on_leave(self):
         """Handle screen exit - deselect any task"""
