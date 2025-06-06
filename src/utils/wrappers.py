@@ -16,7 +16,7 @@ def log_time(name):
             result = func(self, *args, **kwargs)
             TIMER.stop(name)
             
-            logger.timing(f"Loading {name} took: {TIMER.get_time(name.lower())}")
+            logger.timing(f"Loading {name} took: {TIMER.get_time(name)}")
             return result
         return wrapper
     return decorator
