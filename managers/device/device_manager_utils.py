@@ -240,6 +240,7 @@ class Loaded:
         self.SETTINGS_SCREEN = False
 
         self.NAVIGATION_MANAGER = False
+        self.EXPIRY_MANAGER = False
         self.TASK_MANAGER = False
         self.AUDIO_MANAGER = False
         self.COMMUNICATION_MANAGER = False

@@ -1,4 +1,3 @@
-from datetime import timedelta, datetime
 from typing import TYPE_CHECKING
 
 from kivy.event import EventDispatcher
@@ -9,14 +8,16 @@ from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
-    from src.managers.app_task_manager import AppTaskManager
+    from src.managers.app_task_manager import TaskManager
+    from src.managers.app_communication_manager import AppCommunicationManager
     from managers.tasks.task import Task
 
 
 class AppExpiryManager(ExpiryManager, EventDispatcher):
-    def __init__(self, task_manager: "AppTaskManager"):
+    def __init__(self):
         super().__init__()
-        self.task_manager: "AppTaskManager" = task_manager
+        self.task_manager: "TaskManager" = None                       # connected in main.py
+        self.communication_manager: "AppCommunicationManager" = None  # connected in main.py
 
         # Expiry events
         self.register_event_type("on_task_expired_show_task_popup")
@@ -29,6 +30,14 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
 
         self._just_resumed: bool = True
         self.log_tick: int = 0
+    
+    def _connect_task_manager(self, task_manager: "TaskManager") -> None:
+        """Connects the TaskManager to the ExpiryManager."""
+        self.task_manager = task_manager
+    
+    def _connect_communication_manager(self, communication_manager: "AppCommunicationManager") -> None:
+        """Connects the CommunicationManager to the ExpiryManager."""
+        self.communication_manager = communication_manager
     
     def check_task_expiry(self, *args, **kwargs) -> bool:
         """Returns True if the current Task is expired."""
@@ -70,7 +79,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh StartScreen
         self.task_manager.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
-        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+        self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
     def _handle_snoozed_task(self, snoozed_task: "Task") -> None:
         """
@@ -91,7 +100,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh StartScreen
         self.task_manager.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
-        self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+        self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
     def log_expiry_tasks(self) -> None:
         """Logs the expiry Tasks."""

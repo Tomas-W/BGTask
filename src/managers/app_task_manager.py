@@ -1,39 +1,36 @@
 import json
 import time
 
+from typing import TYPE_CHECKING
 from datetime import datetime, timedelta
 
-from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
-from src.managers.app_expiry_manager import AppExpiryManager
-from managers.tasks.task import Task
-
 from managers.device.device_manager import DM
-
+from managers.tasks.task import Task
 from src.utils.logger import logger
+
+if TYPE_CHECKING:
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_communication_manager import AppCommunicationManager
+    from src.managers.app_expiry_manager import AppExpiryManager
 
 
 class TaskManager(EventDispatcher):
     """
     Manages Tasks and their storage using JSON.
     """
-    def __init__(self):
+    def __init__(self, navigation_manager: "NavigationManager",
+                 expiry_manager: "AppExpiryManager"):
         super().__init__()
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
             return
         
-        self.navigation_manager = App.get_running_app().navigation_manager
-        
-        from src.utils.timer import TIMER
-        TIMER.start("AppExpiryManager")
-        self.expiry_manager = AppExpiryManager(self)
-        TIMER.stop("AppExpiryManager")
-        logger.timing(f"Loading AppExpiryManager took: {TIMER.get_time('AppExpiryManager')}")
-
-        self.communication_manager = None  #Connected in main.py
+        self.navigation_manager: "NavigationManager" = navigation_manager
+        self.expiry_manager: "AppExpiryManager" = expiry_manager
+        self.communication_manager: "AppCommunicationManager" | None = None  # init in main.py
 
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")
@@ -54,11 +51,12 @@ class TaskManager(EventDispatcher):
         self.selected_keep_alarming: bool = False
         # Editing Task attributes
         self.task_to_edit: Task | None = None
-
-        # Alarm attributes
-        # self._checked_background_cancelled_tasks: bool = False
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
+    
+    def _connect_communication_manager(self, communication_manager: "AppCommunicationManager") -> None:
+        """Connects the CommunicationManager to the TaskManager."""
+        self.communication_manager = communication_manager
     
     def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
         """

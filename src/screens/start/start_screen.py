@@ -2,6 +2,7 @@ import json
 import os
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
@@ -25,6 +26,9 @@ from src.utils.wrappers import android_only
 from src.settings import SCREEN, STATE, TEXT
 from src.utils.logger import logger
 
+if TYPE_CHECKING:
+    from src.managers.app_task_manager import TaskManager
+    from src.managers.navigation_manager import NavigationManager
 
 class StartScreen(Screen):
     """
@@ -37,8 +41,11 @@ class StartScreen(Screen):
         When the screen is shown, the page is built and the data is loaded in.
         """
         super().__init__(**kwargs)
+        self.navigation_manager: "NavigationManager" | None = None  # connected in main.py
+        self.task_manager: "TaskManager" | None = None              # connected in main.py
+
         self._start_screen_finished: bool = False
-        self.is_taking_screenshot: bool = False  # Flag to prevent multiple screenshot calls
+        self.is_taking_screenshot: bool = False
 
         self.current_task_data: list[dict] = []
         self.task_date: str = ""
@@ -82,7 +89,7 @@ class StartScreen(Screen):
 
         self.bottom_bar = None
 
-    def _init_task_manager(self, task_manager) -> None:
+    def _connect_task_manager(self, task_manager) -> None:
         """
         Initializes the TaskManager.
         """

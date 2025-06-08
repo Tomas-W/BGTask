@@ -138,7 +138,11 @@ class TaskApp(App, EventDispatcher):
         Then loads App components in priority order.
         """
         self._init_navigation_manager()
+
+        self._init_expiry_manager()
         self._init_task_manager()
+        self.expiry_manager._connect_task_manager(self.task_manager)
+
         self._connect_managers_to_start_screen(
             navigation_manager=self.navigation_manager,
             task_manager=self.task_manager
@@ -278,20 +282,29 @@ class TaskApp(App, EventDispatcher):
         )
         DM.LOADED.NAVIGATION_MANAGER = True
     
+    @log_time("ExpiryManager")
+    def _init_expiry_manager(self):
+        from src.managers.app_expiry_manager import AppExpiryManager
+        self.expiry_manager = AppExpiryManager()
+        DM.LOADED.EXPIRY_MANAGER = True
+    
     @log_time("TaskManager")
     def _init_task_manager(self):
         from src.managers.app_task_manager import TaskManager
-        self.task_manager = TaskManager()
+        self.task_manager = TaskManager(self.navigation_manager,
+                                        self.expiry_manager)
+        self.expiry_manager._connect_task_manager(self.task_manager)
         start_screen = self.get_screen(SCREEN.START)
-        start_screen._init_task_manager(self.task_manager)
+        start_screen._connect_task_manager(self.task_manager)
         DM.LOADED.TASK_MANAGER = True
     
     @log_time("CommunicationManager")
     def _init_communication_manager(self):
         from src.managers.app_communication_manager import AppCommunicationManager
         self.communication_manager = AppCommunicationManager(self.task_manager,
-                                                             self.task_manager.expiry_manager)
-        self.task_manager.communication_manager = self.communication_manager
+                                                             self.expiry_manager)
+        self.expiry_manager._connect_communication_manager(self.communication_manager)
+        self.task_manager._connect_communication_manager(self.communication_manager)
         DM.LOADED.COMMUNICATION_MANAGER = True
     
     @log_time("PopupManager")
