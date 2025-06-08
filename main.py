@@ -1,5 +1,3 @@
-import time
-
 from src.utils.timer import TIMER
 TIMER.start("start")
 
@@ -17,7 +15,7 @@ TIMER.stop("start_kivy")
 logger.timing(f"Loading Kivy took: {TIMER.get_time('start_kivy')}")
 
 from managers.device.device_manager import DM
-from src.utils.wrappers import log_time, android_only
+from src.utils.wrappers import log_time
 
 
 from src.settings import SCREEN
@@ -27,10 +25,6 @@ if platform != "android":
     Window.dpi = 100
     Window.left = -386
     Window.top = 316
-
-
-# DeviceManager
-# TODO: settings.LOADED to DM and include popup ect
 
 
 # TODO: Trigger laarm dont change nbutton states
@@ -154,6 +148,7 @@ class TaskApp(App, EventDispatcher):
         self._build_home_screen()
 
         self._init_communication_manager()
+        self._init_popup_manager()
         self._init_audio_manager()
 
         self._init_new_task_screen()
@@ -298,6 +293,12 @@ class TaskApp(App, EventDispatcher):
                                                              self.task_manager.expiry_manager)
         self.task_manager.communication_manager = self.communication_manager
         DM.LOADED.COMMUNICATION_MANAGER = True
+    
+    @log_time("PopupManager")
+    def _init_popup_manager(self):
+        from src.widgets.popups import _init_popup_manager
+        _init_popup_manager(self.task_manager)
+        DM.LOADED.POPUP_MANAGER = True
     
     @log_time("AudioManager")
     def _init_audio_manager(self):

@@ -1,8 +1,5 @@
-import time
-start_time = time.time()
-
 from datetime import timedelta
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from kivy.animation import Animation
 from kivy.clock import Clock
@@ -21,10 +18,13 @@ from src.widgets.containers import CustomButtonRow
 from src.widgets.fields import TextField, CustomSettingsField
 from src.widgets.misc import Spacer
 
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 from src.settings import COL, SPACE, FONT, STATE, SIZE
-from managers.device.device_manager import DM
+
+if TYPE_CHECKING:
+    from src.managers.app_task_manager import TaskManager
 
 class BasePopup(Popup):
     """Base class for all popups"""
@@ -399,20 +399,14 @@ class TextInputPopup(BasePopup):
 
 
 class PopupManager:
-    def __init__(self):
-        start_time = time.time()
+    def __init__(self, task_manager: "TaskManager"):
+        self.task_manager = task_manager
+        self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
+
         self.custom = CustomPopup()
         self.confirmation = ConfirmationPopup()
         self.input = TextInputPopup()
         self.task = TaskPopup()
-        
-        # Managers
-        from kivy.app import App
-        app = App.get_running_app()
-        self.task_manager = app.task_manager
-        self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
-    	
-        DM.LOADED.POPUP_MANAGER = True
     
     def _handle_task_popup(self, *args, **kwargs):
         """
@@ -549,10 +543,9 @@ class PopupManager:
         self.show_task_popup(task=task)
 
 
-from src.utils.timer import TIMER
-TIMER.start("PopupManager")
+def _init_popup_manager(task_manager: "TaskManager"):
+    global POPUP
+    POPUP = PopupManager(task_manager)
 
-POPUP = PopupManager()
 
-TIMER.stop("PopupManager")
-logger.timing(f"Loading PopupManager took: {TIMER.get_time('PopupManager')}")
+POPUP = None
