@@ -1,16 +1,13 @@
 import os
 import time
 
-from typing import Any
-
 from managers.device.device_manager import DM
+from src.utils.wrappers import android_only
 
 
+@android_only
 def is_service_running():
-    """Check if the Service has written a heartbeat recently."""
-    if not DM.is_android:
-        return False
-        
+    """Returns True if the last Service heartbeat is < HEARTBEAT_SEDCONDS."""
     try:
         # Check if heartbeat file exists
         if not os.path.exists(DM.PATH.SERVICE_HEARTBEAT_FLAG):
@@ -33,13 +30,10 @@ def is_service_running():
         return False
 
 
+@android_only
 def start_background_service():
     """Start background service if not already running."""
-    if not DM.is_android:
-        return None
-        
     try:
-        # Only start if not already running
         if not is_service_running():
             from android import AndroidService  # type: ignore
             service = AndroidService("BGTask Background Service", "Task expiry monitoring service")

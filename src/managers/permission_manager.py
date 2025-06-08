@@ -1,29 +1,26 @@
 from managers.device.device_manager import DM
+from src.utils.wrappers import android_only_class
 from src.utils.logger import logger
 
 
-if DM.is_android:
+try:
     from jnius import autoclass        # type: ignore
     from android.permissions import (  # type: ignore
         Permission,
         check_permission,
         request_permissions
     )
+except Exception as e:
+    pass
 
 
-def android_only(func):
-    def wrapper(self, *args, **kwargs):
-        if not DM.is_android:
-            return
-        return func(self, *args, **kwargs)
-    return wrapper
-
-
+@android_only_class(except_methods=["__init__"])
 class PermissionManager:
     """
     Manages Permissions for the App and Service.
     """
     def __init__(self):
+        # Need attributes even if not Android
         if DM.is_android:
             # Basic permissions, shared methods
             self.POST_NOTIFICATIONS = Permission.POST_NOTIFICATIONS
@@ -38,7 +35,6 @@ class PermissionManager:
         self.REQUEST_SCHEDULE_EXACT_ALARM: str = "REQUEST_SCHEDULE_EXACT_ALARM"
         self.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: str = "ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
 
-    @android_only
     def validate_permission(self, permission: str) -> bool:
         """
         Returns True if the App has the given permission.
@@ -99,7 +95,6 @@ class PermissionManager:
             logger.error(f"Error checking permission: ACTION_IGNORE_BATTERY_OPTIMIZATIONS: {e}")
             return False
     
-    @android_only
     def request_battery_exemption(self) -> None:
         """Opens system settings to request ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS."""
         try:
@@ -125,7 +120,6 @@ class PermissionManager:
         except Exception as e:
             logger.error(f"Error requesting permission ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: {e}")
     
-    @android_only
     def _check_exact_alarm_permission(self) -> bool:
         """Returns whether the app has REQUEST_SCHEDULE_EXACT_ALARM permission."""
         if not self._is_android_12_or_higher():
@@ -147,7 +141,6 @@ class PermissionManager:
             logger.error(f"Error checking permission: REQUEST_SCHEDULE_EXACT_ALARM: {e}")
             return False
     
-    @android_only
     def request_exact_alarm_permission(self) -> None:
         """Opens system settings to request REQUEST_SCHEDULE_EXACT_ALARM permission."""
         if not self._is_android_12_or_higher():
@@ -173,7 +166,6 @@ class PermissionManager:
         except Exception as e:
             logger.error(f"Error requesting exact alarm permission: {e}")
     
-    @android_only
     def _is_android_12_or_higher(self) -> bool:
         """Returns whether the device is running Android 12 or higher."""
         try:

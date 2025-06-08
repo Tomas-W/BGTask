@@ -23,6 +23,7 @@ from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupC
 from src.widgets.labels import PartitionHeader
 
 from src.utils.misc import get_task_header_text
+from src.utils.wrappers import android_only
 
 from src.settings import SCREEN, STATE, LOADED, TEXT
 
@@ -255,6 +256,14 @@ class StartScreen(Screen):
         logger.trace("CALLED _REFRESH_START_SCREEN")
         self.current_task_data = self._init_current_task_data()
         Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
+    
+    @android_only
+    def _hide_loading_screen(self) -> None:
+        """
+        Hides the loading screen if on Android.
+        """
+        from android import loadingscreen  # type: ignore
+        loadingscreen.hide_loading_screen()
 
     def on_enter(self) -> None:
         """
@@ -263,13 +272,9 @@ class StartScreen(Screen):
         """
         if not self._start_screen_finished:
             import time
-            self.on_enter_time = time.time()        
             self.start_screen_finished = True
             
-            if DM.is_android:
-                from android import loadingscreen  # type: ignore
-                # When you want to hide the splash screen:
-                loadingscreen.hide_loading_screen()
+            self._hide_loading_screen()
             
             from src.utils.timer import TIMER
             TIMER.stop("start")

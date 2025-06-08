@@ -1,8 +1,18 @@
 from typing import Any, Optional, Dict, List, Tuple
 
-from jnius import autoclass  # type: ignore
+from src.utils.wrappers import android_only_class
+
+try:
+    from jnius import autoclass  # type: ignore
+
+    Context = autoclass("android.content.Context")
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+
+except Exception as e:
+    pass
 
 
+@android_only_class()
 class PreferencesManager:
     """
     Manages SharedPreferences for both App and Service contexts.
@@ -20,13 +30,9 @@ class PreferencesManager:
         try:
             # If Service, get its context and return
             if service_context is not None:
-                Context = autoclass("android.content.Context")
                 return service_context, Context
 
             # If App, get context from PythonActivity.mActivity
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            Context = autoclass("android.content.Context")
-            
             if not hasattr(PythonActivity, "mActivity"):
                 print("     Error: PythonActivity.mActivity not available")
                 return None, None

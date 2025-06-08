@@ -269,12 +269,15 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         logger.trace(f"_refresh_home_screen received Task: {task.message if task else None}")
         Clock.schedule_once(lambda dt: self.update_task_display(modified_task=task), 0.05)
     
+    def _log_loading_times(self) -> None:
+        """Logs all loading times from the TIMER."""
+        from src.utils.timer import TIMER
+        all_logs = TIMER.get_all_logs()
+        for log in all_logs:
+            logger.timing(log)
+    
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
-        
-        if not hasattr(self, "on_enter_time"):
-            on_enter_time = time.time()
-            self.on_enter_time = on_enter_time
         
         # Fallback
         if not self.tasks_loaded:
@@ -287,12 +290,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
         if not self.tasks_loaded:
             self.scroll_container.scroll_view.scroll_y = 1.0
+            self._log_loading_times()
             self.tasks_loaded = True
-        
-        from src.utils.timer import TIMER
-        all_logs = TIMER.get_all_logs()
-        for log in all_logs:
-            logger.timing(log)
     
     def on_leave(self):
         """Handle screen exit - deselect any task"""

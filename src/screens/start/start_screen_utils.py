@@ -1,10 +1,11 @@
 import time
 
+from kivy.clock import Clock
+
 from managers.device.device_manager import DM
 from src.managers.permission_manager import PM
+from src.utils.wrappers import android_only
 from src.utils.logger import logger
-
-from kivy.clock import Clock
 
 
 def set_screenshot_button(screenshot_button) -> None:
@@ -34,7 +35,7 @@ def _set_screenshot_as_wallpaper(dt, root_layout, screen_header, screenshot_butt
     screenshot_path = take_screenshot(root_layout, screen_header, screenshot_button)
     
     # Set wallpaper
-    if DM.is_android and screenshot_path:
+    if screenshot_path:
         set_wallpaper(screenshot_path)
 
 
@@ -85,6 +86,7 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
         return None
 
 
+@android_only
 def set_wallpaper(screenshot_path: str) -> None:
     """
     Sets the screenshot as the wallpaper.

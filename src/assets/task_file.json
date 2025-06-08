@@ -32,5 +32,17 @@
       "expired": false,
       "snooze_time": 0
     }
+  ],
+  "2025-06-08": [
+    {
+      "task_id": "e8e8cc9b-f017-4f07-8640-d962a4368b79",
+      "timestamp": "2025-06-08T13:50:00",
+      "message": "sfsdf",
+      "alarm_name": null,
+      "vibrate": true,
+      "keep_alarming": true,
+      "expired": true,
+      "snooze_time": 0
+    }
   ]
 }

@@ -16,8 +16,8 @@ from kivy.utils import platform
 TIMER.stop("start_kivy")
 logger.timing(f"Loading Kivy took: {TIMER.get_time('start_kivy')}")
 
-from src.utils.wrappers import log_time
 from managers.device.device_manager import DM
+from src.utils.wrappers import log_time, android_only
 
 
 from src.settings import SCREEN, LOADED
@@ -202,9 +202,6 @@ class TaskApp(App, EventDispatcher):
     ################### MISC ######################
     @log_time("ServicePermissions")
     def _init_service_permissions(self):
-        if not DM.is_android:
-            return
-        
         from src.managers.permission_manager import PM
         PM.validate_permission(PM.POST_NOTIFICATIONS)
         PM.validate_permission(PM.REQUEST_SCHEDULE_EXACT_ALARM)
@@ -269,6 +266,45 @@ class TaskApp(App, EventDispatcher):
             
         except Exception as e:
             logger.error(f"Error showing Task popup: {e}")
+    
+    ###############################################
+    ################### MANAGERS ##################
+    @log_time("PreferenceManager")
+    def _init_preference_manager(self):
+        from src.managers.app_preference_manager import AppPreferencesManager
+        self.preference_manager = AppPreferencesManager()
+        LOADED.PREFERENCE_MANAGER = True
+    
+    @log_time("NavigationManager")
+    def _init_navigation_manager(self):
+        from src.managers.navigation_manager import NavigationManager
+        self.navigation_manager = NavigationManager(
+            screen_manager=self.screen_manager,
+            start_screen=SCREEN.HOME
+        )
+        LOADED.NAVIGATION_MANAGER = True
+    
+    @log_time("TaskManager")
+    def _init_task_manager(self):
+        from src.managers.app_task_manager import TaskManager
+        self.task_manager = TaskManager()
+        start_screen = self.get_screen(SCREEN.START)
+        start_screen._init_task_manager(self.task_manager)
+        LOADED.TASK_MANAGER = True
+    
+    @log_time("CommunicationManager")
+    def _init_communication_manager(self):
+        from src.managers.app_communication_manager import AppCommunicationManager
+        self.communication_manager = AppCommunicationManager(self.task_manager,
+                                                             self.task_manager.expiry_manager)
+        self.task_manager.communication_manager = self.communication_manager
+        LOADED.COMMUNICATION_MANAGER = True
+    
+    @log_time("AudioManager")
+    def _init_audio_manager(self):
+        from src.managers.app_audio_manager import AppAudioManager
+        self.audio_manager = AppAudioManager()
+        LOADED.AUDIO_MANAGER = True
     
     ###############################################
     ################### SCREENS ###################
@@ -337,45 +373,6 @@ class TaskApp(App, EventDispatcher):
                                                             audio_manager=self.audio_manager)
         self.screen_manager.add_widget(self.screens[SCREEN.SAVED_ALARMS])
         LOADED.SAVED_ALARMS_SCREEN = True
-    
-    ###############################################
-    ################### MANAGERS ##################
-    @log_time("PreferenceManager")
-    def _init_preference_manager(self):
-        from src.managers.app_preference_manager import AppPreferencesManager
-        self.preference_manager = AppPreferencesManager()
-        LOADED.PREFERENCE_MANAGER = True
-    
-    @log_time("NavigationManager")
-    def _init_navigation_manager(self):
-        from src.managers.navigation_manager import NavigationManager
-        self.navigation_manager = NavigationManager(
-            screen_manager=self.screen_manager,
-            start_screen=SCREEN.HOME
-        )
-        LOADED.NAVIGATION_MANAGER = True
-    
-    @log_time("TaskManager")
-    def _init_task_manager(self):
-        from src.managers.app_task_manager import TaskManager
-        self.task_manager = TaskManager()
-        start_screen = self.get_screen(SCREEN.START)
-        start_screen._init_task_manager(self.task_manager)
-        LOADED.TASK_MANAGER = True
-    
-    @log_time("CommunicationManager")
-    def _init_communication_manager(self):
-        from src.managers.app_communication_manager import AppCommunicationManager
-        self.communication_manager = AppCommunicationManager(self.task_manager,
-                                                             self.task_manager.expiry_manager)
-        self.task_manager.communication_manager = self.communication_manager
-        LOADED.COMMUNICATION_MANAGER = True
-    
-    @log_time("AudioManager")
-    def _init_audio_manager(self):
-        from src.managers.app_audio_manager import AppAudioManager
-        self.audio_manager = AppAudioManager()
-        LOADED.AUDIO_MANAGER = True
 
 
 if __name__ == "__main__":

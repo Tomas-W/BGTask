@@ -1,15 +1,21 @@
 from typing import Any, TYPE_CHECKING
 
-from android.broadcast import BroadcastReceiver  # type: ignore
-from jnius import autoclass                      # type: ignore
 from kivy.clock import Clock
 
 from managers.device.device_manager import DM
+from src.utils.wrappers import android_only_class
 from src.utils.logger import logger
 
-AndroidString = autoclass("java.lang.String")
-Intent = autoclass("android.content.Intent")
-PythonActivity = autoclass("org.kivy.android.PythonActivity")
+try:
+    from android.broadcast import BroadcastReceiver  # type: ignore
+    from jnius import autoclass                      # type: ignore
+
+    AndroidString = autoclass("java.lang.String")
+    Intent = autoclass("android.content.Intent")
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+
+except Exception as e:
+    pass
 
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager 
@@ -17,6 +23,7 @@ if TYPE_CHECKING:
     from managers.tasks.task import Task
 
 
+@android_only_class()
 class AppCommunicationManager():
     """
     Manages communication between the App and the Service.
@@ -144,10 +151,6 @@ class AppCommunicationManager():
         """
         Send a broadcast action with ACTION_TARGET: SERVICE.
         """
-        if not DM.is_android:
-            logger.debug("Not Android, skipping action.")
-            return
-        
         if not DM.validate_action(action):
             logger.error(f"Invalid action: {action}")
             return

@@ -6,6 +6,8 @@ import time
 from typing import Optional
 
 from managers.device.device_manager import DM
+from src.utils.wrappers import android_only
+
 
 class Profiler:
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -39,10 +41,10 @@ class Profiler:
         self.profile_path = os.path.join(self.PROFILER_DIR, self.PROFILE_FILENAME)
         self.profile.dump_stats(self.profile_path)
         
-        # Export to Android if applicable
-        if DM.is_android:
-            self._export_to_android()
-            
+        # Export to Android
+        self._export_to_android()
+    
+    @android_only
     def _export_to_android(self) -> None:
         """Export profile data to Android external storage."""
         try:
