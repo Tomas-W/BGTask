@@ -13,7 +13,7 @@ from src.widgets.popups import POPUP
 
 from src.utils.logger import logger
 
-from src.settings import STATE, SCREEN, SPACE
+from src.settings import STATE, SCREEN
 
 if TYPE_CHECKING:
     from src.managers.app_audio_manager import AppAudioManager
@@ -213,7 +213,7 @@ class SelectAlarmScreen(BaseScreen):
 
     def _rename_alarm(self, new_name: str) -> None:
         """Rename the selected alarm"""
-        logger.critical(f"Renaming alarm from {self.audio_manager.selected_alarm_name} to {new_name}")
+        logger.debug(f"Renaming alarm from {self.audio_manager.selected_alarm_name} to {new_name}")
         self.audio_manager.update_alarm_name(new_name)
         self.update_selected_alarm_text()
 

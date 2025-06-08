@@ -1,9 +1,6 @@
-from datetime import timedelta, datetime
 from typing import TYPE_CHECKING
-import math
 
 from managers.tasks.expiry_manager import ExpiryManager
-
 from managers.device.device_manager import DM
 from src.utils.logger import logger
 
@@ -13,10 +10,7 @@ if TYPE_CHECKING:
 
 
 class ServiceExpiryManager(ExpiryManager):
-    """
-    Expiry Manager for the Service.
-
-    """	
+    """Expiry Manager for the Service."""	
     def __init__(self, audio_manager: "ServiceAudioManager"):
         super().__init__()
         self.audio_manager: "ServiceAudioManager" = audio_manager
@@ -28,24 +22,19 @@ class ServiceExpiryManager(ExpiryManager):
         - Updates the snooze time.
         - Refreshes the Tasks and gets new current Task.
         """
+        logger.debug(f"Snoozed Task: {DM.get_task_log(snoozed_task)}")
         # Stop alarm
         self.audio_manager.stop_alarm()
         # Refresh tasks
         self._refresh_tasks()
-
-        logger.trace(f"_handle_snoozed_task: {DM.get_task_log(snoozed_task)}")
     
     def _handle_cancelled_task(self, cancelled_task: "Task") -> None:
         """
         Cancels the expired task if it exists, otherwise cancels current task.
         User can cancel current task with the foreground notification.
         """
+        logger.debug(f"Cancelled Task: {DM.get_task_log(cancelled_task)}")
         # Stop alarm
         self.audio_manager.stop_alarm()
         # Refresh tasks
         self._refresh_tasks()
-
-        logger.debug(f"_handle_cancelled_task: {DM.get_task_log(cancelled_task)}")
-    
-    
-

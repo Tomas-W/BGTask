@@ -23,10 +23,6 @@ class HomeScreenUtils:
         Args:
             modified_task: If provided, invalidate cache for this task's date
         """
-        logger.debug("UPDATE TASK DISPLAY")
-        logger.trace(f"Modified task: {modified_task.message if modified_task else None}")
-        start_time = time.time()
-        
         # Step 1: Clear container but don't discard widgets yet
         self.scroll_container.container.clear_widgets()
         
@@ -34,8 +30,7 @@ class HomeScreenUtils:
         if modified_task:
             modified_date = modified_task.get_date_str()
             self._invalidate_cache_for_date(modified_date)
-            logger.debug(f"Invalidated cache for date: {modified_date}")
-        
+                
         # Keep track of used widgets to identify which can be removed from cache
         used_cache_keys = set()
         self.active_task_widgets = []
@@ -77,8 +72,6 @@ class HomeScreenUtils:
         self.check_bottom_bar_state()
         
         self.tasks_loaded = True
-        end_time = time.time()
-        logger.error(f"HomeScreenUtils update_task_display time: {end_time - start_time:.4f}s")
     
     def _invalidate_cache_for_date(self, date_str):
         """Remove all cached widgets for a specific date"""
@@ -109,7 +102,6 @@ class HomeScreenUtils:
         # Find the task in updated UI
         task = self.task_manager.get_task_by_id(task_id)
         if not task:
-            logger.error(f"Task with id {task_id} not found in _restore_task_selection")
             # Clear selection state since task doesn't exist anymore
             self.selected_task = None
             self.selected_label = None
@@ -143,7 +135,6 @@ class HomeScreenUtils:
         Initial build of the task display when app is launched / resumed.
         Creates all task widgets and caches them for future use.
         """
-        start_time = time.time()
         self.scroll_container.container.clear_widgets()
         self.active_task_widgets = []
         
@@ -181,9 +172,6 @@ class HomeScreenUtils:
             self.widget_cache[cache_key] = task_group
 
         self.tasks_loaded = True
-        end_time = time.time()
-        logger.error(f"HomeScreenUtils _full_rebuild_task_display time: {end_time - start_time}")
-        logger.debug(f"Loaded {len(task_groups)} task groups with {nr_tasks} tasks")
     
     def _create_task_group(self, group, all_expired_states=None) -> TasksByDate:
         """Create a TasksByDate widget for a group of tasks"""

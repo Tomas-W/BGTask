@@ -87,7 +87,7 @@ class SavedAlarmScreen(BaseScreen):
         if self.audio_manager.select_alarm_audio(name=instance.text):
             self.update_button_states()
         else:
-            logger.error(f"Failed to select alarm: {instance.text}")
+            logger.error(f"Error selecting alarm: {instance.text}")
             self.show_error_popup("Selection Error", "No alarm selected")
 
     def update_button_states(self) -> None:

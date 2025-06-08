@@ -142,12 +142,10 @@ class ServiceManager:
     
     def cancel_alarm_and_notifications(self) -> None:
         """Cancels the alarm and notifications."""
+        logger.trace("Cancelling alarm and notifications")
         self.audio_manager.stop_alarm()
-        logger.debug("Stopped alarm and vibrations")
-
         self.notification_manager.cancel_all_notifications()
-        logger.debug("Cancelled all notifications")
-        
+    
     def synchronize_loop_start(self) -> None:
         """
         Syncs loop to start at a 10-second interval (01, 11, 21, 31, 41, 51 seconds).
@@ -156,12 +154,11 @@ class ServiceManager:
         current_seconds = time.localtime().tm_sec
         seconds_to_wait = ((current_seconds + 9) // 10 * 10 + 1) - current_seconds
         
-        if seconds_to_wait > 0:
+        if seconds_to_wait > 1:
             logger.debug(f"Synchronizing loop start: waiting {seconds_to_wait} seconds")
             time.sleep(seconds_to_wait)
         
         self._loop_synchronized = True
-        logger.debug("Loop synchronization complete")
     
     def synchronize_loop_cycle(self) -> None:
         """
@@ -169,6 +166,7 @@ class ServiceManager:
         If loop is off by more than LOOP_DEVIATION seconds, resynchronize.
         Synchronizes by sleeping until the next interval.
         """
+        logger.debug("Synchronizing loop cycle")
         if self.loop_sync_tick >= ServiceManager.LOOP_SYNC_TICK:
             self.loop_sync_tick = 0
             current_seconds = time.localtime().tm_sec
@@ -211,7 +209,7 @@ class ServiceManager:
             # Write current timestamp
             with open(DM.PATH.SERVICE_HEARTBEAT_FLAG, "w") as f:
                 f.write(str(int(time.time())))
-            logger.debug("Service heartbeat flag written")
+            logger.trace("Service heartbeat flag written")
         
         except Exception as e:
             print(f"Error writing service heartbeat: {e}")
@@ -314,7 +312,7 @@ class ServiceManager:
             self.expiry_manager.expired_task.task_id, 
             {"expired": True}
         )
-        logger.trace(f"Marked previous expired task {self.expiry_manager.expired_task.task_id} as permanently expired")
+        logger.trace(f"Marked previous expired Task {DM.get_task_log(self.expiry_manager.expired_task)} as permanently expired")
 
     def log_expiry_tasks(self) -> None:
         """Logs the current and expired Tasks."""
@@ -322,18 +320,13 @@ class ServiceManager:
             self.expiry_log_tick = 0
             self.expiry_manager._log_expiry_tasks()
     
-    def clean_up_previous_task(self) -> None:
-        """Cleans up the previous Task's alarm and notifications."""
-        self.notification_manager.cancel_all_notifications()
-        # self.expiry_manager.clear_expired_task()
-        logger.debug("Cleaned up previous expired task")
-    
     def notify_user_of_expiry(self, expired_task: Task) -> None:
         """
         Notifies the user of the expiry of a Task by:
         - Showing a notification
         - Playing an alarm
         """
+        logger.debug(f"Notifying user of expiry of Task: {DM.get_task_log(expired_task)}")
         self.notification_manager.show_task_notification(
                     "Task Expired",
                     expired_task.message
@@ -350,7 +343,7 @@ class ServiceManager:
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 intent.addCategory("android.intent.category.LAUNCHER")
                 context.startActivity(intent)
-                logger.debug("Launched app activity")
+                logger.debug("Brought App to foreground")
         
         except Exception as e:
             logger.error(f"Error launching app: {e}")
@@ -361,7 +354,6 @@ class ServiceManager:
             context = PythonService.mService.getApplicationContext()
             self._activity_manager = context.getSystemService(Context.ACTIVITY_SERVICE)
             self._package_name = context.getPackageName()
-            logger.debug("Initialized ActivityManager")
-        
+                
         except Exception as e:
             logger.error(f"Error initializing ActivityManager: {e}")

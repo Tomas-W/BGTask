@@ -262,7 +262,7 @@ class TaskApp(App, EventDispatcher):
                     task=task
                 )
             else:
-                logger.warning(f"No Task found for task_id: {task_id}")
+                logger.error(f"Error showing Task popup, no Task found for: {DM.get_task_id_log(task_id)}")
             
         except Exception as e:
             logger.error(f"Error showing Task popup: {e}")

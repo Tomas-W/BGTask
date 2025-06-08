@@ -47,17 +47,15 @@ class AppCommunicationManager():
         self._init_receiver()
 
         self.send_action(DM.ACTION.STOP_ALARM)
-        logger.critical("STOP_ALARM sent")
-
+    
     def _init_context(self) -> None:
         """Initializes the App context and package name."""
         try:
             if hasattr(PythonActivity, "mActivity") and PythonActivity.mActivity:
                 self.context = PythonActivity.mActivity
                 self.package_name = self.context.getPackageName()
-                logger.debug("Initialized AppCommunicationManager.")
             else:
-                logger.error("Error initializing context - activity context not available.")
+                logger.error("Error initializing App context - activity context not available.")
         
         except Exception as e:
             logger.error(f"Error initializing App context: {e}")
@@ -109,10 +107,8 @@ class AppCommunicationManager():
                 return
             
             logger.debug(f"AppCommunicationManager received intent with target: {target} and action: {pure_action}")
-            
             # Extract task_id from intent extras
             task_id = intent.getStringExtra("task_id")
-            
             # Schedule the actions effect
             Clock.schedule_once(
                 lambda dt: self.handle_action(pure_action, task_id), 
@@ -133,12 +129,10 @@ class AppCommunicationManager():
                 self._update_tasks_action(task_id)
             
             elif pure_action == DM.ACTION.SHOW_TASK_POPUP:
-                logger.critical("SHOW_TASK_POPUP received")
                 task = self.expiry_manager._search_expired_task(task_id)
                 self._show_task_popup_action(task)
 
                 from src.utils.background_service import get_and_delete_shared_preference
-                # Delete SharedPreferences
                 task_id = get_and_delete_shared_preference(
                     pref_type=DM.PREFERENCE_TYPE.ACTIONS,
                     key=DM.PREFERENCE.SHOW_TASK_POPUP
@@ -152,12 +146,12 @@ class AppCommunicationManager():
         Send a broadcast action with ACTION_TARGET: SERVICE.
         """
         if not DM.validate_action(action):
-            logger.error(f"Invalid action: {action}")
+            logger.error(f"Error sending action, invalid action: {action}")
             return
 
         try:
             if not self.context:
-                logger.error("Cannot send action - no context available")
+                logger.error("Error sending action, no context available")
                 return
             
             intent = Intent()
@@ -172,7 +166,7 @@ class AppCommunicationManager():
                 intent.putExtra("task_id", AndroidString(task_id))
             
             self.context.sendBroadcast(intent)
-            logger.debug(f"Sent broadcast action: {action} with task_id: {task_id}")
+            logger.debug(f"Sent broadcast action: {action} with task_id: {DM.get_task_id_log(task_id)}")
         
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}")
@@ -200,7 +194,7 @@ class AppCommunicationManager():
         Task_id is only provided after snooze or cancel from a Service notification,
          for invalidation of cached Task data.
         """
-        logger.trace(f"_update_tasks_action with task_id: {task_id}")
+        logger.trace(f"Handling update Tasks action with task_id: {DM.get_task_id_log(task_id)}")
         # Update AppExpiryManager
         self.task_manager.expiry_manager._refresh_tasks()
         # Update TaskManager
@@ -210,7 +204,6 @@ class AppCommunicationManager():
         # If task_id provided, a Task was snoozed or cancelled from a Service notification
         # Task cache must be invalidated in HomeScreen
         task = self.expiry_manager.get_task_by_id(task_id) if task_id else None
-        logger.trace(f"_update_tasks_action with task: {task}")
 
         # Refresh HomeScreen
         self.task_manager.dispatch(
@@ -224,6 +217,7 @@ class AppCommunicationManager():
     
     def _show_task_popup_action(self, task: "Task") -> None:
         """Shows the task popup."""
+        logger.trace(f"Handling show Task popup action with Task: {DM.get_task_log(task)}")
         self.expiry_manager.dispatch(
             "on_task_expired_show_task_popup",
             task=task

@@ -1,5 +1,3 @@
-import time
-
 from kivy.clock import Clock
 
 from managers.device.device_manager import DM
@@ -65,8 +63,6 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
         if not PM.validate_permission(PM.SET_WALLPAPER):
             return
         
-        start_time = time.time()
-
         hide_widgets([screen_header, screenshot_button])
         # Take screenshot
         texture = root_layout.export_as_image()
@@ -77,11 +73,10 @@ def take_screenshot(root_layout, screen_header, screenshot_button) -> str:
         texture.save(screenshot_path)
         DM.validate_file(screenshot_path)
 
-        logger.debug(f"take_screenshot time: {time.time() - start_time:.4f}")
         return screenshot_path
 
     except Exception as e:
-        logger.error(f"Error during screenshot/wallpaper process: {str(e)}")
+        logger.error(f"Error taking or saving screenshot: {str(e)}")
         show_widgets([screen_header, screenshot_button])
         return None
 
@@ -91,7 +86,6 @@ def set_wallpaper(screenshot_path: str) -> None:
     """
     Sets the screenshot as the wallpaper.
     """
-    start_time = time.time()
     try:
         from jnius import autoclass  # type: ignore
         # Get current activity and context
@@ -110,12 +104,11 @@ def set_wallpaper(screenshot_path: str) -> None:
             WallpaperManager = autoclass("android.app.WallpaperManager")
             manager = WallpaperManager.getInstance(context)
             manager.setBitmap(bitmap)
-            logger.debug(f"set_wallpaper time: {time.time() - start_time:.4f}")
         else:
-            logger.error("Failed to create bitmap from file")
+            logger.error("Error creating bitmap from file")
     
     except Exception as e:
-        logger.error(f"Error during screenshot/wallpaper process: {str(e)}")
+        logger.error(f"Error setting wallpaper: {str(e)}")
 
 
 def hide_widgets(widgets: list) -> None:

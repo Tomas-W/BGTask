@@ -68,6 +68,11 @@ class DeviceManager:
         task_time = task.timestamp + timedelta(seconds=task.snooze_time)
         message = task.message
         return f"{id} | {task_time} | {message[:8]}"
+
+    @staticmethod
+    def get_task_id_log(task_id: str) -> str:
+        """Returns a formatted string of the Task ID."""
+        return f"{task_id[:6]}" if task_id else "None"
     
     def validate_dir(self, dir_path) -> bool:
         """Validate and create a directory if it doesn't exist."""

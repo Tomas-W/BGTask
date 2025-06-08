@@ -29,7 +29,7 @@ class ServiceNotificationManager:
     ANDROID_12: int = 31
 
     """Manages all Android notifications for the background service.
-    - Foreground notification: Keeps the service alive and shows current Task status
+    - Foreground notification: Shows current Task status
     - Task notifications: High-priority alerts for expired Tasks
     
     It:
@@ -61,7 +61,7 @@ class ServiceNotificationManager:
             )
             foreground_channel.setDescription(AndroidString("Shows when BGTask is monitoring your Tasks"))
             self.notification_manager.createNotificationChannel(foreground_channel)
-            logger.debug("Created foreground channel")
+            logger.trace("Created foreground channel")
         
         except Exception as e:
             logger.error(f"Error creating foreground channel: {e}")
@@ -78,7 +78,7 @@ class ServiceNotificationManager:
             tasks_channel.enableVibration(True)
             tasks_channel.setShowBadge(True)
             self.notification_manager.createNotificationChannel(tasks_channel)
-            logger.debug("Created tasks channel")
+            logger.trace("Created Tasks channel")
         
         except Exception as e:
             logger.error(f"Error creating tasks channel: {e}")
@@ -91,10 +91,8 @@ class ServiceNotificationManager:
         
         # Add task_id
         intent.putExtra("task_id", AndroidString(task_id))
-
         # Flags based on Android version
         flags = self._get_flags(action)
-        
         # Request code based on action
         request_code = self._get_request_code(action)
         
@@ -152,8 +150,8 @@ class ServiceNotificationManager:
     def show_foreground_notification(self, title: str, message: str, with_buttons: bool = True) -> None:
         """Shows a foreground notification with optional action buttons."""
         # Get icon resource
-        icon_id = self._get_icon_resource()
-        if icon_id is None:
+        icon_recource = self._get_icon_resource()
+        if icon_recource is None:
             logger.error("No valid icon found, cannot show notification")
             return
 
@@ -162,7 +160,7 @@ class ServiceNotificationManager:
             DM.CHANNEL.FOREGROUND,
             title,
             message,
-            icon_id,
+            icon_recource,
             DM.PRIORITY.LOW
         )
         if builder is None:
@@ -191,25 +189,10 @@ class ServiceNotificationManager:
         try:
             notification = builder.build()
             self.service.startForeground(1, notification)
-            logger.debug("Showed foreground notification")
+            logger.debug(f"Showed foreground notification for Task: {DM.get_task_log(task)}")
+        
         except Exception as e:
             logger.error(f"Error showing foreground notification: {e}")
-    
-    def _get_icon_resource(self) -> int | None:
-        """Returns the notification icon resource ID."""
-        try:
-            drawable = autoclass(f"{self.package_name}.R$drawable")
-            return getattr(drawable, "notification_icon")
-
-        except Exception as e:
-            logger.error(f"Error getting notification icon: {e}")
-            try:
-                # Fallback to App icon
-                return self.context.getApplicationInfo().icon
-
-            except Exception as e:
-                logger.error(f"Error getting app icon: {e}")
-                return None
     
     def _create_notification_builder(self, channel: str, title: str, message: str, icon_id: int, priority: int) -> Any | None:
         """Creates a notification builder with basic settings."""
@@ -293,9 +276,9 @@ class ServiceNotificationManager:
 
     def show_task_notification(self, title: str, message: str) -> None:
         """Shows a high-priority task notification with buttons."""
-        # Validate
-        icon_id = self._get_icon_resource()
-        if icon_id is None:
+        # Get icon resource
+        icon_resource = self._get_icon_resource()
+        if icon_resource is None:
             logger.error("No valid icon found, cannot show notification")
             return
 
@@ -306,7 +289,7 @@ class ServiceNotificationManager:
         task_id = self.expiry_manager.expired_task.task_id
 
         # Create and configure notification
-        builder = self._create_task_notification_builder(title, message, icon_id, task_id)
+        builder = self._create_task_notification_builder(title, message, icon_resource, task_id)
         if builder is None:
             return
 
@@ -322,7 +305,7 @@ class ServiceNotificationManager:
             # Show and track notification
             self.notification_manager.notify(self.current_notification_id, notification)
             self.active_notification_ids.add(self.current_notification_id)
-            logger.debug(f"Showed task notification with ID: {self.current_notification_id}")
+            logger.debug(f"Showed Task notification for Task: {DM.get_task_log(self.expiry_manager.expired_task)}")
 
             # Attempt to wake up screen
             self._wake_up_screen()
@@ -382,3 +365,34 @@ class ServiceNotificationManager:
         """Ensures the foreground notification is active, shows it if it's not."""
         logger.debug("Foreground notification not active, restoring it")
         self.show_foreground_notification(title, message, with_buttons)
+    
+    def _get_icon_resource(self) -> Any:
+        """
+        Returns the context to get the icon from.
+        First tries to get the icon from the App's R.drawable.notification_icon.
+        If that fails, it tries to get the icon from the App's ApplicationInfo.
+        If that fails, it returns None.
+        """
+        icon_resource = self._get_custom_icon()
+        if icon_resource is None:
+            icon_resource = self._get_default_icon()
+        
+        return icon_resource
+    
+    def _get_custom_icon(self) -> int | None:
+        """Returns the notification icon resource ID."""
+        try:
+            drawable = autoclass(f"{self.package_name}.R$drawable")
+            return getattr(drawable, "notification_icon")
+        
+        except Exception as e:
+            logger.error(f"Error getting custom notification icon: {e}")
+            return None
+    
+    def _get_default_icon(self) -> int | None:
+        """Returns the default notification icon resource ID."""
+        try:
+            return self.context.getApplicationInfo().icon
+        except Exception as e:
+            logger.error(f"Error getting default notification icon: {e}")
+            return None

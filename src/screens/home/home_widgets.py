@@ -313,7 +313,7 @@ class TaskLabel(Label):
         if fresh_task:
             task_to_select = fresh_task
         else:
-            logger.error(f"Task with id {self.task_id} not found in on_touch_down")
+            logger.error(f"Error selecting Task: {DM.get_task_id_log(self.task_id)} not found")
             return False
                 
         home_screen.select_task(task_to_select, self)

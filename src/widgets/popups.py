@@ -423,7 +423,7 @@ class PopupManager:
         """
         task = kwargs.get("task") if "task" in kwargs else args[0]
         if not task:
-            logger.error("No task provided to _handle_task_popup")
+            logger.error("Error showing TaskPopup, no task provided")
             return
         
         # Update popup callbacks
@@ -516,8 +516,7 @@ class PopupManager:
         - StopButton and SnoozeButton
         """
         task = kwargs.get("task") if "task" in kwargs else args[-1]
-        logger.critical(f"show_task_popup popup for task: {task}")
-        
+
         def show_popup(dt):
             time = task.timestamp + timedelta(seconds=task.snooze_time)
             self.task.task_time.text = time.strftime(DM.DATE.TASK_TIME)
@@ -542,9 +541,7 @@ class PopupManager:
         Clock.schedule_once(show_popup, 0)
 
     def _show_task_popup(self, task, on_confirm=None, on_cancel=None):
-        """Internal callback for handling the TaskPopup."""
-        logger.critical(f"Showing task popup for task: {task}")
-        
+        """Internal callback for handling the TaskPopup."""        
         self.task.update_callbacks(
             on_confirm=on_confirm,
             on_cancel=on_cancel

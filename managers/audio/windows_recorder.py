@@ -68,7 +68,7 @@ class WindowsAudioRecorder:
             )
             
             self.stream.start_stream()
-            logger.trace(f"Started recording: {self.current_path}")
+            logger.debug(f"Started recording: {self.current_path}")
             return True
         
         except Exception as e:
@@ -99,7 +99,7 @@ class WindowsAudioRecorder:
                 wf.setframerate(WindowsAudioRecorder.RATE)
                 wf.writeframes(b"".join(self.frames))
                 wf.close()
-                logger.trace(f"Stopped and saved recording: {self.current_path}")
+                logger.debug(f"Stopped and saved recording: {self.current_path}")
                 return True
             
             else:

@@ -4,7 +4,6 @@ from kivy.app import App
 
 from managers.audio.audio_manager import AudioManager
 from managers.tasks.task import Task
-
 from managers.device.device_manager import DM
 from src.managers.permission_manager import PM
 
@@ -59,8 +58,7 @@ class AppAudioManager(AudioManager):
         # Sort and save
         sorted_alarms = sorted(alarms.items(), key=lambda x: x[0])
         self.alarms = dict(sorted_alarms)
-        logger.trace(f"Loaded {nr_recordings} recordings and {nr_alarms} alarms")
-    
+        
     def _load_alarms(self, directory: str) -> dict[str, str]:
         """
         Returns a dictionary of audio files from a directory.
@@ -86,9 +84,9 @@ class AppAudioManager(AudioManager):
         Sets alarm name and path.
         """
         if self.is_recording:
-            logger.warning("Recording already in progress")
-            return False
-        
+            logger.warning("Recording already in progress, cancelling and starting new recording")
+            self.stop_recording_audio()
+                
         # Check recording permissions, ask if needed
         if not PM.validate_permission(PM.RECORD_AUDIO):
             return False
@@ -121,20 +119,20 @@ class AppAudioManager(AudioManager):
         recording_name = self.selected_alarm_name
         recording_path = self.selected_alarm_path        
         if not recording_path:
-            logger.error("Recording path not set")
+            logger.error("Error stopping recording, recording path not set")
             self.is_recording = False
             return False
         
         # Stop the recording
         if not self.audio_recorder.stop_recording():
             self.is_recording = False
-            logger.error("Failed to stop recording")
+            logger.error("Error stopping recording, failed to stop recording")
             return False
 
         # Verify recording
         if not DM.validate_file(recording_path):
             self.is_recording = False
-            logger.error(f"Recording file not found: {recording_path}")
+            logger.error(f"Error stopping recording, recording file not found: {recording_path}")
             return False
             
         # self.alarms[recording_name] = recording_path
@@ -149,18 +147,18 @@ class AppAudioManager(AudioManager):
         Validates the alarm path and plays the audio file.
         """
         if not DM.validate_file(audio_path):
-            logger.error(f"Alarm file not found: {audio_path}")
+            logger.error(f"Error playing audio, file not found: {audio_path}")
             return False
         
         if not self.audio_player:
-            logger.error("No audio player available")
+            logger.error("Error playing audio, no audio player available")
             return False
             
         try:
             return self.audio_player.play(audio_path)
         
         except Exception as e:
-            logger.error(f"Error playing alarm: {e}")
+            logger.error(f"Error playing audio: {e}")
             return False
     
     def stop_playing_audio(self) -> bool:
@@ -189,7 +187,7 @@ class AppAudioManager(AudioManager):
                 self.alarms[name] = path
                 return True
     
-        logger.error(f"Alarm not found: {name} at {path}")
+        logger.error(f"Error selecting alarm, alarm not found: {name} at {path}")
         return False
     
     def update_alarm_name(self, new_name: str) -> bool:
@@ -197,7 +195,7 @@ class AppAudioManager(AudioManager):
         Renames the selected alarm file and updates self.alarms.
         """
         if not self.selected_alarm_path:
-            logger.error("No alarm selected to rename")
+            logger.error("Error updating alarm name, no alarm selected to rename")
             return False
         
         # Rename file
@@ -225,7 +223,7 @@ class AppAudioManager(AudioManager):
         """
         path = self.get_audio_path(name)
         if not path:
-            logger.error(f"Alarm file not found: {name}")
+            logger.error(f"Error deleting alarm, alarm file not found: {name}")
             return False
         
         try:

@@ -37,7 +37,7 @@ class BackgroundService:
         """Gets and returns the Application context."""
         context = PythonService.mService.getApplicationContext()
         if not context:
-            raise RuntimeError("Failed to get application context")
+            raise RuntimeError("Failed to get Application context")
         
         return context
 
@@ -57,10 +57,10 @@ class BackgroundService:
                         renew_wake_lock, 
                         BackgroundService.WAKE_LOCK_RENEWAL
                     )
-                    logger.debug("Renewed wake lock")
+                    logger.trace("Renewed wake lock")
             
             except Exception as e:
-                logger.error(f"Wake lock renewal failed: {e}")
+                logger.error(f"Error renewing wake lock: {e}")
                 self.acquire_wake_lock()
 
         # Schedule first renewal
@@ -89,10 +89,10 @@ class BackgroundService:
             # Acquire wake lock and setup auto-renewal
             self._wake_lock.acquire(BackgroundService.WAKE_LOCK_TIMEOUT)
             self._setup_wake_lock_renewal()
-            logger.debug("Acquired wake lock with auto-renewal")
+            logger.trace("Acquired wake lock with auto-renewal")
 
         except Exception as e:
-            logger.error(f"Wake lock acquisition failed: {e}")
+            logger.error(f"Error acquiring wake lock: {e}")
             self.schedule_restart()
 
     def release_wake_lock(self) -> None:
@@ -134,10 +134,10 @@ class BackgroundService:
 
             # Schedule based on Android version
             self._schedule_alarm(alarm_manager, trigger_time, pending_intent)
-            logger.debug(f"Scheduled restart with {delay}ms delay")
+            logger.trace(f"Scheduled restart with {delay}ms delay")
 
         except Exception as e:
-            logger.error(f"Restart scheduling failed: {e}")
+            logger.error(f"Error scheduling restart: {e}")
             self._start()
     
     def _schedule_alarm(self, alarm_manager: Any, trigger_time: int, pending_intent: Any) -> None:
@@ -170,10 +170,10 @@ class BackgroundService:
                 self.context.startForegroundService(intent)
             else:
                 self.context.startService(intent)
-            logger.debug("Started service")
+            logger.debug("Started background Service")
 
         except Exception as e:
-            logger.error(f"Service start failed: {e}")
+            logger.error(f"Error starting background Service: {e}")
 
     def on_start_command(self, intent: Optional[Any], flags: int, start_id: int) -> int:
         """Handles the Service start command."""
@@ -214,29 +214,8 @@ class BackgroundService:
             logger.debug("Service destroyed")
         
         except Exception as e:
-            logger.error(f"Destroy handler failed: {e}")
+            logger.error(f"Error destroying Service: {e}")
             self.schedule_restart()
-
-    # def on_task_removed(self) -> None:
-    #     """Handles onTaskRemoved event.
-    #     Called when the app is removed from recent apps.
-    #     First tries to restart immediately, then falls back to scheduled restart.
-    #     """
-    #     try:
-    #         logger.debug("Service task removed")
-            
-    #         # Try immediate restart first
-    #         try:
-    #             self._start()
-    #             logger.critical("Service started immediately after task removal")
-    #         except Exception as start_error:
-    #             logger.critical(f"Immediate start failed after task removal: {start_error}")
-    #             # Fall back to scheduled restart if immediate start fails
-    #             self.schedule_restart()
-        
-    #     except Exception as e:
-    #         logger.error(f"Task removal handler failed: {e}")
-    #         self.schedule_restart()
 
 
 # Global service instance
@@ -247,12 +226,12 @@ def main() -> None:
     """Service entry point."""
     global _service
     try:
-        logger.trace("Starting background service")
+        logger.trace("Starting background Service")
         _service = BackgroundService()
         _service.on_start_command(None, 0, 1)
     
     except Exception as e:
-        logger.error(f"Error in Service main: {e}")
+        logger.error(f"Error starting Service: {e}")
         if _service:
             _service.on_destroy()
 

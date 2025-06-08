@@ -115,7 +115,7 @@ class PermissionManager:
             intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
             intent.setData(Uri.parse(f"package:{package_name}"))
             activity.startActivity(intent)
-            logger.trace(f"ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission requested")
+            logger.debug("ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission requested")
         
         except Exception as e:
             logger.error(f"Error requesting permission ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: {e}")
@@ -161,7 +161,7 @@ class PermissionManager:
             intent = Intent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM")
             intent.setData(Uri.parse(f"package:{package_name}"))
             activity.startActivity(intent)
-            logger.info("REQUEST_SCHEDULE_EXACT_ALARM permission requested")
+            logger.debug("REQUEST_SCHEDULE_EXACT_ALARM permission requested")
         
         except Exception as e:
             logger.error(f"Error requesting exact alarm permission: {e}")

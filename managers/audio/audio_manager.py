@@ -53,7 +53,7 @@ class AudioManager:
         Stops any running alarm or vibrate before starting new one.
         Both alarm and vibrate run on separate thread loops.
         """
-        logger.trace("Triggering alarm")
+        logger.debug("Triggering Task alarm")
         self._stop_alarm_loop()
         self._stop_vibrate_loop()
 
@@ -140,6 +140,7 @@ class AudioManager:
 
     def stop_alarm(self, *args, **kwargs) -> None:
         """Stops both alarm and vibrate loops if they are running."""
+        logger.debug("Stopping Task alarm")
         self._stop_alarm_loop()
         self._stop_vibrate_loop()
         

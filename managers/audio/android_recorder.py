@@ -67,7 +67,7 @@ class AndroidAudioRecorder:
             
             self.recorder.start()
             self.recording = True
-            logger.trace(f"Started recording: {self.current_path}")
+            logger.debug(f"Started recording: {self.current_path}")
             return True
         
         except Exception as e:
@@ -89,7 +89,7 @@ class AndroidAudioRecorder:
             self.recorder.release()
             self.recorder = None
             self.recording = False
-            logger.trace(f"Stopped and saved recording: {self.current_path}")
+            logger.debug(f"Stopped and saved recording: {self.current_path}")
             return True
         
         except Exception as e:

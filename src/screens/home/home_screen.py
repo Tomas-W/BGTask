@@ -9,8 +9,9 @@ from kivy.uix.button import Button
 from kivy.animation import Animation
 
 from src.screens.base.base_screen import BaseScreen
-
+from managers.device.device_manager import DM
 from .home_screen_utils import HomeScreenUtils
+
 from src.utils.logger import logger
 from src.settings import SCREEN, LOADED, COL, SIZE, SPACE, FONT
 
@@ -152,7 +153,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                 self.task_manager.dispatch("on_task_edit_load_task_data", task=task_to_edit)
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(SCREEN.NEW_TASK), 0.1)
             else:
-                logger.error(f"Failed to edit task: Task with ID {task_id} not found")
+                logger.error(f"Error editing Task: {DM.get_task_id_log(task_id)} not found")
                 self.update_task_display()
                 
             # Clean up selection state
@@ -179,7 +180,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                 # Now delete the task
                 self.task_manager.delete_task(task_id)
             else:
-                logger.error(f"Failed to delete task: Task with ID {task_id} not found")
+                logger.error(f"Error deleting Task: {DM.get_task_id_log(task_id)} not found")
                 self.update_task_display()
                 
                 # Clean up selection state
@@ -237,12 +238,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """Scroll to the new/edited task"""
         # Mark to invalidate this Widgets cache
         task = kwargs.get("task") if kwargs.get("task") else task
-        logger.debug(f"Scroll to task: {task}")
         self.invalidate_cache_for_date = task.get_date_str()
         
         # Set widget attributes
         if not self.find_task(instance, task):
-            logger.error(f"No task found - cannot scroll to it")
+            logger.error(f"Error scrolling to task: {DM.get_task_id_log(task.task_id)} not found")
             return
         
         self.scroll_container.scroll_view.scroll_y = 1.0
@@ -260,13 +260,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             Clock.schedule_once(lambda dt: selected_task.set_active(False), 4)
             Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 4.1)
         
-        logger.debug(f"Scrolled to task: {task}")
-    
     def _refresh_home_screen(self, task, *args, **kwargs) -> None:
         """
         Re-loads the task display.
         """
-        logger.trace(f"_refresh_home_screen received Task: {task.message if task else None}")
         Clock.schedule_once(lambda dt: self.update_task_display(modified_task=task), 0.05)
     
     def _log_loading_times(self) -> None:
@@ -309,7 +306,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """
         Sets background color of given date's TaskGroup to inactive.
         """
-        logger.debug(f"Setting date expired: {date}")
         # Find the task group widget for this date
         for task_group in self.active_task_widgets:
             # The task_group.date_str is already formatted like "Today, April 10"
@@ -320,5 +316,4 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                 if not task_group.all_expired:
                     task_group.tasks_container.set_expired(True)
                     task_group.all_expired = True
-                    logger.debug(f"Date expired: {date}")
                 break

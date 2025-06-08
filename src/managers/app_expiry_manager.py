@@ -60,6 +60,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         - Refreshes StartScreen.
         - Refreshes ServiceExpiryManager.
         """
+        logger.debug(f"Handling cancelled Task: {DM.get_task_log(cancelled_task)}")
         # Stop alarm
         self.dispatch("on_task_cancelled_stop_alarm")
         # Refresh ExpiryManager
@@ -71,8 +72,6 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh ServiceExpiryManager
         self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         
-        logger.debug(f"_handle_cancelled_task: {DM.get_task_log(cancelled_task)}")
-    
     def _handle_snoozed_task(self, snoozed_task: "Task") -> None:
         """
         Snoozes a Task through a Popup.
@@ -82,6 +81,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         - Refreshes StartScreen.
         - Refreshes ServiceExpiryManager.
         """
+        logger.debug(f"Handling snoozed Task: {DM.get_task_log(snoozed_task)}")
         # Stop alarm
         self.dispatch("on_task_snoozed_stop_alarm")
         # Refresh ExpiryManager
@@ -92,9 +92,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.task_manager.dispatch("on_task_edit_refresh_start_screen")
         # Refresh ServiceExpiryManager
         self.task_manager.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
-
-        logger.trace(f"_handle_snoozed_task updated Task: {DM.get_task_log(snoozed_task)}")
-    
+        
     def log_expiry_tasks(self) -> None:
         """Logs the expiry Tasks."""
         if self.log_tick % 10 == 0:

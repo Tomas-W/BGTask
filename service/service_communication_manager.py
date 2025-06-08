@@ -73,9 +73,8 @@ class ServiceCommunicationManager:
             if hasattr(PythonService, "mService") and PythonService.mService:
                 self.context = PythonService.mService.getApplicationContext()
                 self.package_name = self.context.getPackageName()
-                logger.debug("Initialized ServiceCommunicationManager.")
             else:
-                logger.error("Error initializing context - service context not available.")
+                logger.error("Error initializing Service context - service context not available.")
         
         except Exception as e:
             logger.error(f"Error initializing Service context: {e}")
@@ -165,7 +164,7 @@ class ServiceCommunicationManager:
         # Check Service actions
         if self._is_service_action(pure_action):
             if not task_id:
-                logger.error(f"Could not get task_id for action: {pure_action}")
+                logger.error(f"Error getting task_id from action: {pure_action}")
                 return Service.START_STICKY
             
             self._handle_service_action(pure_action, task_id)
@@ -236,11 +235,11 @@ class ServiceCommunicationManager:
         - Adds task_id to intent if provided
         """
         if not self.context:
-            logger.error("Cannot send action - no context available")
+            logger.error("Error sending action - no context available")
             return
         
         if not DM.validate_action(action):
-            logger.error(f"Invalid action: {action}")
+            logger.error(f"Error sending action - invalid action: {action}")
             return
 
         try:
@@ -249,7 +248,7 @@ class ServiceCommunicationManager:
                 intent.putExtra("task_id", AndroidString(task_id))
             
             self.context.sendBroadcast(intent)
-            logger.debug(f"Sent broadcast action: {action} with task_id: {task_id}")
+            logger.debug(f"Sent broadcast action: {action} with task_id: {DM.get_task_id_log(task_id)}")
         
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
@@ -276,73 +275,75 @@ class ServiceCommunicationManager:
         """
         task_id = intent.getStringExtra("task_id")        
         if task_id:
-            logger.debug(f"Using task_id from intent extras: {task_id}")
             return task_id
         
         # Fallback to current Task's ID
         if action and any(action.endswith(a) for a in [DM.ACTION.SNOOZE_A, DM.ACTION.SNOOZE_B, DM.ACTION.CANCEL, DM.ACTION.OPEN_APP]):
             if self.expiry_manager.current_task:
-                logger.debug(f"No task_id in intent, using current task_id: {self.expiry_manager.current_task.task_id}")
+                logger.error(f"Error getting task_id from intent - using current task_id: {self.expiry_manager.current_task.task_id}")
                 return self.expiry_manager.current_task.task_id
         
-        logger.debug("No task_id in intent and no fallback needed")
         return None
 
     def _snooze_action(self, action: str, task_id: str) -> None:
         """Handles snooze actions from notifications."""
-        # Service side
-        self.expiry_manager.snooze_task(action, task_id)
-        self.audio_manager.stop_alarm()
-        self.service_manager.update_foreground_notification_info()
-        # App side
-        self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
-        self.send_action(DM.ACTION.STOP_ALARM)
+        logger.debug(f"Handling snooze action for Task with ID: {DM.get_task_id_log(task_id)}")
+        try:
+            # Service side
+            self.expiry_manager.snooze_task(action, task_id)
+            self.audio_manager.stop_alarm()
+            self.service_manager.update_foreground_notification_info()
+            # App side
+            self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
+            self.send_action(DM.ACTION.STOP_ALARM)
+        
+        except Exception as e:
+            logger.error(f"Error handling snooze action: {e}")
 
     def _cancel_action(self, action: str, task_id: str) -> None:
         """
         Handles cancel and open app actions from notifications.
         Same functionality for both actions, except OPEN_APP opens the App in the end.
         """
-        # Service side
-        self.expiry_manager.cancel_task(task_id)
-        self.audio_manager.stop_alarm()
-        self.service_manager.update_foreground_notification_info()
+        logger.debug(f"Handling cancel action for Task with ID: {DM.get_task_id_log(task_id)}")
+        try:
+            # Service side
+            self.expiry_manager.cancel_task(task_id)
+            self.audio_manager.stop_alarm()
+            self.service_manager.update_foreground_notification_info()
+            
+            # App side
+            self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
+            self.send_action(DM.ACTION.STOP_ALARM)
+            # Send both action and SharedPreferences
+            # Apps action_handler deletes the SharedPreferences if action is received
+            self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
+            self.preferences_manager.set_preferences(
+                pref_type=DM.PREFERENCE_TYPE.ACTIONS,
+                extras={DM.PREFERENCE.SHOW_TASK_POPUP: task_id},
+            )
+                    
+            if action.endswith(DM.ACTION.OPEN_APP):
+                self.service_manager._open_app()
         
-        # App side
-        self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
-        self.send_action(DM.ACTION.STOP_ALARM)
-        # Send both action and SharedPreferences
-        # Apps action_handler deletes the SharedPreferences if action is received
-        self.send_action(DM.ACTION.SHOW_TASK_POPUP, task_id)
-        self.preferences_manager.set_preferences(
-            pref_type=DM.PREFERENCE_TYPE.ACTIONS,
-            extras={DM.PREFERENCE.SHOW_TASK_POPUP: task_id},
-        )
-                
-        if action.endswith(DM.ACTION.OPEN_APP):
-            self.service_manager._open_app()
+        except Exception as e:
+            logger.error(f"Error handling cancel action: {e}")
     
     def _update_tasks_action(self) -> None:
         """Refreshes ExpiryManager Tasks and updates foreground notification."""
-        try:
-            self.expiry_manager._refresh_tasks()
-            self.service_manager.update_foreground_notification_info()
-            logger.trace("Updated Tasks and foreground notification through service action")
-        
-        except Exception as e:
-            logger.error(f"Error handling UPDATE_TASKS: {e}")
+        logger.debug("Handling update tasks action")
+        self.expiry_manager._refresh_tasks()
+        self.service_manager.update_foreground_notification_info()
+        logger.trace("Updated Tasks and foreground notification through service action")
     
     def _stop_alarm_action(self) -> None:
         """Stops the Service alarm through the AudioManager."""
-        try:
-            self.audio_manager.stop_alarm()
-            logger.trace("Stopped alarm through service action")
-        
-        except Exception as e:
-            logger.error(f"Error handling STOP_ALARM: {e}")
-    
+        logger.debug("Handling stop alarm action")
+        self.audio_manager.stop_alarm()
+
     def _remove_task_notifications_action(self) -> None:
         """Removes all task notifications."""
+        logger.debug("Handling remove task notifications action")
         self.notification_manager.cancel_all_notifications()
     
     def _get_pure_action(self, intent: Any) -> str | None:

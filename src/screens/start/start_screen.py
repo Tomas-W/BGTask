@@ -1,6 +1,3 @@
-import time as time_
-start_time = time_.time()
-
 import json
 import os
 
@@ -26,11 +23,7 @@ from src.utils.misc import get_task_header_text
 from src.utils.wrappers import android_only
 
 from src.settings import SCREEN, STATE, LOADED, TEXT
-
-
 from src.utils.logger import logger
-logger.error(f"StartScreen IMPORTS time: {time_.time() - start_time:.4f}")
-
 
 
 class StartScreen(Screen):
@@ -44,7 +37,6 @@ class StartScreen(Screen):
         When the screen is shown, the page is built and the data is loaded in.
         """
         super().__init__(**kwargs)
-        start_time = time_.time()
         self._start_screen_finished: bool = False
         self.is_taking_screenshot: bool = False  # Flag to prevent multiple screenshot calls
 
@@ -90,9 +82,6 @@ class StartScreen(Screen):
 
         self.bottom_bar = None
 
-        end_time = time_.time()
-        logger.error(f"StartScreen __INIT__ TIME: {end_time - start_time:.4f}")
-    
     def _init_task_manager(self, task_manager) -> None:
         """
         Initializes the TaskManager.
@@ -102,11 +91,9 @@ class StartScreen(Screen):
     
     def _init_current_task_data(self) -> list[dict]:
         """Loads initial Task data from file when task_manager is not yet available."""
-        start_time = time_.time()
-
         task_file_path = DM.get_storage_path(DM.PATH.TASK_FILE)
         if not os.path.exists(task_file_path):
-            logger.error("Task file does not exist.")
+            logger.error(f"Error loading Task data, file does not exist: {task_file_path}")
             return []
 
         with open(task_file_path, "r") as f:
@@ -124,7 +111,7 @@ class StartScreen(Screen):
             target_date_key = min(future_dates)
         
         except ValueError:
-            logger.debug("No future dates found")
+            logger.debug("No future dates found - setting default Task")
             start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
                               message=TEXT.NO_TASKS,
                               expired=True)
@@ -142,7 +129,6 @@ class StartScreen(Screen):
             header_text = get_task_header_text(task_date)
             self.day_header.text = header_text
 
-        logger.error(f"HomeScreen _INIT_CURRENT_TASK_DATA TIME: {time_.time() - start_time:.4f}")
         return task_data
     
     def _get_current_task_data(self) -> list[dict]:
@@ -162,7 +148,6 @@ class StartScreen(Screen):
         Updates the Task widgets in the TaskGroupContainer.
         These contain the next tasks that are expiring, within a single day.
         """
-        start_time = time_.time()
         # Clear existing Tasks
         self.tasks_container.clear_widgets()
         for task in self.current_task_data:
@@ -217,9 +202,6 @@ class StartScreen(Screen):
             self.tasks_container.set_expired(True)
         else:
             self.tasks_container.set_expired(False)
-
-        end_time = time_.time()
-        logger.error(f"StartScreen _LOAD_CURRENT_TASKS_WIDGETS TIME: {end_time - start_time:.4f}")
     
     @property
     def start_screen_finished(self) -> bool:
@@ -253,7 +235,6 @@ class StartScreen(Screen):
         """
         Re-loads the StartScreen.
         """
-        logger.trace("CALLED _REFRESH_START_SCREEN")
         self.current_task_data = self._init_current_task_data()
         Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
     
@@ -271,7 +252,6 @@ class StartScreen(Screen):
         After loading the app, the HomeScreen is loaded.
         """
         if not self._start_screen_finished:
-            import time
             self.start_screen_finished = True
             
             self._hide_loading_screen()
@@ -293,9 +273,9 @@ class StartScreen(Screen):
             if not is_service_running():
                 from src.utils.background_service import start_background_service
                 start_background_service()
-                logger.critical("Service started")
+                logger.debug("Service started")
             else:
-                logger.critical("Service already running")
+                logger.debug("Service already running")
         
         
     def navigate_to_home_screen(self, slide_direction: str):

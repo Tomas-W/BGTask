@@ -48,7 +48,7 @@ class ExpiryManager():
         - Adds time to avoid overlapping with other Tasks.
         - Main Manager handles the snoozed Task.
         """
-        logger.critical(f"Snoozing task_id: {task_id}")
+        logger.debug(f"Snoozing Task with ID: {DM.get_task_id_log(task_id)}")
 
         # Snoozed newly expired or foreground notification Task
         result = self._get_snoozed_task(task_id)
@@ -78,8 +78,8 @@ class ExpiryManager():
             "expired": False
         })
 
-        logger.trace(f"Task {DM.get_task_log(snoozed_task)} snoozed for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
-        logger.trace(f"Last added snooze time: {total_snooze_time}s")
+        logger.trace(f"Snoozed Task {DM.get_task_log(snoozed_task)} for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
+        logger.trace(f"Total added snooze time: {total_snooze_time}s")
 
         self._handle_snoozed_task(snoozed_task)
     
@@ -93,7 +93,7 @@ class ExpiryManager():
             old_task = True
         
         if not snoozed_task:
-            logger.error(f"Task {task_id} not found for snoozing")
+            logger.error(f"Error getting snoozed Task, Task {DM.get_task_id_log(task_id)} not found")
             return None
         
         return snoozed_task, old_task
@@ -147,10 +147,14 @@ class ExpiryManager():
 
     def cancel_task(self, task_id: str) -> None:
         """Cancels a Task by ID."""
+        logger.debug(f"Cancelling Task with ID: {DM.get_task_id_log(task_id)}")
+        
         cancelled_task = self.get_task_by_id(task_id)
         if not cancelled_task:
             # Cancelling old expired Task through notification
             # No need to handle
+            # Should not happen
+            logger.critical(f"Tried to cancel old Task - should not happen - error removing Task notifications?")
             return
         
         # Save changes to file
@@ -160,8 +164,8 @@ class ExpiryManager():
         if cancelled_task == self.expired_task:
             self.expired_task = None
         
-        logger.debug(f"Called cancel_task for: {DM.get_task_log(cancelled_task)}")
         self._handle_cancelled_task(cancelled_task)
+        logger.debug(f"Cancelled Task: {DM.get_task_log(cancelled_task)}")
     
     def _bind_audio_manager(self, audio_manager: "AudioManager") -> None:
         """
@@ -249,7 +253,7 @@ class ExpiryManager():
         
         # Store current task as expired before refreshing
         self.expired_task = self.current_task
-        logger.trace(f"Task {self.expired_task.task_id} expired")
+        logger.debug(f"Task {DM.get_task_log(self.expired_task)} expired")
         
         # Re-load Tasks but don't reset expired Task
         self.refresh_active_tasks()
@@ -266,7 +270,6 @@ class ExpiryManager():
     def clear_expired_task(self) -> None:
         """Clears the expired Task without saving changes."""
         if self.expired_task:
-            logger.trace(f"Clearing expired Task {self.expired_task.task_id}")
             self.expired_task = None
     
     def get_task_by_id(self, task_id: str) -> Task | None:
@@ -304,7 +307,7 @@ class ExpiryManager():
                         
                         import time
                         time.sleep(0.1)
-                        logger.debug(f"Saved changes for Task {task_id}: {changes}")
+                        logger.debug(f"Saved changes for Task {DM.get_task_log(task)}")
                         return
         
         except Exception as e:

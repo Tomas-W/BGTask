@@ -23,7 +23,6 @@ class TaskManager(EventDispatcher):
         super().__init__()
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
-            logger.error(f"Task file not found: {self.task_file_path}")
             return
         
         self.navigation_manager = App.get_running_app().navigation_manager
@@ -66,7 +65,6 @@ class TaskManager(EventDispatcher):
         Loads all Tasks from file, which are grouped by date.
         Returns a dictionary of date keys and lists of Task objects.
         """
-        start_time = time.time()
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
@@ -78,7 +76,6 @@ class TaskManager(EventDispatcher):
                     task = Task.to_class(task_data)
                     tasks_by_date[date_key].append(task)
             
-            logger.trace(f"_load_tasks_by_date time: {time.time() - start_time:.4f}")
             return tasks_by_date
         
         except Exception as e:
@@ -147,7 +144,6 @@ class TaskManager(EventDispatcher):
         Called by save_all_tasks with a delay.
         Only called on Task add/edit/delete.
         """
-        start_time = time.time()
         try:
             tasks_json = {}
             # Group by date
@@ -157,11 +153,10 @@ class TaskManager(EventDispatcher):
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
             time.sleep(0.1)
-            logger.error(f"save_tasks_to_json time: {time.time() - start_time:.4f}")
             return True
         
         except Exception as e:
-            logger.error(f"Error saving tasks to file: {e}")
+            logger.error(f"Error saving Tasks to file: {e}")
             return False
     
     def add_task(self, message: str, timestamp: datetime,
@@ -203,7 +198,7 @@ class TaskManager(EventDispatcher):
         """
         task = self.get_task_by_id(task_id)
         if not task:
-            logger.error(f"Task with id {task_id} not found for update")
+            logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
         
         old_date_key = task.get_date_key()
@@ -227,7 +222,7 @@ class TaskManager(EventDispatcher):
             # Task from future to past, -> expired
             task.expired = True
         
-        logger.debug(f"Task {task_id} expired state changed: {old_expired} -> {task.expired}")
+        logger.trace(f"Task {DM.get_task_id_log(task_id)} expired state changed: {old_expired} -> {task.expired}")
         
         # If date will change, move Task to new date group
         new_date_key = task.get_date_key()
@@ -246,9 +241,9 @@ class TaskManager(EventDispatcher):
                 self.tasks_by_date[new_date_key] = []
             self.tasks_by_date[new_date_key].append(task)
 
-        logger.debug(f"Updated task: {task.task_id[:6]} | {task.timestamp+timedelta(seconds=task.snooze_time)}")
-        # Save, reload and notify service
+        # Save
         self._save_tasks_to_json()
+        logger.debug(f"Updated Task: {DM.get_task_log(task)}")
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
@@ -265,8 +260,9 @@ class TaskManager(EventDispatcher):
          dispatches an event to update the Task display.
         """
         task = self.get_task_by_id(task_id)
+        task_log = DM.get_task_log(task)
         if not task:
-            logger.error(f"Task with id {task_id} not found")
+            logger.error(f"Error deleting Task, {DM.get_task_id_log(task_id)} not found")
             return
         
         # Save copy before deletion for notification
@@ -278,7 +274,9 @@ class TaskManager(EventDispatcher):
             if not self.tasks_by_date[date_key]:
                 del self.tasks_by_date[date_key]
         
+        # Save
         self._save_tasks_to_json()
+        logger.debug(f"Deleted Task: {task_log}")
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
@@ -311,7 +309,7 @@ class TaskManager(EventDispatcher):
         
         # Then check for time match on that date
         for task in self.tasks_by_date[target_date_key]:
-            task_time = task.timestamp.time()
+            task_time = (task.timestamp + timedelta(seconds=task.snooze_time)).time()
             if task_time.hour == target_time.hour and task_time.minute == target_time.minute:
                 return task
         
