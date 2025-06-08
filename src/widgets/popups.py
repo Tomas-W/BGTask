@@ -23,7 +23,7 @@ from src.widgets.misc import Spacer
 
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE, SIZE, LOADED
+from src.settings import COL, SPACE, FONT, STATE, SIZE
 from managers.device.device_manager import DM
 
 class BasePopup(Popup):
@@ -412,7 +412,7 @@ class PopupManager:
         self.task_manager = app.task_manager
         self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
     	
-        LOADED.POPUP_MANAGER = True
+        DM.LOADED.POPUP_MANAGER = True
     
     def _handle_task_popup(self, *args, **kwargs):
         """

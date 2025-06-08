@@ -1,5 +1,3 @@
-import time
-
 from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
@@ -13,7 +11,7 @@ from managers.device.device_manager import DM
 from .home_screen_utils import HomeScreenUtils
 
 from src.utils.logger import logger
-from src.settings import SCREEN, LOADED, COL, SIZE, SPACE, FONT
+from src.settings import SCREEN, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
@@ -196,7 +194,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         If the edit/delete icons are visible, toggle them off first.
         Also deselect any selected task.
         """
-        if not LOADED.NEW_TASK_SCREEN:
+        if not DM.LOADED.NEW_TASK_SCREEN:
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         

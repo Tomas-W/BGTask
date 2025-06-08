@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions, Settings,
+    Dirs, Paths, Dates, Extensions, Settings, Loaded,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
     NotificationType, Actions, ActionTargets, SharedPreferencesTypes, SharedPreferences
 )
@@ -36,6 +36,7 @@ class DeviceManager:
             self.DATE: Final[Dates] = Dates()
             self.EXT: Final[Extensions] = Extensions()
             self.SETTINGS: Final[Settings] = Settings()
+            self.LOADED: Final[Loaded] = Loaded()
     	
             # Communication
             self.ACTION: Final[Actions] = Actions()

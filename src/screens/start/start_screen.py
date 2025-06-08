@@ -22,7 +22,7 @@ from src.widgets.labels import PartitionHeader
 from src.utils.misc import get_task_header_text
 from src.utils.wrappers import android_only
 
-from src.settings import SCREEN, STATE, LOADED, TEXT
+from src.settings import SCREEN, STATE, TEXT
 from src.utils.logger import logger
 
 
@@ -279,7 +279,7 @@ class StartScreen(Screen):
         
         
     def navigate_to_home_screen(self, slide_direction: str):
-        if not LOADED.HOME_SCREEN:
+        if not DM.LOADED.HOME_SCREEN:
             from src.utils.logger import logger
             logger.error("Home screen not ready - cannot navigate to it")
             return

@@ -224,3 +224,24 @@ class Settings:
     """
     def __init__(self):
         self.HEARTBEAT_SEDCONDS: int = 120
+
+
+class Loaded:
+    """
+    Contains constants that show whether components are loaded.
+    """
+    def __init__(self):
+        self.START_SCREEN = False
+        self.HOME_SCREEN = False
+        self.NEW_TASK_SCREEN = False
+        self.SELECT_DATE_SCREEN = False
+        self.SELECT_ALARM_SCREEN = False
+        self.SAVED_ALARMS_SCREEN = False
+        self.SETTINGS_SCREEN = False
+
+        self.NAVIGATION_MANAGER = False
+        self.TASK_MANAGER = False
+        self.AUDIO_MANAGER = False
+        self.COMMUNICATION_MANAGER = False
+        self.PREFERENCE_MANAGER = False
+        self.POPUP_MANAGER = False
