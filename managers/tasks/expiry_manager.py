@@ -307,7 +307,7 @@ class ExpiryManager():
                         
                         import time
                         time.sleep(0.1)
-                        logger.debug(f"Saved changes for Task {DM.get_task_log(task)}")
+                        logger.debug(f"Saved changes for Task {DM.get_task_id_log(task_id)}")
                         return
         
         except Exception as e:
