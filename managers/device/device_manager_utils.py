@@ -9,20 +9,16 @@ from src import SRC_DIR
 class Dirs:
     """Contains directories for the App and Service."""
     def __init__(self, is_android: bool):
-        # App source directory
+        # App
         self.SRC: Final[str] = SRC_DIR
-        # Service source directory
-        self.SERVICE: Final[str] = self._get_storage_path(is_android, SERVICE_DIR)
-        
         self.ASSETS: Final[str] = os.path.join(self.SRC, "assets")
         self.IMG: Final[str] = os.path.join(self.SRC, self.ASSETS, "images")
-
-        # App sound
         self.ALARMS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "alarms"))
         self.RECORDINGS: Final[str] = self._get_storage_path(is_android, os.path.join(self.ASSETS, "recordings"))
-        # Service sound
-        self.SERVICE_ALARMS_DIR: Final[str] = self._get_storage_path(is_android, "app/src/assets/alarms")
-        self.SERVICE_RECORDINGS_DIR: Final[str] = self._get_storage_path(is_android, "app/src/assets/recordings")
+        # Service
+        self.SERVICE: Final[str] = self._get_storage_path(is_android, SERVICE_DIR)
+        self.SERVICE_ALARMS: Final[str] = self._get_storage_path(is_android, "app/src/assets/alarms")
+        self.SERVICE_RECORDINGS: Final[str] = self._get_storage_path(is_android, "app/src/assets/recordings")
     
     @staticmethod
     def _get_storage_path(is_android: bool, directory: str) -> str:
@@ -40,7 +36,7 @@ class Paths(Dirs):
     """Contains file paths for the App and Service."""
     def __init__(self, is_android: bool):
         super().__init__(is_android)
-        # Navigation icons
+        # App
         self.BACK_IMG: Final[str] = os.path.join(self.IMG, "back_64.png")
         self.EDIT_IMG: Final[str] = os.path.join(self.IMG, "edit_64.png")
         # self.HISTORY_IMG: Final[str] = os.path.join(self.IMG, "history_64.png")
@@ -49,11 +45,9 @@ class Paths(Dirs):
         self.SCREENSHOT_IMG: Final[str] = os.path.join(self.IMG, "screenshot_64.png")
         self.SETTINGS_IMG: Final[str] = os.path.join(self.IMG, "settings_64.png")
         self.EXIT_IMG: Final[str] = os.path.join(self.IMG, "exit_64.png")
-
         # Task icons
         self.SOUND_IMG: Final[str] = os.path.join(self.IMG, "sound_64.png")
         self.VIBRATE_IMG: Final[str] = os.path.join(self.IMG, "vibrate_64.png")
-        
         # Playback icons
         self.PLAY_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_active_64.png")
         self.PLAY_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "play_inactive_64.png")
@@ -63,16 +57,14 @@ class Paths(Dirs):
         self.EDIT_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "edit_inactive_64.png")
         self.DELETE_ACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_active_64.png")
         self.DELETE_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_inactive_64.png")
-        
         # Task file
         self.TASK_FILE: Final[str] = os.path.join(self.ASSETS, "task_file.json")
-        self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
-
-        # Flags
-        self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
-                
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
+        # Service
+        self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
+        # Both
+        self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
 
 
 class Dates:
@@ -81,22 +73,18 @@ class Dates:
         # Main
         self.DATE_KEY: Final[str] = "%Y-%m-%d"              # 2024-03-21
         self.TIMESTAMP: Final[str] = "%Y-%m-%dT%H:%M:%S"    # 2024-03-21T14:30:00
-        
         # Task
         self.TASK_HEADER: Final[str] = "%A %d %b"           # Thursday 21 Mar
         self.TASK_TIME: Final[str] = "%H:%M"                # 14:30
-        
         # Calendar
         self.CALENDAR_DAY: Final[str] = "%A %d"             # Thursday 21
         self.MONTH_DAY: Final[str] = "%b %d"                # March 21
         self.DAY_MONTH_YEAR: Final[str] = "%d %b %Y"        # 21 Mar 2024
         self.DATE_SELECTION: Final[str] = "%A, %b %d, %Y"   # Thursday, March 21, 2024
         self.SELECTED_TIME: Final[str] = "%H:%M"            # 14:30
-        
         # Components
         self.HOUR: Final[str] = "%H"                        # 14
         self.MINUTE: Final[str] = "%M"                      # 30
-        
         # Recording
         self.RECORDING: Final[str] = "%H_%M_%S"             # 14_30_45
 
@@ -104,35 +92,35 @@ class Dates:
 class Extensions:
     """Contains file extensions for the App and Service."""
     def __init__(self):
-        # Audio formats
+        # Audio
         self.WAV: Final[str] = ".wav"
 
 
 class Actions:
     """
-    Contains action variables for the Service.
-    Also used by App to communicate with Service.
+    Contains action variables for sending actions between App and Service.
     """
     def __init__(self):
-        self.STOP_ALARM: Final[str] = "STOP_ALARM"
-        self.SNOOZE_A: Final[str] = "SNOOZE_A"
-        self.SNOOZE_B: Final[str] = "SNOOZE_B"
-        self.CANCEL: Final[str] = "CANCEL"
-        self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
-        self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
+        # App
         self.SHOW_TASK_POPUP: Final[str] = "SHOW_TASK_POPUP"
-
-        # Service only
-        self.OPEN_APP: Final[str] = "OPEN_APP"
+        # Service
+        self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
         self.BOOT_ACTION: Final[str] = "android.intent.action"
         self.BOOT_COMPLETED: Final[str] = "BOOT_COMPLETED"
+        # Both
+        self.SNOOZE_A: Final[str] = "SNOOZE_A"
+        self.SNOOZE_B: Final[str] = "SNOOZE_B"
+        self.CANCEL: Final[str] = "CANCEL"
+        self.STOP_ALARM: Final[str] = "STOP_ALARM"
+        self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
 
 
 class ActionTargets:
     """
-    Contains target variables for the Service.
-    Also used by App to communicate with Service.
+    Contains target variables for sending actions to either App or Service receiver (or both).
+    - App's receiver listens to ACTION_TARGET: APP
+    - Service's receiver listens to ACTION_TARGET: SERVICE | APP
     """
     def __init__(self):
         self.TARGET: Final[str] = "TARGET"
@@ -142,8 +130,7 @@ class ActionTargets:
 
 class NotificationChannels:
     """
-    Contains constants for notification channels.
-    Used solely by Service.
+    Contains constants for notification channels for the Service.
     """
     def __init__(self):
         self.FOREGROUND: str = "foreground_channel"
@@ -152,8 +139,7 @@ class NotificationChannels:
 
 class NotificationPriority:
     """
-    Contains constants for notification priorities.
-    Used solely by Service.
+    Contains constants for notification priorities for the Service.
     """
     def __init__(self):
         from jnius import autoclass  # type: ignore
@@ -167,8 +153,7 @@ class NotificationPriority:
 
 class NotificationImportance:
     """
-    Contains constants for notification channel importance.
-    Used solely by Service.
+    Contains constants for notification channel importance for the Service.
     """
     def __init__(self):
         from jnius import autoclass  # type: ignore
@@ -181,21 +166,20 @@ class NotificationImportance:
 
 class PendingIntents:
     """
-    Contains constants for pending intents.
-    Used solely by Service.
+    Contains constants for pending intents for the Service.
     """
     def __init__(self):
-        self.OPEN_APP: int = 11
-        self.SNOOZE_A: int = 12
-        self.SNOOZE_B: int = 13
-        self.CANCEL: int = 14
-        self.SHOW_TASK_POPUP: int = 15
+        self.SNOOZE_A: int = 11
+        self.SNOOZE_B: int = 12
+        self.CANCEL: int = 13
+        self.OPEN_APP: int = 14
+        self.STOP_ALARM: int = 15
+        self.SHOW_TASK_POPUP: int = 16
 
 
 class NotificationType:
     """
-    Contains constants for notification types.
-    Used solely by Service.
+    Contains constants for notification types for the Service.
     """
     def __init__(self):
         self.FOREGROUND: str = "foreground"
@@ -204,7 +188,7 @@ class NotificationType:
 
 class SharedPreferencesTypes:
     """
-    Contains constants for shared preferences types.
+    Contains constants for shared preferences types for the App and Service.
     """
     def __init__(self):
         self.ACTIONS: str = "ACTIONS"
@@ -212,7 +196,7 @@ class SharedPreferencesTypes:
 
 class SharedPreferences:
     """
-    Contains constants for shared preferences.
+    Contains constants for shared preferences for the App and Service.
     """
     def __init__(self):
         self.SHOW_TASK_POPUP: str = "SHOW_TASK_POPUP"
@@ -220,7 +204,7 @@ class SharedPreferences:
 
 class Settings:
     """
-    Contains constants for settings.
+    Contains constants for settings for the App and Service.
     """
     def __init__(self):
         self.HEARTBEAT_SEDCONDS: int = 120
@@ -228,7 +212,7 @@ class Settings:
 
 class Loaded:
     """
-    Contains constants that show whether components are loaded.
+    Contains constants that show whether App components are loaded or not.
     """
     def __init__(self):
         self.START_SCREEN = False
