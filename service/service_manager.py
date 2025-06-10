@@ -51,7 +51,7 @@ class ServiceManager:
             expiry_manager=self.expiry_manager,
             notification_manager=self.notification_manager
         )
-
+        
         # Loop variables
         self._running: bool = True
         self._in_foreground: bool = False
@@ -333,20 +333,6 @@ class ServiceManager:
                 )
         self.audio_manager.trigger_alarm(expired_task)
         self.update_foreground_notification_info()
-    
-    def _open_app(self) -> None:
-        """Opens the app from Task notification."""
-        try:
-            context = self.notification_manager.context
-            intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName())
-            if intent:
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                intent.addCategory("android.intent.category.LAUNCHER")
-                context.startActivity(intent)
-                logger.debug("Brought App to foreground")
-        
-        except Exception as e:
-            logger.error(f"Error launching app: {e}")
     
     def _init_activity_manager(self) -> None:
         """Initializes ActivityManager and gets package name."""

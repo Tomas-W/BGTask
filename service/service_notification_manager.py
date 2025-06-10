@@ -38,7 +38,7 @@ class ServiceNotificationManager:
     - Manages notification actions (snooze, cancel)
     - Tracks active notifications for proper cleanup
     """
-    def __init__(self, service: Any, expiry_manager: "ServiceExpiryManager"	):
+    def __init__(self, service: Any, expiry_manager: "ServiceExpiryManager"):
         self.service: Any = service
         self.context: Any = service.getApplicationContext()
         self.notification_manager: Any = self.context.getSystemService(Context.NOTIFICATION_SERVICE)
@@ -92,7 +92,7 @@ class ServiceNotificationManager:
         # Add task_id
         intent.putExtra("task_id", AndroidString(task_id))
         # Flags based on Android version
-        flags = self._get_flags(action)
+        flags = self._get_flags()
         # Request code based on action
         request_code = self._get_request_code(action)
         
@@ -103,7 +103,7 @@ class ServiceNotificationManager:
             flags
         )
 
-    def _get_flags(self, action: str) -> int:
+    def _get_flags(self) -> int:
         """Returns the flags based on the action."""
         flags = PendingIntent.FLAG_UPDATE_CURRENT
         if BuildVersion.SDK_INT >= ServiceNotificationManager.ANDROID_12:
@@ -118,8 +118,8 @@ class ServiceNotificationManager:
             return DM.INTENT.SNOOZE_B
         elif action.endswith(DM.ACTION.CANCEL):
             return DM.INTENT.CANCEL
-        elif action.endswith(DM.ACTION.OPEN_APP):
-            return DM.INTENT.OPEN_APP
+        elif action.endswith(DM.ACTION.STOP_ALARM):
+            return DM.INTENT.STOP_ALARM
         else:
             return 0
     
@@ -135,7 +135,7 @@ class ServiceNotificationManager:
                 intent.putExtra("task_id", AndroidString(task_id))
             
             # Flags based on Android version
-            flags = self._get_flags(DM.ACTION.OPEN_APP)
+            flags = self._get_flags()
             
             return PendingIntent.getActivity(
                 self.context,
@@ -172,7 +172,7 @@ class ServiceNotificationManager:
         builder.setOnlyAlertOnce(True)  # Prevent re-alerting
 
         # Get current task for intent and buttons
-        task = self.expiry_manager.expired_task or self.expiry_manager.current_task
+        task = self.expiry_manager.current_task
         task_id = task.task_id if task else None
 
         # Add click to open app

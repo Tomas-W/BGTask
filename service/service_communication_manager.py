@@ -14,6 +14,7 @@ Intent = autoclass("android.content.Intent")
 PythonService = autoclass("org.kivy.android.PythonService")
 Service = autoclass("android.app.Service")
 PendingIntent = autoclass("android.app.PendingIntent")
+Context = autoclass("android.content.Context")
 
 if TYPE_CHECKING:
     from service.service_manager import ServiceManager
@@ -50,7 +51,6 @@ class ServiceCommunicationManager:
             DM.ACTION.SNOOZE_A,
             DM.ACTION.SNOOZE_B,
             DM.ACTION.CANCEL,
-            DM.ACTION.OPEN_APP,
         ]
         self.app_actions: list[str] = [
             DM.ACTION.UPDATE_TASKS,
@@ -83,7 +83,7 @@ class ServiceCommunicationManager:
         """
         Initializes the broadcast receiver for App and Service actions.
         - Listens for ACTION_TARGET: SERVICE and APP
-        - Listens for ACTION: SNOOZE_A | SNOOZE_B | CANCEL | OPEN_APP
+        - Listens for ACTION: SNOOZE_A | SNOOZE_B | CANCEL
         - Listens for ACTION: STOP_ALARM | UPDATE_TASKS | REMOVE_TASK_NOTIFICATIONS
         - Listens for ACTION: BOOT_COMPLETED | RESTART_SERVICE
         """
@@ -123,7 +123,7 @@ class ServiceCommunicationManager:
     def _receiver_callback(self, context: Any, intent: Any) -> None:
         """
         Handles actions received through the broadcast receiver.
-        Listens to all actions so no need to check target.
+        Service listens to all actions so no need to check target.
         - Extracts pure action from intent
         - Routes to appropriate handler based on action
         """
@@ -133,12 +133,12 @@ class ServiceCommunicationManager:
                 logger.error("Error receiving callback - intent with null action")
                 return
             
-            # Handle SharedPreferences actions
+            # Handle SharedPreferences actions before others
             if pure_action == DM.ACTION.SHOW_TASK_POPUP:
                 self.receiver.setResultCode(1)
                 return
                 
-            logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
+            logger.info(f"ServiceCommunicationManager received intent with action: {pure_action}")
             task_id = self._get_task_id(intent, pure_action)
             self.handle_action(intent,pure_action, task_id)
                 
@@ -156,10 +156,11 @@ class ServiceCommunicationManager:
         # Check boot and restart actions
         if pure_action in self.boot_actions:
             self._handle_boot_action(pure_action)
+            logger.critical("ServiceCommunicationManager received boot action")
             return Service.START_STICKY
 
-        # Cancel all notifications for any non-boot action
-        self.notification_manager.cancel_all_notifications()
+        # # Cancel all notifications for any non-boot action
+        # self.notification_manager.cancel_all_notifications()
 
         # Check Service actions
         if self._is_service_action(pure_action):
@@ -197,14 +198,15 @@ class ServiceCommunicationManager:
         - Processes snooze/cancel actions from notifications
         - Updates service state and sends actions to App
         """
+        logger.info(f"_handle_service_action: {pure_action}")
         # Snooze
-        if pure_action.endswith(DM.ACTION.SNOOZE_A) or pure_action.endswith(DM.ACTION.SNOOZE_B):
+        if pure_action == DM.ACTION.SNOOZE_A or pure_action == DM.ACTION.SNOOZE_B:
             self._snooze_action(pure_action, task_id)
         
         # Cancel and open app
-        elif pure_action.endswith(DM.ACTION.CANCEL) or pure_action.endswith(DM.ACTION.OPEN_APP):
+        elif pure_action == DM.ACTION.CANCEL:
             self._cancel_action(pure_action, task_id)
-
+        
         return Service.START_STICKY
 
     def _handle_app_action(self, pure_action: str) -> int:
@@ -231,7 +233,6 @@ class ServiceCommunicationManager:
         """
         Sends a broadcast action with ACTION_TARGET: APP and SERVICE.
         - Validates action before sending
-        - Handles special OPEN_APP action
         - Adds task_id to intent if provided
         """
         if not self.context:
@@ -253,13 +254,6 @@ class ServiceCommunicationManager:
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}", exc_info=True)
     
-    def _get_flags(self, action: str) -> int:
-        """Returns the flags based on the action."""
-        flags = PendingIntent.FLAG_UPDATE_CURRENT
-        if BuildVersion.SDK_INT >= 31:  # Android 12
-            flags |= PendingIntent.FLAG_IMMUTABLE
-        return flags
-    
     def _get_send_action_intent(self, action: str) -> Any:
         """Returns an intent for the given action."""
         intent = Intent()
@@ -278,7 +272,7 @@ class ServiceCommunicationManager:
             return task_id
         
         # Fallback to current Task's ID
-        if action and any(action.endswith(a) for a in [DM.ACTION.SNOOZE_A, DM.ACTION.SNOOZE_B, DM.ACTION.CANCEL, DM.ACTION.OPEN_APP]):
+        if action and any(action.endswith(a) for a in self.service_actions):
             if self.expiry_manager.current_task:
                 logger.error(f"Error getting task_id from intent - using current task_id: {self.expiry_manager.current_task.task_id}")
                 return self.expiry_manager.current_task.task_id
@@ -303,15 +297,14 @@ class ServiceCommunicationManager:
     def _cancel_action(self, action: str, task_id: str) -> None:
         """
         Handles cancel and open app actions from notifications.
-        Same functionality for both actions, except OPEN_APP opens the App in the end.
+        Same functionality for both actions, except different snooze times.
         """
-        logger.debug(f"Handling cancel action for Task with ID: {DM.get_task_id_log(task_id)}")
+        logger.info(f"Handling cancel action for Task with ID: {DM.get_task_id_log(task_id)}")
         try:
             # Service side
             self.expiry_manager.cancel_task(task_id)
             self.audio_manager.stop_alarm()
             self.service_manager.update_foreground_notification_info()
-            
             # App side
             self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
             self.send_action(DM.ACTION.STOP_ALARM)
@@ -322,9 +315,6 @@ class ServiceCommunicationManager:
                 pref_type=DM.PREFERENCE_TYPE.ACTIONS,
                 extras={DM.PREFERENCE.SHOW_TASK_POPUP: task_id},
             )
-                    
-            if action.endswith(DM.ACTION.OPEN_APP):
-                self.service_manager._open_app()
         
         except Exception as e:
             logger.error(f"Error handling cancel action: {e}")
