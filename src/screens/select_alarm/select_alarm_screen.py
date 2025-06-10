@@ -232,11 +232,14 @@ class SelectAlarmScreen(BaseScreen):
     
     def load_task_vibrate_state(self) -> None:
         """Load the vibrate state of the task to edit"""
+        is_on: bool = False
+        if self.task_manager.task_to_edit:
+            is_on = self.task_manager.task_to_edit.vibrate
         self.set_button_state(
             self.vibration_button, 
-            active=self.task_manager.task_to_edit.vibrate, 
+            active=is_on, 
             enabled=True,
-            text="Vibrate on" if self.task_manager.task_to_edit.vibrate else "Vibrate off"
+            text="Vibrate on" if is_on else "Vibrate off"
         )
 
     def toggle_vibration(self, instance) -> None:
@@ -288,8 +291,6 @@ class SelectAlarmScreen(BaseScreen):
         super().on_pre_enter()
         
         self.update_screen_state()
-        if self.task_manager.task_to_edit:
-            self.load_task_vibrate_state()
     
     def on_enter(self) -> None:
         """Called when the screen is entered"""
@@ -301,7 +302,7 @@ class SelectAlarmScreen(BaseScreen):
         # Stop any playing audio and remove scheduled checks
         self.audio_manager.stop_playing_audio()
         self.unschedule_audio_check()
- 
+    
     @property
     def screen_state(self) -> ScreenState:
         """Get the current ScreenState based on AppAudioManager state"""
@@ -362,6 +363,7 @@ class SelectAlarmScreen(BaseScreen):
         self.update_selected_alarm_text()
         self.update_keep_alarming_states()
         self.update_button_states()
+        self.load_task_vibrate_state()
 
     def unschedule_audio_check(self):
         """Unschedule the audio finished check."""
