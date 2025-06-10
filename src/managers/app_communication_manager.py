@@ -34,6 +34,9 @@ class AppCommunicationManager():
     def __init__(self,
                  task_manager: "TaskManager",
                  expiry_manager: "AppExpiryManager"):
+        # from kivy.app import App
+        # app = App.get_running_app()
+        # app.bind(on_resume=self._stop_service_alarm)
         
         self.task_manager: "TaskManager" = task_manager
         self.expiry_manager: "AppExpiryManager" = expiry_manager
@@ -46,6 +49,10 @@ class AppCommunicationManager():
         self._init_context()
         self._init_receiver()
 
+        self._stop_service_alarm()
+    
+    def _stop_service_alarm(self, *args, **kwargs) -> None:
+        """Stops the Service alarm."""
         self.send_action(DM.ACTION.STOP_ALARM)
     
     def _init_context(self) -> None:

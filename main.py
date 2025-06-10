@@ -75,6 +75,7 @@ if platform != "android":
 # TODO: Block dates in past
 
 # SelectAlarmScreen
+# TODO: vibrate state shown wrong
 # TODO: Rename o existing name -> error popup
 # TODO: Cache alarm buttons
 # TODO: Limit alarm name length
@@ -192,6 +193,9 @@ class TaskApp(App, EventDispatcher):
         """
         super().on_resume()
         logger.debug("App is resuming")
+
+        self.audio_manager.stop_alarm()
+        self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
 
         if hasattr(self, "task_manager"):
             self._reload_tasks_and_ui()

@@ -23,7 +23,7 @@ class AppAudioManager(AudioManager):
         app.task_manager.expiry_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
         app.task_manager.expiry_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
         app.task_manager.expiry_manager.bind(on_task_snoozed_stop_alarm=self.stop_alarm)
-        app.bind(on_resume=self.stop_alarm)
+        # app.bind(on_resume=self.stop_alarm)
 
         # SelectAlarmScreen
         self.alarms: dict[str, str] = {}
