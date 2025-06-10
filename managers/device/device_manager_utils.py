@@ -207,6 +207,10 @@ class Settings:
     Contains constants for settings for the App and Service.
     """
     def __init__(self):
+        # App
+        self.ALARM_NAME_MIN_LENGTH: int = 4
+        self.ALARM_NAME_MAX_LENGTH: int = 20
+        # Both
         self.HEARTBEAT_SEDCONDS: int = 120
 
 

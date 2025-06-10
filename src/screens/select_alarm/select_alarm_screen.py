@@ -10,7 +10,7 @@ from src.widgets.buttons import (ConfirmButton, SettingsButton,
                                 CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
 from src.widgets.popups import POPUP
-
+from managers.device.device_manager import DM
 from src.utils.logger import logger
 
 from src.settings import STATE, SCREEN
@@ -190,26 +190,47 @@ class SelectAlarmScreen(BaseScreen):
         )
     
     def _handle_alarm_rename(self, new_name: str) -> None:
-        """Handle alarm rename callback to ensure proper UI updates"""
+        """
+        Handles alarm rename callback.
+        Validates new name and shows error popup if invalid or
+         changes name if valid.
+        """
         # No change
         if new_name == self.audio_manager.selected_alarm_name:
             return
         
         # Name taken
         if new_name in self.audio_manager.alarms:
-            Clock.schedule_once(lambda dt: self._show_name_taken_popup(new_name), 0.3)
+            message = "Name already taken"
+            Clock.schedule_once(lambda dt: self._handle_alarm_rename_error(invalid_name=new_name,
+                                                                           message=message), 0.3)
+            return
         
-        # Name available
-        else:
-            self._rename_alarm(new_name)
+        # Name too long
+        if len(new_name) > DM.SETTINGS.ALARM_NAME_MAX_LENGTH:
+            message = f"Name is longer than {DM.SETTINGS.ALARM_NAME_MAX_LENGTH} characters"
+            Clock.schedule_once(lambda dt: self._handle_alarm_rename_error(invalid_name=new_name,
+                                                                           message=message), 0.3)
+            return
+        
+        # Name too short
+        if len(new_name) < DM.SETTINGS.ALARM_NAME_MIN_LENGTH:
+            message = f"Name is shorter than {DM.SETTINGS.ALARM_NAME_MIN_LENGTH} characters"
+            Clock.schedule_once(lambda dt: self._handle_alarm_rename_error(invalid_name=new_name,
+                                                                           message=message), 0.3)
+            return
+        
+        self._rename_alarm(new_name)
     
-    def _show_name_taken_popup(self, new_name: str, *args, **kwargs) -> None:
+    def _handle_alarm_rename_error(self, invalid_name: str, message: str, *args, **kwargs) -> None:
+        """Shows input popup with error message and invalid name."""
+        header = f"{message}\nProvide different name:"
         POPUP.show_input_popup(
-                header="Name already taken\nProvide different name:", 
-                input_text=new_name,
-                on_confirm=self._handle_alarm_rename,
-                on_cancel=None
-            )
+            header=header,
+            input_text=invalid_name,
+            on_confirm=self._handle_alarm_rename,
+            on_cancel=None
+        )
 
     def _rename_alarm(self, new_name: str) -> None:
         """Rename the selected alarm"""
