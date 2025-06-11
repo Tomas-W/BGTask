@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.buttons import ConfirmButton, CancelButton
@@ -101,6 +100,11 @@ class NewTaskScreen(BaseScreen):
         if self.in_edit_task_mode:
             self.clear_inputs()
         
+        self.audio_manager.selected_alarm_name = None
+        self.audio_manager.selected_alarm_path = None
+        self.audio_manager.selected_vibrate = False
+        self.audio_manager.selected_keep_alarming = False
+
         self.navigation_manager.navigate_back_to(SCREEN.HOME)
     
     def clear_inputs(self) -> None:
@@ -108,13 +112,13 @@ class NewTaskScreen(BaseScreen):
         self.task_input_field.set_text("")
         self.task_manager.selected_date = None
         self.task_manager.selected_time = None
-        self.task_manager.selected_vibrate = False
-        self.task_manager.selected_keep_alarming = False
         self.date_display_field.set_text("")
         self.in_edit_task_mode = False
         self.task_manager.task_to_edit = None
         self.audio_manager.selected_alarm_name = None
         self.audio_manager.selected_alarm_path = None
+        self.audio_manager.selected_vibrate = False
+        self.audio_manager.selected_keep_alarming = False
         self.save_button.set_inactive_state()
     
     def validate_form(self, *args) -> None:
@@ -158,6 +162,13 @@ class NewTaskScreen(BaseScreen):
         Update the alarm_display_field with the selected alarm,
          or "No alarm set".
         """
+        self._update_alarm_name_display()
+    
+    def _update_alarm_name_display(self) -> None:
+        """
+        Update the alarm_display_field with the selected alarm,
+         or "No alarm set".
+        """
         if self.audio_manager.selected_alarm_name is not None:
             self.alarm_display_field.set_text(self.audio_manager.selected_alarm_name)
         else:
@@ -184,9 +195,9 @@ class NewTaskScreen(BaseScreen):
         self.audio_manager.selected_alarm_path = self.audio_manager.get_audio_path(task.alarm_name) if task.alarm_name else None
 
         # Vibrate
-        self.task_manager.selected_vibrate = task.vibrate
+        self.audio_manager.selected_vibrate = task.vibrate
         # Keep alarming
-        self.task_manager.selected_keep_alarming = task.keep_alarming
+        self.audio_manager.selected_keep_alarming = task.keep_alarming
         
         # Update UI
         self.update_datetime_display()
@@ -232,8 +243,8 @@ class NewTaskScreen(BaseScreen):
                 timestamp=task_datetime,
                 message=message,
                 alarm_name=self.audio_manager.selected_alarm_name,
-                vibrate=self.task_manager.selected_vibrate,
-                keep_alarming=self.task_manager.selected_keep_alarming,
+                vibrate=self.audio_manager.selected_vibrate,
+                keep_alarming=self.audio_manager.selected_keep_alarming,
             )
             self.in_edit_task_mode = False
             self.task_manager.task_to_edit = None
@@ -242,8 +253,8 @@ class NewTaskScreen(BaseScreen):
                 timestamp=task_datetime,
                 message=message,
                 alarm_name=self.audio_manager.selected_alarm_name,
-                vibrate=self.task_manager.selected_vibrate,
-                keep_alarming=self.task_manager.selected_keep_alarming,
+                vibrate=self.audio_manager.selected_vibrate,
+                keep_alarming=self.audio_manager.selected_keep_alarming,
             )
         
         self.clear_inputs()

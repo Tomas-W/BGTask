@@ -48,7 +48,7 @@ class TaskManager(EventDispatcher):
         self.selected_date: datetime | None = None
         self.selected_time: datetime | None = None
         self.selected_vibrate: bool = False
-        self.selected_keep_alarming: bool = False
+        # self.selected_keep_alarming: bool = False
         # Editing Task attributes
         self.task_to_edit: Task | None = None
         

@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions, Settings, Loaded,
+    Dirs, Paths, Dates, Extensions, Settings, Loaded, Screens,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
     NotificationType, Actions, ActionTargets, SharedPreferencesTypes, SharedPreferences
 )
@@ -14,6 +14,7 @@ from src.utils.logger import logger
 
 if TYPE_CHECKING:
     from managers.tasks.task import Task
+    from kivy.app import App
 
 
 class DeviceManager:
@@ -35,8 +36,9 @@ class DeviceManager:
             self.PATH: Final[Paths] = Paths(self.is_android)
             self.DATE: Final[Dates] = Dates()
             self.EXT: Final[Extensions] = Extensions()
-            self.SETTINGS: Final[Settings] = Settings()
+            self.SCREEN: Final[Screens] = Screens()
             self.LOADED: Final[Loaded] = Loaded()
+            self.SETTINGS: Final[Settings] = Settings()
     	
             # Communication
             self.ACTION: Final[Actions] = Actions()
@@ -53,7 +55,11 @@ class DeviceManager:
                 self.PRIORITY: Final[NotificationPriority] = NotificationPriority()
                 self.IMPORTANCE: Final[NotificationImportance] = NotificationImportance()
                 self.INTENT: Final[PendingIntents] = PendingIntents()
-        
+
+    def get_app(self) -> "App":
+        """Returns kivy.app.App."""
+        from kivy.app import App
+        return App.get_running_app()
 
     def _device_is_android(self) -> bool:
         """Returns whether the App is running on Android."""

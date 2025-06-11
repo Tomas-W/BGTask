@@ -214,6 +214,20 @@ class Settings:
         self.HEARTBEAT_SEDCONDS: int = 120
 
 
+class Screens:
+    """
+    Contains constants for screens for the App.
+    """
+    def __init__(self):
+        self.START = "START"
+        self.HOME = "HOME"
+        self.NEW_TASK = "NEW_TASK"
+        self.SELECT_DATE = "SELECT_DATE"
+        self.SELECT_ALARM = "SELECT_ALARM"
+        self.SAVED_ALARMS = "SAVED_ALARMS"
+        self.SETTINGS = "SETTINGS"
+
+
 class Loaded:
     """
     Contains constants that show whether App components are loaded or not.

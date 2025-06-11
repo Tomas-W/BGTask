@@ -33,6 +33,12 @@ class SelectAlarmScreen(BaseScreen):
         self.audio_manager: "AppAudioManager" = audio_manager
 
         self.BUTTON_STATES: dict[ScreenState, dict[str, Any]] = BUTTON_STATES
+        self.select_alarm_settings: dict[str, Any] = {
+            "alarm_name": None,
+            "alarm_path": None,
+            "vibrate": False,
+            "keep_alarming": False,
+        }
 
         # TopBar title
         self.top_bar.bar_title.set_text("Select Alarm")
@@ -253,28 +259,25 @@ class SelectAlarmScreen(BaseScreen):
     
     def load_task_vibrate_state(self) -> None:
         """Load the vibrate state of the task to edit"""
-        is_on: bool = False
-        if self.task_manager.task_to_edit:
-            is_on = self.task_manager.task_to_edit.vibrate
         self.set_button_state(
             self.vibration_button, 
-            active=is_on, 
+            active=self.audio_manager.selected_vibrate, 
             enabled=True,
-            text="Vibrate on" if is_on else "Vibrate off"
+            text="Vibrate on" if self.audio_manager.selected_vibrate else "Vibrate off"
         )
 
     def toggle_vibration(self, instance) -> None:
         """Toggle vibration on the selected alarm"""
-        self.task_manager.selected_vibrate = not self.task_manager.selected_vibrate
+        self.audio_manager.selected_vibrate = not self.audio_manager.selected_vibrate
         self.set_button_state(
             self.vibration_button,
-            active=self.task_manager.selected_vibrate,
-            text="Vibrate on" if self.task_manager.selected_vibrate else "Vibrate off"
+            active=self.audio_manager.selected_vibrate,
+            text="Vibrate on" if self.audio_manager.selected_vibrate else "Vibrate off"
         )
     
     def toggle_keep_alarming(self, instance) -> None:
         """Toggle keep alarming on the selected alarm"""
-        self.task_manager.selected_keep_alarming = not self.task_manager.selected_keep_alarming
+        self.audio_manager.selected_keep_alarming = not self.audio_manager.selected_keep_alarming
         self.update_keep_alarming_states()
 
     def cancel_select_alarm(self, instance) -> None:
@@ -282,8 +285,11 @@ class SelectAlarmScreen(BaseScreen):
         Reset the selected_alarm and navigate back to the NewTaskScreen.
         """
         self.unschedule_audio_check()
-        self.audio_manager.selected_alarm_name = None
-        self.audio_manager.selected_alarm_path = None
+
+        current_alarm_settings = self._get_select_alarm_settings()
+        if current_alarm_settings != self.select_alarm_settings:
+            self._restore_select_alarm_state()
+        
         self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
     
     def select_alarm(self, instance) -> None:
@@ -310,8 +316,37 @@ class SelectAlarmScreen(BaseScreen):
     def on_pre_enter(self) -> None:
         """Called when the screen is entered"""
         super().on_pre_enter()
-        
+
+        self._set_select_alarm_settings()
         self.update_screen_state()
+    
+    def _set_select_alarm_settings(self) -> None:
+        """
+        Saves the selected alarm settings if coming from NewTaskScreen.
+        Saves: alarm name, alarm path, vibrate, keep alarming.
+        Allows proper handeling of canceling when changes are made.
+        """
+        app = DM.get_app()
+        if app is not None:
+            prev_screen = app.navigation_manager.history[-2]
+            if prev_screen == DM.SCREEN.NEW_TASK:
+                self.select_alarm_settings = self._get_select_alarm_settings()
+    
+    def _get_select_alarm_settings(self) -> dict[str, Any]:
+        """Get the current selected alarm settings"""
+        return {
+            "alarm_name": self.audio_manager.selected_alarm_name,
+            "alarm_path": self.audio_manager.selected_alarm_path,
+            "vibrate": self.audio_manager.selected_vibrate,
+            "keep_alarming": self.audio_manager.selected_keep_alarming,
+        }
+    
+    def _restore_select_alarm_state(self) -> None:
+        """Restore the selected alarm settings"""
+        self.audio_manager.selected_alarm_name = self.select_alarm_settings["alarm_name"]
+        self.audio_manager.selected_alarm_path = self.select_alarm_settings["alarm_path"]
+        self.audio_manager.selected_vibrate = self.select_alarm_settings["vibrate"]
+        self.audio_manager.selected_keep_alarming = self.select_alarm_settings["keep_alarming"]
     
     def on_enter(self) -> None:
         """Called when the screen is entered"""
@@ -355,13 +390,13 @@ class SelectAlarmScreen(BaseScreen):
         """Update the keep_alarming states"""
         self.set_button_state(
             self.alarm_once_button,
-            active=not self.task_manager.selected_keep_alarming,
-            enabled=self.task_manager.selected_keep_alarming
+            active=not self.audio_manager.selected_keep_alarming,
+            enabled=self.audio_manager.selected_keep_alarming
         )
         self.set_button_state(
             self.alarm_continuously_button,
-            active=self.task_manager.selected_keep_alarming,
-            enabled=not self.task_manager.selected_keep_alarming
+            active=self.audio_manager.selected_keep_alarming,
+            enabled=not self.audio_manager.selected_keep_alarming
         )
     
     def update_button_states(self) -> None:
