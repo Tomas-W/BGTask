@@ -1,15 +1,13 @@
 from kivy.graphics import Color, RoundedRectangle
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from src.utils.misc import get_task_header_text
 from src.utils.logger import logger
-from kivy.app import App
 
 from managers.device.device_manager import DM
-from src.settings import SPACE, SIZE, COL, STYLE, FONT, SCREEN
+from src.settings import SPACE, SIZE, COL, STYLE, FONT
 
 
 class TasksByDate(BoxLayout):
@@ -66,19 +64,38 @@ class TasksByDate(BoxLayout):
         task_container.task = task
         task_container.task_id = task.task_id
 
+        # Time container
         time_container = TimeContainer()
+
+        # Alarm container
+        alarm_container = AlarmTimeContainer()
+        time_container.add_widget(alarm_container)
         # Time
         time_label = TimeLabel(text=task.get_time_str())
-        time_container.add_widget(time_label)
-
-        # Sound
+        alarm_container.add_widget(time_label)
+        # Sound icon
         if task.alarm_name is not None:
             sound_icon = TaskIcon(source=DM.PATH.SOUND_IMG)
-            time_container.add_widget(sound_icon)
-        # Vibrate
+            alarm_container.add_widget(sound_icon)
+        # Vibrate icon
         if task.vibrate:
             vibrate_icon = TaskIcon(source=DM.PATH.VIBRATE_IMG)
-            time_container.add_widget(vibrate_icon)
+            alarm_container.add_widget(vibrate_icon)
+        
+        # Snooze container
+        if task.snooze_time:
+            spacer = BoxLayout(size_hint=(0.5, None))
+            time_container.add_widget(spacer)
+
+            snooze_container = SnoozeContainer()
+            time_container.add_widget(snooze_container)
+            
+            # Snooze Icon
+            snooze_icon = TaskIcon(source=DM.PATH.SNOOZE_IMG)
+            snooze_container.add_widget(snooze_icon)
+            # Snooze time
+            snooze_label = SnoozeLabel(text=task.get_snooze_str())
+            snooze_container.add_widget(snooze_label)
         
         task_label = TaskLabel(text=task.message, task=task)
         
@@ -191,7 +208,7 @@ class TaskHeader(Label):
 
 class TimeContainer(BoxLayout):
     """
-    A TimeContainer is a container for a TimeLabel, and TaskIcons.
+    A TimeContainer is a container for a TimeLabel, TaskIcons and SnoozeLabel.
     """
     def __init__(self, **kwargs):
         super().__init__(
@@ -201,6 +218,21 @@ class TimeContainer(BoxLayout):
             spacing=SPACE.SPACE_S,
             **kwargs,
         )
+
+
+class AlarmTimeContainer(BoxLayout):
+    """
+    A AlarmTimeContainer is a container for a TimeLabel and TaskIcons.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(0.4, None),
+            height=FONT.DEFAULT,
+            spacing=SPACE.SPACE_S,
+            **kwargs,
+        )
+
 
 
 class TimeLabel(Label):
@@ -243,6 +275,45 @@ class TaskIcon(Image):
             **kwargs
         )
 
+
+class SnoozeContainer(BoxLayout):
+    """
+    A SnoozeContainer is a container for a SnoozeLabel.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(0.4, None),
+            height=FONT.DEFAULT,
+            spacing=SPACE.SPACE_XS,
+            **kwargs,
+        )
+
+
+class SnoozeLabel(Label):
+    """
+    A SnoozeLabel displays the snooze time of a Task.
+    - Formatted as "Snoozed: 10:00"
+    """
+    def __init__(self, text: str, **kwargs):
+        super().__init__(
+            text=text,
+            size_hint=(None, None),
+            height=FONT.DEFAULT,
+            halign="right",
+            font_size=FONT.SMALL,
+            bold=True,
+            color=COL.SNOOZE,
+            **kwargs
+        )
+        self.texture_update()
+        self.width = self.texture_size[0]
+        self.bind(text=self._update_width)
+    
+    def _update_width(self, instance, value):
+        """Update width when text changes"""
+        self.texture_update()
+        self.width = self.texture_size[0]
 
 class TaskLabel(Label):
     """
@@ -304,9 +375,9 @@ class TaskLabel(Label):
         if not self.collide_point(*touch.pos) or not self.task_id:
             return super().on_touch_down(touch)
         
-        app = App.get_running_app()
+        app = DM.get_app()
         task_manager = app.task_manager
-        home_screen = app.get_screen(SCREEN.HOME)
+        home_screen = app.get_screen(DM.SCREEN.HOME)
         task_to_select = self.task
 
         fresh_task = task_manager.get_task_by_id(self.task_id)
