@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager 
     from src.managers.app_expiry_manager import AppExpiryManager
     from managers.tasks.task import Task
+    from main import TaskApp
 
 
 @android_only_class()
@@ -32,14 +33,13 @@ class AppCommunicationManager():
     - Receiver listens for ACTION_TARGET: APP
     """
     def __init__(self,
-                 task_manager: "TaskManager",
-                 expiry_manager: "AppExpiryManager"):
-        # from kivy.app import App
-        # app = App.get_running_app()
+                 app: "TaskApp"):
+        self.app = app
+
         # app.bind(on_resume=self._stop_service_alarm)
         
-        self.task_manager: "TaskManager" = task_manager
-        self.expiry_manager: "AppExpiryManager" = expiry_manager
+        self.task_manager: "TaskManager" = app.task_manager
+        self.expiry_manager: "AppExpiryManager" = app.expiry_manager
         self.expiry_manager.bind(on_task_expired_remove_task_notifications=self._remove_notifications)
         
         self.context: Any | None = None

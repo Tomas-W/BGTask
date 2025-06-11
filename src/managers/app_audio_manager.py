@@ -1,6 +1,7 @@
 import os
 
 from kivy.app import App
+from typing import TYPE_CHECKING
 
 from managers.audio.audio_manager import AudioManager
 from managers.tasks.task import Task
@@ -9,17 +10,20 @@ from src.managers.permission_manager import PM
 
 from src.utils.logger import logger
 
+if TYPE_CHECKING:
+    from main import TaskApp
+
 
 class AppAudioManager(AudioManager):
     """
     Manages playing and recording audio in the application.
     Extends on AudioManager to add app-specific functionality.
     """
-    def __init__(self):
+    def __init__(self, app: "TaskApp"):
         super().__init__()
+        self.app = app
         
         # Bind events
-        app = App.get_running_app()
         app.task_manager.expiry_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
         app.task_manager.expiry_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
         app.task_manager.expiry_manager.bind(on_task_snoozed_stop_alarm=self.stop_alarm)
@@ -213,9 +217,7 @@ class AppAudioManager(AudioManager):
         self.selected_alarm_path = new_path
         
         # Update UI
-        from kivy.app import App
-        from src.settings import SCREEN
-        select_alarm_screen = App.get_running_app().get_screen(SCREEN.SELECT_ALARM)
+        select_alarm_screen = self.app.get_screen(DM.SCREEN.SELECT_ALARM)
         select_alarm_screen.update_selected_alarm_text()
         return True
     
@@ -234,9 +236,8 @@ class AppAudioManager(AudioManager):
             self.selected_alarm_name = None
             self.selected_alarm_path = None
             self.load_alarms()
-            from kivy.app import App
-            from src.settings import SCREEN
-            select_alarm_screen = App.get_running_app().get_screen(SCREEN.SELECT_ALARM)
+            
+            select_alarm_screen = self.app.get_screen(DM.SCREEN.SELECT_ALARM)
             select_alarm_screen.update_screen_state()
             return True
         

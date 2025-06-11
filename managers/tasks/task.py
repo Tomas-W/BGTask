@@ -80,6 +80,36 @@ class Task:
     def get_time_str(self) -> str:
         """Get formatted time string [HH:MM]."""
         return Task.to_time_str(self.timestamp + timedelta(seconds=self.snooze_time))
+
+    def get_snooze_str(self) -> str:
+        """Get formatted snooze time string [e.g. 1h30m30s, 45m20s, 30s]."""
+        if not self.snooze_time:
+            return ""
+        
+        # Convert seconds to hours, minutes, and seconds
+        days = self.snooze_time // 86400
+        hours = (self.snooze_time % 86400) // 3600
+        minutes = (self.snooze_time % 3600) // 60
+        seconds = self.snooze_time % 60
+        
+        # Build the string, only including non-zero parts
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+            if hours > 0:
+                parts.append(f"{hours}h")
+
+        elif hours > 0:
+            parts.append(f"{hours}h")
+            if minutes > 0:
+                parts.append(f"{minutes}m")
+        
+        elif minutes > 0:
+            parts.append(f"{minutes}m")
+            if seconds > 0:
+                parts.append(f"{seconds}s")
+        
+        return "".join(parts)
     
     def get_date_key(self) -> str:
         """

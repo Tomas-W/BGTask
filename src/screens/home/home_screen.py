@@ -14,8 +14,11 @@ from src.utils.logger import logger
 from src.settings import SCREEN, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_task_manager import TaskManager
     from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
     from managers.tasks.task import Task
+    from main import TaskApp
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
@@ -25,10 +28,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
     - Displays a list of tasks grouped by date
     - Has a bottom bar with a scroll to top button
     """
-    def __init__(self, navigation_manager, task_manager, **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
-        self.navigation_manager = navigation_manager
-        self.task_manager = task_manager
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
 
         # App dispatches
         self.task_manager.bind(on_task_saved_scroll_to_task=self.scroll_to_task)

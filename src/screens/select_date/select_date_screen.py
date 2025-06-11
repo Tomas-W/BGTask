@@ -21,14 +21,15 @@ from managers.device.device_manager import DM
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
+    from main import TaskApp
 
 
 class SelectDateScreen(BaseScreen, SelectDateUtils):
-    def __init__(self, navigation_manager: "NavigationManager",
-                 task_manager: "TaskManager", **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
-        self.navigation_manager: NavigationManager = navigation_manager
-        self.task_manager: TaskManager = task_manager
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
 
         # Initialize current month/year for calendar view
         self.current_month: int = datetime.now().month

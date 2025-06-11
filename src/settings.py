@@ -21,6 +21,7 @@ class Colors:
     BUTTON_INACTIVE = (0.7, 0.7, 0.7, 1.0)
 
     ERROR = (1, 0.35, 0.35, 0.7)
+    SNOOZE = (1, 0.35, 0.35, 1.0)
 
     CANCEL_BUTTON = (0.7, 0.7, 0.7, 1.0)
 
@@ -91,7 +92,7 @@ class Spacing:
 class Fonts:
     DEFAULT = sp(20)
     DEFAULT_BOLD = sp(24)
-    SMALL = sp(13)
+    SMALL = sp(16)
 
     TOP_BAR = sp(25)
     TOP_BAR_SYMBOL = sp(35)

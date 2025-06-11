@@ -19,18 +19,19 @@ if TYPE_CHECKING:
     from src.managers.app_audio_manager import AppAudioManager
     from src.managers.app_task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
+    from main import TaskApp
 
 
 class SelectAlarmScreen(BaseScreen):
     """
     Screen for selecting an alarm.
     """
-    def __init__(self, navigation_manager: "NavigationManager",
-                 task_manager: "TaskManager", audio_manager: "AppAudioManager", **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
-        self.navigation_manager: "NavigationManager" = navigation_manager
-        self.task_manager: "TaskManager" = task_manager
-        self.audio_manager: "AppAudioManager" = audio_manager
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
+        self.audio_manager: "AppAudioManager" = app.audio_manager
 
         self.BUTTON_STATES: dict[ScreenState, dict[str, Any]] = BUTTON_STATES
         self.select_alarm_settings: dict[str, Any] = {
@@ -326,11 +327,9 @@ class SelectAlarmScreen(BaseScreen):
         Saves: alarm name, alarm path, vibrate, keep alarming.
         Allows proper handeling of canceling when changes are made.
         """
-        app = DM.get_app()
-        if app is not None:
-            prev_screen = app.navigation_manager.history[-2]
-            if prev_screen == DM.SCREEN.NEW_TASK:
-                self.select_alarm_settings = self._get_select_alarm_settings()
+        prev_screen = self.app.navigation_manager.history[-2]
+        if prev_screen == DM.SCREEN.NEW_TASK:
+            self.select_alarm_settings = self._get_select_alarm_settings()
     
     def _get_select_alarm_settings(self) -> dict[str, Any]:
         """Get the current selected alarm settings"""

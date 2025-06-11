@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
 
@@ -10,6 +11,12 @@ from src.utils.logger import logger
 
 from src.settings import SCREEN, STATE, TEXT, SPACE
 from managers.device.device_manager import DM
+
+if TYPE_CHECKING:
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_task_manager import TaskManager
+    from src.managers.app_audio_manager import AppAudioManager
+    from main import TaskApp
 
 
 class NewTaskScreen(BaseScreen):
@@ -23,11 +30,12 @@ class NewTaskScreen(BaseScreen):
     """
     MIN_TASK_LENGTH = 3
     
-    def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)       
-        self.navigation_manager = navigation_manager
-        self.task_manager = task_manager
-        self.audio_manager = audio_manager
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
+        self.audio_manager: "AppAudioManager" = app.audio_manager
 
         self.task_manager.bind(on_task_edit_load_task_data=self.load_task_data)
 
@@ -70,6 +78,9 @@ class NewTaskScreen(BaseScreen):
         # Alarm display box
         self.alarm_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
         self.select_alarm_partition.add_widget(self.alarm_display_field)
+        # Vibrate display box
+        self.vibrate_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
+        self.select_alarm_partition.add_widget(self.vibrate_display_field)
         # Add to Scroll container
         self.scroll_container.container.add_widget(self.select_alarm_partition)
 
@@ -163,6 +174,7 @@ class NewTaskScreen(BaseScreen):
          or "No alarm set".
         """
         self._update_alarm_name_display()
+        self._update_vibrate_display()
     
     def _update_alarm_name_display(self) -> None:
         """
@@ -173,6 +185,16 @@ class NewTaskScreen(BaseScreen):
             self.alarm_display_field.set_text(self.audio_manager.selected_alarm_name)
         else:
             self.alarm_display_field.set_text(TEXT.NO_ALARM)
+    
+    def _update_vibrate_display(self) -> None:
+        """
+        Update the vibrate_display_field with the selected vibrate,
+         or "No vibrate set".
+        """
+        if self.audio_manager.selected_vibrate:
+            self.vibrate_display_field.set_text("Vibrate on")
+        else:
+            self.vibrate_display_field.set_text("Vibrate off")
     
     def load_task_data(self, instance, task, *args) -> None:
         """

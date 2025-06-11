@@ -29,20 +29,23 @@ from src.utils.logger import logger
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager
     from src.managers.navigation_manager import NavigationManager
+    from main import TaskApp
+
 
 class StartScreen(Screen):
     """
     StartScreen is the first screen that is shown when the app is opened.
     It is a placeholder displaying the nearest expiring task while the app is loading.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         """
         Background is loaded and displayed.
         When the screen is shown, the page is built and the data is loaded in.
         """
         super().__init__(**kwargs)
-        self.navigation_manager: "NavigationManager" | None = None  # connected in main.py
-        self.task_manager: "TaskManager" | None = None              # connected in main.py
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
 
         self._start_screen_finished: bool = False
         self.is_taking_screenshot: bool = False
@@ -224,9 +227,7 @@ class StartScreen(Screen):
             return
         
         self._start_screen_finished = value
-        from kivy.app import App
-        app = App.get_running_app()
-        Clock.schedule_once(app._load_app, 0)
+        Clock.schedule_once(self.app._load_app, 0)
 
     def on_pre_enter(self) -> None:
         """

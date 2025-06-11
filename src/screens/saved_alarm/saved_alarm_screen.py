@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from src.screens.base.base_screen import BaseScreen
 
 from src.widgets.containers import Partition, ScrollContainer, CustomButtonRow
@@ -8,6 +10,12 @@ from src.utils.logger import logger
 
 from src.settings import STATE, SCREEN
 
+if TYPE_CHECKING:
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_task_manager import TaskManager
+    from src.managers.app_audio_manager import AppAudioManager
+    from main import TaskApp
+
 
 class SavedAlarmScreen(BaseScreen):
     """
@@ -16,11 +24,12 @@ class SavedAlarmScreen(BaseScreen):
     - Has a alarm picker partition.
     - Has a confirmation partition.
     """
-    def __init__(self, navigation_manager, task_manager, audio_manager, **kwargs):
+    def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
-        self.navigation_manager = navigation_manager
-        self.task_manager = task_manager
-        self.audio_manager = audio_manager
+        self.app: "TaskApp" = app
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.task_manager: "TaskManager" = app.task_manager
+        self.audio_manager: "AppAudioManager" = app.audio_manager
 
         # TopBar title
         self.top_bar.bar_title.set_text("Saved Alarms")

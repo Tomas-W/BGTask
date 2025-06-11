@@ -25,6 +25,8 @@ from src.settings import COL, SPACE, FONT, STATE, SIZE
 
 if TYPE_CHECKING:
     from src.managers.app_task_manager import TaskManager
+    from main import TaskApp
+
 
 class BasePopup(Popup):
     """Base class for all popups"""
@@ -399,9 +401,11 @@ class TextInputPopup(BasePopup):
 
 
 class PopupManager:
-    def __init__(self, task_manager: "TaskManager"):
-        self.task_manager = task_manager
-        self.task_manager.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
+    def __init__(self, app: "TaskApp"):
+        self.app = app
+        self.task_manager = app.task_manager
+        self.expiry_manager = app.expiry_manager
+        self.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
 
         self.custom = CustomPopup()
         self.confirmation = ConfirmationPopup()
@@ -431,19 +435,11 @@ class PopupManager:
     
     def _stop_alarm(self, task_id: str):
         """Stop the alarm and mark task as expired"""
-        from kivy.app import App
-        app = App.get_running_app()
-        expiry_manager = app.task_manager.expiry_manager
-        
-        expiry_manager.cancel_task(task_id=task_id)
+        self.app.expiry_manager.cancel_task(task_id=task_id)
     
     def _snooze_alarm(self, task_id: str):
         """Snooze the alarm"""
-        from kivy.app import App
-        app = App.get_running_app()
-        expiry_manager = app.task_manager.expiry_manager
-        
-        expiry_manager.snooze_task(DM.ACTION.SNOOZE_A, task_id)
+        self.app.expiry_manager.snooze_task(DM.ACTION.SNOOZE_A, task_id)
 
     def _handle_popup_confirmation(self, confirmed: bool):
         """Handle confirmation popup button press"""
@@ -516,16 +512,13 @@ class PopupManager:
             self.task.task_time.text = time.strftime(DM.DATE.TASK_TIME)
             self.task.task_label.text = task.message
             
-            from kivy.app import App
-            app = App.get_running_app()
-            
             def display_new_popup(dt):
-                app.active_popup = self.task
+                self.app.active_popup = self.task
                 self.task.show_animation()
             
             # Close any existing popups
-            if hasattr(app, "active_popup") and app.active_popup:
-                app.active_popup.dismiss()
+            if hasattr(self.app, "active_popup") and self.app.active_popup:
+                self.app.active_popup.dismiss()
                 # Schedule new popup to show after a small delay
                 Clock.schedule_once(display_new_popup, 0.3)
             else:
@@ -543,9 +536,9 @@ class PopupManager:
         self.show_task_popup(task=task)
 
 
-def _init_popup_manager(task_manager: "TaskManager"):
+def _init_popup_manager(app: "TaskApp"):
     global POPUP
-    POPUP = PopupManager(task_manager)
+    POPUP = PopupManager(app=app)
 
 
 POPUP = None

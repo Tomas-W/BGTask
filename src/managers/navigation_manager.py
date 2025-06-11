@@ -1,8 +1,12 @@
-from kivy.app import App
+from typing import TYPE_CHECKING
 
 from src.utils.logger import logger
 
 from src.settings import SCREEN
+
+if TYPE_CHECKING:
+    from main import TaskApp
+    from kivy.uix.screenmanager import ScreenManager
 
 
 class NavigationManager:
@@ -13,8 +17,9 @@ class NavigationManager:
     - Going to a screen - slide_direction = "right"
     - Going back - slide_direction = "left"
     """
-    def __init__(self, screen_manager, start_screen: str):
-        self.screen_manager = screen_manager
+    def __init__(self, app: "TaskApp", start_screen: str):
+        self.app = app
+        self.screen_manager: "ScreenManager" = app.screen_manager
         self.history: list[str] = [start_screen]
     
     def _set_slide_directionn(self, slide_direction: str) -> None:
@@ -67,4 +72,4 @@ class NavigationManager:
         return True
 
     def exit_app(self, *args) -> None:
-        App.get_running_app().stop()
+        self.app.stop()

@@ -15,22 +15,22 @@ if TYPE_CHECKING:
     from src.managers.navigation_manager import NavigationManager
     from src.managers.app_communication_manager import AppCommunicationManager
     from src.managers.app_expiry_manager import AppExpiryManager
-
+    from main import TaskApp
 
 class TaskManager(EventDispatcher):
     """
     Manages Tasks and their storage using JSON.
     """
-    def __init__(self, navigation_manager: "NavigationManager",
-                 expiry_manager: "AppExpiryManager"):
+    def __init__(self, app: "TaskApp"):
         super().__init__()
+        self.app = app
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
             return
         
-        self.navigation_manager: "NavigationManager" = navigation_manager
-        self.expiry_manager: "AppExpiryManager" = expiry_manager
-        self.communication_manager: "AppCommunicationManager" | None = None  # init in main.py
+        self.navigation_manager: "NavigationManager" = app.navigation_manager
+        self.expiry_manager: "AppExpiryManager" = app.expiry_manager
+        self.communication_manager: "AppCommunicationManager" = None  # connected in main.py
 
         # Events
         self.register_event_type("on_task_saved_scroll_to_task")

@@ -34,15 +34,11 @@ if platform != "android":
 # TODO: Base widgets and custom - with extra options like borders / radius / etc
 
 
-# Popups
-# TODO: Load popups background & connect later
-
-
 # TaskManager
 
 
 # ExpiryManager
-# TODO: Sync loop
+# TODO: Trigger vibrate when App in foreground?
 
 
 # StartScreen
@@ -60,8 +56,6 @@ if platform != "android":
 # TODO: Create generic popup for errors
 # TODO: Floating Day label if many/long tasks
 # TODO: Add year to Tasks header when in next year
-# TODO: Snooze/Cancel through notification -> update task display
-# TODO: And immediate notification updates
 # TODO: Show snooze time
 
 
@@ -75,10 +69,7 @@ if platform != "android":
 # TODO: Block dates in past
 
 # SelectAlarmScreen
-# TODO: vibrate state shown wrong
-# TODO: Rename o existing name -> error popup
 # TODO: Cache alarm buttons
-# TODO: Limit alarm name length
 # TODO: Repeat alarm
 # TODO: Clean user input (maybe a popup level?)
 
@@ -89,15 +80,12 @@ if platform != "android":
 
 # General
 # TODO: Non confim buttons must be custom buttons, regular color is active, active color is custom confirm active
-# TODO: Rework is_android
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
 # TODO: Look at caching
 # TODO: Fix black alarm/vibrate icons for Tasks [TRYING]
 # TODO: Slow L&R swiping for screens
 # TODO: Task expired notification shows without snooze time
-# TODO: Stop vibrate immediately
-# TODO: Remove all App.get_running_app() and use dispatcher
 
 # Service
 
@@ -120,11 +108,14 @@ class TaskApp(App, EventDispatcher):
         """
         self.title = "Task Manager"
         
-        from kivy.uix.screenmanager import ScreenManager, SlideTransition
-        self.screen_manager = ScreenManager(transition=SlideTransition())
-        
+        self._init_screen_manager()
         self._init_preference_manager()
-
+        self._init_navigation_manager()
+        
+        self._init_expiry_manager()
+        self._init_task_manager()
+        self.expiry_manager._connect_task_manager(self.task_manager)
+        
         self._init_start_screen()
         
         return self.screen_manager
@@ -138,21 +129,13 @@ class TaskApp(App, EventDispatcher):
         Finishes loading StartScreen by adding NavigationManager and TaskManager.
         Then loads App components in priority order.
         """
-        self._init_navigation_manager()
-
-        self._init_expiry_manager()
-        self._init_task_manager()
-        self.expiry_manager._connect_task_manager(self.task_manager)
-
-        self._connect_managers_to_start_screen(
-            navigation_manager=self.navigation_manager,
-            task_manager=self.task_manager
-        )
-
         self._init_home_screen()
         self._build_home_screen()
 
         self._init_communication_manager()
+        self.expiry_manager._connect_communication_manager(self.communication_manager)
+        self.task_manager._connect_communication_manager(self.communication_manager)
+
         self._init_popup_manager()
         self._init_audio_manager()
 
@@ -271,18 +254,23 @@ class TaskApp(App, EventDispatcher):
     
     ###############################################
     ################### MANAGERS ##################
+    @log_time("ScreenManager")
+    def _init_screen_manager(self):
+        from kivy.uix.screenmanager import ScreenManager, SlideTransition
+        self.screen_manager = ScreenManager(transition=SlideTransition())
+
     @log_time("PreferenceManager")
     def _init_preference_manager(self):
         from src.managers.app_preference_manager import AppPreferencesManager
-        self.preference_manager = AppPreferencesManager()
+        self.preference_manager = AppPreferencesManager(app=self)
         DM.LOADED.PREFERENCE_MANAGER = True
     
     @log_time("NavigationManager")
     def _init_navigation_manager(self):
         from src.managers.navigation_manager import NavigationManager
         self.navigation_manager = NavigationManager(
-            screen_manager=self.screen_manager,
-            start_screen=SCREEN.HOME
+            app=self,
+            start_screen=DM.SCREEN.HOME
         )
         DM.LOADED.NAVIGATION_MANAGER = True
     
@@ -295,32 +283,25 @@ class TaskApp(App, EventDispatcher):
     @log_time("TaskManager")
     def _init_task_manager(self):
         from src.managers.app_task_manager import TaskManager
-        self.task_manager = TaskManager(self.navigation_manager,
-                                        self.expiry_manager)
-        self.expiry_manager._connect_task_manager(self.task_manager)
-        start_screen = self.get_screen(SCREEN.START)
-        start_screen._connect_task_manager(self.task_manager)
+        self.task_manager = TaskManager(app=self)
         DM.LOADED.TASK_MANAGER = True
     
     @log_time("CommunicationManager")
     def _init_communication_manager(self):
         from src.managers.app_communication_manager import AppCommunicationManager
-        self.communication_manager = AppCommunicationManager(self.task_manager,
-                                                             self.expiry_manager)
-        self.expiry_manager._connect_communication_manager(self.communication_manager)
-        self.task_manager._connect_communication_manager(self.communication_manager)
+        self.communication_manager = AppCommunicationManager(app=self)
         DM.LOADED.COMMUNICATION_MANAGER = True
     
     @log_time("PopupManager")
     def _init_popup_manager(self):
         from src.widgets.popups import _init_popup_manager
-        _init_popup_manager(self.task_manager)
+        _init_popup_manager(app=self)
         DM.LOADED.POPUP_MANAGER = True
     
     @log_time("AudioManager")
     def _init_audio_manager(self):
         from src.managers.app_audio_manager import AppAudioManager
-        self.audio_manager = AppAudioManager()
+        self.audio_manager = AppAudioManager(app=self)
         DM.LOADED.AUDIO_MANAGER = True
     
     ###############################################
@@ -329,7 +310,8 @@ class TaskApp(App, EventDispatcher):
     def _init_start_screen(self):
         from src.screens.start.start_screen import StartScreen
         self.screens = {
-            SCREEN.START: StartScreen(name=SCREEN.START)
+            SCREEN.START: StartScreen(name=SCREEN.START,
+                                      app=self)
         }
         self.screen_manager.add_widget(self.screens[SCREEN.START])
         DM.LOADED.START_SCREEN = True
@@ -338,8 +320,7 @@ class TaskApp(App, EventDispatcher):
     def _init_home_screen(self):
         from src.screens.home.home_screen import HomeScreen
         self.screens[SCREEN.HOME] = HomeScreen(name=SCREEN.HOME,
-                                               navigation_manager=self.navigation_manager,
-                                               task_manager=self.task_manager)
+                                               app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.HOME])
         DM.LOADED.HOME_SCREEN = True
 
@@ -347,9 +328,7 @@ class TaskApp(App, EventDispatcher):
     def _init_new_task_screen(self):
         from src.screens.new_task.new_task_screen import NewTaskScreen
         self.screens[SCREEN.NEW_TASK] = NewTaskScreen(name=SCREEN.NEW_TASK,
-                                                    navigation_manager=self.navigation_manager,
-                                                    task_manager=self.task_manager,
-                                                    audio_manager=self.audio_manager)
+                                                      app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.NEW_TASK])
         DM.LOADED.NEW_TASK_SCREEN = True
     
@@ -357,8 +336,7 @@ class TaskApp(App, EventDispatcher):
     def _init_settings_screen(self):
         from src.screens.settings.settings_screen import SettingsScreen
         self.screens[SCREEN.SETTINGS] = SettingsScreen(name=SCREEN.SETTINGS,
-                                                    navigation_manager=self.navigation_manager,
-                                                    task_manager=self.task_manager)
+                                                      app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.SETTINGS])
         DM.LOADED.SETTINGS_SCREEN = True
 
@@ -366,8 +344,7 @@ class TaskApp(App, EventDispatcher):
     def _init_select_date_screen(self):
         from src.screens.select_date.select_date_screen import SelectDateScreen
         self.screens[SCREEN.SELECT_DATE] = SelectDateScreen(name=SCREEN.SELECT_DATE,
-                                                            navigation_manager=self.navigation_manager,
-                                                            task_manager=self.task_manager)
+                                                            app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.SELECT_DATE])
         DM.LOADED.SELECT_DATE_SCREEN = True
     
@@ -375,9 +352,7 @@ class TaskApp(App, EventDispatcher):
     def _init_select_alarm_screen(self):
         from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
         self.screens[SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=SCREEN.SELECT_ALARM,
-                                                            navigation_manager=self.navigation_manager,
-                                                            task_manager=self.task_manager,
-                                                            audio_manager=self.audio_manager)
+                                                            app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.SELECT_ALARM])
         DM.LOADED.SELECT_ALARM_SCREEN = True
     
@@ -385,9 +360,7 @@ class TaskApp(App, EventDispatcher):
     def _init_saved_alarm_screen(self):
         from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
         self.screens[SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=SCREEN.SAVED_ALARMS,
-                                                            navigation_manager=self.navigation_manager,
-                                                            task_manager=self.task_manager,
-                                                            audio_manager=self.audio_manager)
+                                                            app=self)
         self.screen_manager.add_widget(self.screens[SCREEN.SAVED_ALARMS])
         DM.LOADED.SAVED_ALARMS_SCREEN = True
 
