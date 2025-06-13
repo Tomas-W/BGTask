@@ -2,15 +2,12 @@ import json
 import math
 
 from datetime import datetime, timedelta
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from managers.tasks.task import Task
 from managers.device.device_manager import DM
 
 from src.utils.logger import logger
-
-if TYPE_CHECKING:
-    from managers.audio.audio_manager import AudioManager
 
 
 class ExpiryManager():
@@ -25,9 +22,6 @@ class ExpiryManager():
     """	
     def __init__(self):
         super().__init__()
-
-        self.audio_manager: "AudioManager" | None = None
-
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
             logger.error(f"Error validating Task file: {self.task_file_path}")
@@ -56,7 +50,7 @@ class ExpiryManager():
             # No snoozed Task found
             return False
         
-        # Get time between expiry and user snoozing
+        # Get time between expiry and snoozing
         snoozed_task, is_old_task = result
         time_since_expiry = self._get_time_since_expiry(snoozed_task, is_old_task)
         # Get action's snooze time
@@ -78,8 +72,8 @@ class ExpiryManager():
             "expired": False
         })
 
-        logger.trace(f"Snoozed Task {DM.get_task_log(snoozed_task)} for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
-        logger.trace(f"Total added snooze time: {total_snooze_time}s")
+        logger.info(f"Snoozed Task {DM.get_task_log(snoozed_task)} for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
+        logger.info(f"Total added snooze time: {total_snooze_time}s")
 
         self._handle_snoozed_task(snoozed_task)
     
@@ -166,13 +160,6 @@ class ExpiryManager():
         
         self._handle_cancelled_task(cancelled_task)
         logger.debug(f"Cancelled Task: {DM.get_task_log(cancelled_task)}")
-    
-    def _bind_audio_manager(self, audio_manager: "AudioManager") -> None:
-        """
-        Binds the audio manager to the ExpiryManager.
-        Cannot init immediately due to loading order.
-        """
-        self.audio_manager = audio_manager
     
     def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         """Returns a dictionary of Tasks from the Task file."""

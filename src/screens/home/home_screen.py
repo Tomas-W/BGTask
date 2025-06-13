@@ -9,24 +9,25 @@ from kivy.animation import Animation
 from src.screens.base.base_screen import BaseScreen
 from managers.device.device_manager import DM
 from .home_screen_utils import HomeScreenUtils
+from src.screens.home.home_widgets import TaskGroupHeader
 
 from src.utils.logger import logger
 from src.settings import SCREEN, COL, SIZE, SPACE, FONT
 
 if TYPE_CHECKING:
+    from main import TaskApp
     from src.managers.navigation_manager import NavigationManager
     from src.managers.app_task_manager import TaskManager
-    from src.screens.home.home_widgets import TaskHeader, TaskLabel, TimeLabel
     from managers.tasks.task import Task
-    from main import TaskApp
+    from src.screens.home.home_widgets import TaskLabel, TimeLabel
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
     """
     HomeScreen is the main screen for the app that:
-    - Has a top bar with a settings button, new task button, and exit button
-    - Displays a list of tasks grouped by date
-    - Has a bottom bar with a scroll to top button
+    - Has a TopBar with options
+    - Displays a list of Tasks grouped by date
+    - Has a BottomBar with a scroll to top button
     """
     def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
@@ -34,28 +35,14 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.task_manager: "TaskManager" = app.task_manager
 
-        # App dispatches
-        self.task_manager.bind(on_task_saved_scroll_to_task=self.scroll_to_task)
-        self.task_manager.bind(
-            on_tasks_changed_update_task_display=lambda instance,
-             **kwargs: self.update_task_display(modified_task=kwargs.get("modified_task")))
-        self.task_manager.bind(
-            on_tasks_expired_set_date_expired=self.set_date_expired)
-        self.task_manager.bind(on_task_edit_refresh_home_screen=lambda instance,
-                               **kwargs: self._refresh_home_screen(kwargs.get("task")))
-
-        # Loading attributes
-        self.tasks_loaded: bool = False
-        # Scroll to Task attributes
-        self.task_header_widget: TaskHeader | None = None
+        self._home_screen_finished: bool = False
+        # Scroll to Task
+        self.task_header_widget: TaskGroupHeader | None = None
         self.time_label_widget: TimeLabel | None = None
         self.task_message_widget: TaskLabel | None = None
         # Task selection
         self.selected_task: Task | None = None
         self.selected_label: TaskLabel | None = None
-        
-        # Cache for TasksByDate widgets
-        self.widget_cache = {}
 
         # TopBar
         top_bar_callback = self.navigate_to_new_task_screen
@@ -63,24 +50,25 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.top_bar.make_home_bar(top_left_callback=top_left_callback, top_bar_callback=top_bar_callback)
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
-
-        # Floating action buttons
+        # Edit and delete buttons
         self.create_floating_action_buttons()
-        
         # BottomBar
         self.add_bottom_bar()
+
+        # Build Screen
+        self._refresh_home_screen()
     
     def create_floating_action_buttons(self):
-        """Create floating edit/delete buttons that appear when a task is selected"""
-        # Create a container for the buttons
+        """Creates floating edit/delete buttons that appear when a Task is selected."""
+        # Container for the buttons
         self.floating_button_container = BoxLayout(
             orientation="horizontal",
             size_hint=(None, None),
-            height=SIZE.BUTTON_HEIGHT,
-            width=SIZE.BUTTON_WIDTH * 2 + SPACE.SPACE_M if hasattr(SIZE, "BUTTON_WIDTH") else dp(200),
+            height=SIZE.FLOATING_CONTAINER_HEIGHT,
+            width=SIZE.FLOATING_CONTAINER_WIDTH,
             pos_hint={"center_x": 0.5, "y": 0.1},  # Position near bottom
             spacing=SPACE.SPACE_M,
-            opacity=0  # Hidden by default
+            opacity=0                              # Hidden by default
         )
         
         # Edit button
@@ -106,12 +94,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # Add buttons to container
         self.floating_button_container.add_widget(self.edit_button)
         self.floating_button_container.add_widget(self.delete_button)
-        
         # Add container to the screen
         self.add_widget(self.floating_button_container)
     
     def select_task(self, task, label=None):
-        """Select a task and show floating action buttons"""
+        """Selects a Task and shows the floating action buttons."""
         # Deselect previous task if any
         if self.selected_label:
             self.selected_label.set_selected(False)
@@ -125,7 +112,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
         # Select new task
         self.selected_task = task
-        
         # Store and update the label
         if label:
             self.selected_label = label
@@ -135,114 +121,120 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.show_floating_buttons()
     
     def show_floating_buttons(self):
-        """Show floating action buttons with animation"""
+        """Shows the floating action buttons with animation."""
         self.floating_button_container.opacity = 0
         self.floating_button_container.pos_hint = {"center_x": 0.5, "y": 0.05}
         animation = Animation(opacity=1, pos_hint={"center_x": 0.5, "y": 0.1}, duration=0.3)
         animation.start(self.floating_button_container)
     
     def hide_floating_buttons(self):
-        """Hide floating action buttons with animation"""
+        """Hides the floating action buttons with animation."""
         animation = Animation(opacity=0, pos_hint={"center_x": 0.5, "y": 0.05}, duration=0.3)
         animation.start(self.floating_button_container)
     
     def edit_selected_task(self, instance):
-        """Edit the currently selected task"""
+        """Edits the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id)
-            task_to_edit = self.task_manager.get_task_by_id(task_id)
+            task_to_edit = self.task_manager.get_task_by_id_(task_id)
             if task_to_edit:
-                self.task_manager.dispatch("on_task_edit_load_task_data", task=task_to_edit)
+                self.app.get_screen(SCREEN.NEW_TASK).load_task_data(task=task_to_edit)
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(SCREEN.NEW_TASK), 0.1)
             else:
                 logger.error(f"Error editing Task: {DM.get_task_id_log(task_id)} not found")
-                self.update_task_display()
+                self.refresh_home_screen()
                 
             # Clean up selection state
             if self.selected_label:
                 self.selected_label.set_selected(False)
+            
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
     
     def delete_selected_task(self, instance):
-        """Delete the currently selected task"""
+        """Deletes the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id) 
-            task_to_delete = self.task_manager.get_task_by_id(task_id)
+            task_to_delete = self.task_manager.get_task_by_id_(task_id)
             if task_to_delete:
                 # Remove selection
                 if self.selected_label:
                     self.selected_label.set_selected(False)
+                
                 # Delete references
                 self.selected_task = None
                 self.selected_label = None
                 self.hide_floating_buttons()
-                
-                # Now delete the task
+                # Delete Task
                 self.task_manager.delete_task(task_id)
             else:
                 logger.error(f"Error deleting Task: {DM.get_task_id_log(task_id)} not found")
-                self.update_task_display()
+                self.refresh_home_screen()
                 
                 # Clean up selection state
                 if self.selected_label:
                     self.selected_label.set_selected(False)
+                
                 self.selected_task = None
                 self.selected_label = None
                 self.hide_floating_buttons()
     
     def navigate_to_new_task_screen(self, *args) -> None:
         """
-        Navigate to the NewTaskScreen.
+        Navigates to the NewTaskScreen.
         If the edit/delete icons are visible, toggle them off first.
-        Also deselect any selected task.
+        Deselects any selected Task.
         """
         if not DM.LOADED.NEW_TASK_SCREEN:
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         
-        # Deselect any selected task
+        # Deselect Task
         if self.selected_task:
             if self.selected_label:
                 self.selected_label.set_selected(False)
+            
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
         
-        self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+        self.navigation_manager.navigate_to(DM.SCREEN.NEW_TASK)
 
-    def find_task(self, instance, task) -> None:
+    def find_task(self, instance, task) -> bool:
         """
-        Scroll to a specific Task that was created or edited and highlight its message.
+        Searches for a Task's widgets and tries to save them.
+        Returns True if all were found, False otherwise.
         """
         selected_task_group = self.get_task_group(task)
         if not selected_task_group:
+            logger.error(f"Error finding task: {DM.get_task_id_log(task.task_id)} not found")
             return False
         
-        # Save the Task header
-        self.task_header_widget = selected_task_group.children[1]
-
-        # Find message container
-        # Save time widget if found
+        # Save TaskHeader
+        for child in selected_task_group.children:
+            if isinstance(child, TaskGroupHeader):
+                self.task_header_widget = child
+                break
+        
+        # Find TaskContainer
         task_container = self.get_task_container(selected_task_group, task)
         if not task_container or not self.task_header_widget:
             return False
         
-        # Save the Task message
+        # Save TaskLabel
         self.task_message_widget = self.get_task_message_widget(task_container)
         if not self.task_message_widget:
             return False
-            
+        
         return True
 
-    def scroll_to_task(self, instance, task, *args, **kwargs):
-        """Scroll to the new/edited task"""
-        # Mark to invalidate this Widgets cache
-        task = kwargs.get("task") if kwargs.get("task") else task
-        self.invalidate_cache_for_date = task.get_date_str()
-        
-        # Set widget attributes
+    def scroll_to_task(self, task):
+        """Schedules to scroll to the Task."""
+        Clock.schedule_once(lambda dt: self._scroll_to_task(instance=None, task=task), 0.05)
+
+    def _scroll_to_task(self, instance, task, *args, **kwargs):
+        """Scrolls to the Task."""
         if not self.find_task(instance, task):
             logger.error(f"Error scrolling to task: {DM.get_task_id_log(task.task_id)} not found")
             return
@@ -251,22 +243,20 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # Scroll up to Task header
         if self.task_header_widget is not None:
-            selected_task_header = self.task_header_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task_header, animate=False), 0.2)
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(self.task_header_widget, animate=False), 0.2)
 
-        # Scroll down to task message if not yet in screen
+        # Scroll down to task message and handle highlighting
         if self.task_message_widget is not None:
-            selected_task = self.task_message_widget
-            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(selected_task, animate=False), 0.25)
-            Clock.schedule_once(lambda dt: selected_task.set_active(True), 0.3)
-            Clock.schedule_once(lambda dt: selected_task.set_active(False), 4)
+            # Store reference to avoid it being None later
+            task_widget = self.task_message_widget
+            Clock.schedule_once(lambda dt: self.scroll_container.scroll_view.scroll_to(task_widget, animate=False), 0.25)
+            Clock.schedule_once(lambda dt: task_widget.set_active(True) if task_widget else None, 0.3)
+            Clock.schedule_once(lambda dt: task_widget.set_active(False) if task_widget else None, 4)
             Clock.schedule_once(lambda dt: self.clear_go_to_task_references(), 4.1)
         
-    def _refresh_home_screen(self, task, *args, **kwargs) -> None:
-        """
-        Re-loads the task display.
-        """
-        Clock.schedule_once(lambda dt: self.update_task_display(modified_task=task), 0.05)
+    def refresh_home_screen(self, *args) -> None:
+        """Schedules to refresh the HomeScreen."""
+        Clock.schedule_once(lambda dt: self._refresh_home_screen(), 0.05)
     
     def _log_loading_times(self) -> None:
         """Logs all loading times from the TIMER."""
@@ -277,45 +267,25 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
-        
-        # Fallback
-        if not self.tasks_loaded:
-            self._full_rebuild_task_display()
     
     def on_enter(self) -> None:
         super().on_enter()
-        # Connect our initial_scroll flag to the scroll container
+        # Connect initial_scroll flag to the scroll container
         self.scroll_container.initial_scroll = self.initial_scroll
         
-        if not self.tasks_loaded:
+        # First time enter
+        if not self._home_screen_finished:
             self.scroll_container.scroll_view.scroll_y = 1.0
             self._log_loading_times()
-            self.tasks_loaded = True
+            self._home_screen_finished = True
     
     def on_leave(self):
-        """Handle screen exit - deselect any task"""
         super().on_leave()
         
-        # Deselect any selected task
+        # Deselect Task
         if self.selected_task:
             if self.selected_label:
                 self.selected_label.set_selected(False)
             self.selected_task = None
             self.selected_label = None
             self.hide_floating_buttons()
-    
-    def set_date_expired(self, instance, date):
-        """
-        Sets background color of given date's TaskGroup to inactive.
-        """
-        # Find the task group widget for this date
-        for task_group in self.active_task_widgets:
-            # The task_group.date_str is already formatted like "Today, April 10"
-            # while the date from task_manager might be in raw format like "Thursday 10 Apr"
-            from src.utils.misc import get_task_header_text
-            if task_group.date_str == date or task_group.date_str == get_task_header_text(date):
-                # Update the appearance - this just changes the background color
-                if not task_group.all_expired:
-                    task_group.tasks_container.set_expired(True)
-                    task_group.all_expired = True
-                break

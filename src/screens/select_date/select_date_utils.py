@@ -63,9 +63,9 @@ class SelectDateUtils:
                     )
                     self.calendar_grid.add_widget(empty_label)
                 else:
-                    # Check if this day has any tasks
+                    # Check if this day has any tasks using task_groups
                     date_key = date(self.current_year, self.current_month, day).isoformat()
-                    has_tasks = date_key in self.task_manager.tasks_by_date
+                    has_tasks = any(task_group.date_str == date_key for task_group in self.task_manager.task_groups)
                     
                     # Check if this is the current day
                     is_current_day = (day == datetime.now().day and 

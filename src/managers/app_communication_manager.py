@@ -18,10 +18,10 @@ except Exception as e:
     pass
 
 if TYPE_CHECKING:
-    from src.managers.app_task_manager import TaskManager 
-    from src.managers.app_expiry_manager import AppExpiryManager
-    from managers.tasks.task import Task
     from main import TaskApp
+    from src.managers.app_expiry_manager import AppExpiryManager
+    from src.managers.app_task_manager import TaskManager 
+    from src.managers.app_audio_manager import AppAudioManager
 
 
 @android_only_class()
@@ -35,13 +35,10 @@ class AppCommunicationManager():
     def __init__(self,
                  app: "TaskApp"):
         self.app = app
-
-        # app.bind(on_resume=self._stop_service_alarm)
-        
-        self.task_manager: "TaskManager" = app.task_manager
         self.expiry_manager: "AppExpiryManager" = app.expiry_manager
-        self.expiry_manager.bind(on_task_expired_remove_task_notifications=self._remove_notifications)
-        
+        self.task_manager: "TaskManager" = app.task_manager
+        self.audio_manager: "AppAudioManager" = app.audio_manager
+
         self.context: Any | None = None
         self.package_name: str | None = None
         self.receiver: BroadcastReceiver | None = None
@@ -49,10 +46,6 @@ class AppCommunicationManager():
         self._init_context()
         self._init_receiver()
 
-        self._stop_service_alarm()
-    
-    def _stop_service_alarm(self, *args, **kwargs) -> None:
-        """Stops the Service alarm."""
         self.send_action(DM.ACTION.STOP_ALARM)
     
     def _init_context(self) -> None:
@@ -82,7 +75,6 @@ class AppCommunicationManager():
             actions = [
                 f"{self.package_name}.{DM.ACTION.STOP_ALARM}",
                 f"{self.package_name}.{DM.ACTION.UPDATE_TASKS}",
-                f"{self.package_name}.{DM.ACTION.SHOW_TASK_POPUP}",
             ]
 
             # Create and start receiver
@@ -134,17 +126,7 @@ class AppCommunicationManager():
             
             elif pure_action == DM.ACTION.UPDATE_TASKS:
                 self._update_tasks_action(task_id)
-            
-            elif pure_action == DM.ACTION.SHOW_TASK_POPUP:
-                task = self.expiry_manager._search_expired_task(task_id)
-                self._show_task_popup_action(task)
-
-                from src.utils.background_service import get_and_delete_shared_preference
-                task_id = get_and_delete_shared_preference(
-                    pref_type=DM.PREFERENCE_TYPE.ACTIONS,
-                    key=DM.PREFERENCE.SHOW_TASK_POPUP
-                )
-            
+        
         except Exception as e:
             logger.error(f"Error handling service action: {e}")
 
@@ -187,45 +169,21 @@ class AppCommunicationManager():
         pure_action = action.split(".")[-1]
         return pure_action
     
-    def _remove_notifications(self, *args, **kwargs) -> None:
-        """Sends action to Service to remove Task notifications."""
-        self.send_action(DM.ACTION.REMOVE_TASK_NOTIFICATIONS)
-    
     def _stop_alarm_action(self) -> None:
         """Stops the App alarm through the AudioManager."""
-        self.expiry_manager.dispatch("on_task_cancelled_stop_alarm")
-    
+        self.audio_manager.stop_alarm()
+        
     def _update_tasks_action(self, task_id: str | None = None) -> None:
         """
         Refreshes ExpiryManager, TaskManager Tasks and updates App UI.
         Task_id is only provided after snooze or cancel from a Service notification,
          for invalidation of cached Task data.
         """
-        logger.trace(f"Handling update Tasks action with task_id: {DM.get_task_id_log(task_id)}")
         # Update AppExpiryManager
         self.task_manager.expiry_manager._refresh_tasks()
         # Update TaskManager
-        self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
-        self.task_manager.sort_active_tasks()
-        
-        # If task_id provided, a Task was snoozed or cancelled from a Service notification
-        # Task cache must be invalidated in HomeScreen
-        task = self.expiry_manager.get_task_by_id(task_id) if task_id else None
-
+        self.task_manager.refresh_task_groups()
         # Refresh HomeScreen
-        self.task_manager.dispatch(
-            "on_task_edit_refresh_home_screen", 
-            task=task
-        )
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
         # Refresh StartScreen
-        self.task_manager.dispatch(
-            "on_task_edit_refresh_start_screen"
-        )
-    
-    def _show_task_popup_action(self, task: "Task") -> None:
-        """Shows the task popup."""
-        logger.trace(f"Handling show Task popup action with Task: {DM.get_task_log(task)}")
-        self.expiry_manager.dispatch(
-            "on_task_expired_show_task_popup",
-            task=task
-        )
+        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()

@@ -3,14 +3,14 @@ from typing import Callable, TYPE_CHECKING
 
 from kivy.animation import Animation
 from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle, Rectangle
+from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.effects.scroll import ScrollEffect
 
-from src.screens.home.home_widgets import (TaskHeader, TaskGroupContainer,
+from src.screens.home.home_widgets import (TaskGroupHeader,
                                            TaskLabel, TimeLabel)
 
 from src.widgets.buttons import ConfirmButton, CancelButton
@@ -21,11 +21,38 @@ from src.widgets.misc import Spacer
 from managers.device.device_manager import DM
 from src.utils.logger import logger
 
-from src.settings import COL, SPACE, FONT, STATE, SIZE
+from src.settings import COL, SPACE, FONT, STATE, SIZE, STYLE
 
 if TYPE_CHECKING:
-    from src.managers.app_task_manager import TaskManager
     from main import TaskApp
+
+
+class TaskPopupContainer(BoxLayout):
+    """
+    A TaskPopupContainer is used to display an expired Task in a popup.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(
+            orientation="vertical",
+            size_hint_y=None,
+            spacing=SPACE.SPACE_M,
+            padding=[SPACE.TASK_PADDING_X, SPACE.TASK_PADDING_Y],
+            **kwargs
+        )
+        self.bind(minimum_height=self.setter("height"))
+        
+        with self.canvas.before:
+            self.bg_color = Color(*COL.FIELD_INPUT)
+            self.bg_rect = Rectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[STYLE.RADIUS_M]
+            )
+            self.bind(pos=self._update_bg, size=self._update_bg)
+
+    def _update_bg(self, instance, value):
+        self.bg_rect.pos = self.pos
+        self.bg_rect.size = self.size
 
 
 class BasePopup(Popup):
@@ -99,17 +126,17 @@ class TaskPopup(BasePopup):
         super().__init__(**kwargs)
         self.min_message_height = SIZE.TASK_POPUP_HEIGHT
         # Header
-        self.header = TaskHeader(text="Task Expired!")
+        self.header = TaskGroupHeader(text="Task Expired!")
         self.header.halign = "center"
         self.header.bind(texture_size=self._update_label_height)
         self.content_layout.add_widget(self.header)
 
         # Task spacer
-        self.task_spacer = Spacer(height=SPACE.SPACE_XL)
+        self.task_spacer = Spacer(height=SPACE.SPACE_M)
         self.content_layout.add_widget(self.task_spacer)
 
         # Task container
-        self.task_container = TaskGroupContainer()
+        self.task_container = TaskPopupContainer()
         self.task_container.spacing = 0
         self.content_layout.add_widget(self.task_container)
         
@@ -405,8 +432,7 @@ class PopupManager:
         self.app = app
         self.task_manager = app.task_manager
         self.expiry_manager = app.expiry_manager
-        self.expiry_manager.bind(on_task_expired_show_task_popup=self._handle_task_popup)
-
+        
         self.custom = CustomPopup()
         self.confirmation = ConfirmationPopup()
         self.input = TextInputPopup()

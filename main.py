@@ -109,7 +109,6 @@ class TaskApp(App, EventDispatcher):
         self.title = "Task Manager"
         
         self._init_screen_manager()
-        self._init_preference_manager()
         self._init_navigation_manager()
         
         self._init_expiry_manager()
@@ -122,6 +121,12 @@ class TaskApp(App, EventDispatcher):
     
     def get_screen(self, screen_name):
         return self.screens.get(screen_name)
+
+    def load_app(self, *args):
+        """
+        Loads the App.
+        """
+        Clock.schedule_once(self._load_app, 0.1)
     
     def _load_app(self, *args):
         """
@@ -130,14 +135,14 @@ class TaskApp(App, EventDispatcher):
         Then loads App components in priority order.
         """
         self._init_home_screen()
-        self._build_home_screen()
+
+        self._init_audio_manager()
 
         self._init_communication_manager()
         self.expiry_manager._connect_communication_manager(self.communication_manager)
         self.task_manager._connect_communication_manager(self.communication_manager)
 
         self._init_popup_manager()
-        self._init_audio_manager()
 
         self._init_new_task_screen()
         self._init_settings_screen()
@@ -167,8 +172,6 @@ class TaskApp(App, EventDispatcher):
         super().on_start()
         print("ON START ON START ON START ON START ON START ON START")
 
-        self._check_start_actions()
-    
     def on_resume(self):
         """
         App is resumed from a paused state.
@@ -179,9 +182,6 @@ class TaskApp(App, EventDispatcher):
 
         self.audio_manager.stop_alarm()
         self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
-
-        if hasattr(self, "task_manager"):
-            self._reload_tasks_and_ui()
     
     ###############################################
     ################### MISC ######################
@@ -192,78 +192,13 @@ class TaskApp(App, EventDispatcher):
         PM.validate_permission(PM.REQUEST_SCHEDULE_EXACT_ALARM)
         PM.validate_permission(PM.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
     
-    def _build_home_screen(self):
-        self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
-    
-    def _connect_managers_to_start_screen(self, navigation_manager, task_manager):
-        self.get_screen(SCREEN.START).navigation_manager = navigation_manager
-        self.get_screen(SCREEN.START).task_manager = task_manager
-    
-    def _reload_tasks_and_ui(self) -> None:
-        """Reloads TaskManager's Tasks and Screens UI."""
-        self.task_manager.tasks_by_date = self.task_manager._load_tasks_by_date()
-        self.get_screen(SCREEN.HOME)._full_rebuild_task_display()
-    
-    def _check_start_actions(self) -> None:
-        """
-        Checks SharedPreferences for actions send while App was closed.
-        - Show Task Popup
-        """
-        # Check need show Task popup
-        task_id = self.preference_manager.get_and_delete_preference(
-            pref_type=DM.PREFERENCE_TYPE.ACTIONS,
-            key=DM.PREFERENCE.SHOW_TASK_POPUP
-        )
-        if task_id:
-            print("Found pending Task popup action, waiting for PopupManager...")
-            self._wait_for_popup_system(task_id)
-
-    def _wait_for_popup_system(self, task_id: str) -> None:
-        """
-        Polls every 0.2 seconds until PopupManager is ready.
-        Then handles the Task popup.
-        """
-        def check_popup_ready(dt):
-            if not DM.LOADED.POPUP_MANAGER:
-                # Not ready, schedule another check
-                print("PopupManager not ready, waiting...")
-                Clock.schedule_once(check_popup_ready, 0.2)
-            else:
-                # Ready, handle the popup
-                print("PopupManager ready, showing Task popup...")
-                self._handle_show_task_popup(task_id)
-        
-        # Start the polling
-        Clock.schedule_once(check_popup_ready, 0)
-
-    def _handle_show_task_popup(self, task_id: str) -> None:
-        """Handles showing the Task popup."""
-        try:
-            task = self.task_manager.expiry_manager._search_expired_task(task_id)
-            if task:
-                logger.debug(f"Showing popup from SharedPreferences: {DM.get_task_log(task)}")
-                self.task_manager.expiry_manager.dispatch(
-                    "on_task_expired_show_task_popup",
-                    task=task
-                )
-            else:
-                logger.error(f"Error showing Task popup, no Task found for: {DM.get_task_id_log(task_id)}")
-            
-        except Exception as e:
-            logger.error(f"Error showing Task popup: {e}")
-    
     ###############################################
     ################### MANAGERS ##################
     @log_time("ScreenManager")
     def _init_screen_manager(self):
         from kivy.uix.screenmanager import ScreenManager, SlideTransition
         self.screen_manager = ScreenManager(transition=SlideTransition())
-
-    @log_time("PreferenceManager")
-    def _init_preference_manager(self):
-        from src.managers.app_preference_manager import AppPreferencesManager
-        self.preference_manager = AppPreferencesManager(app=self)
-        DM.LOADED.PREFERENCE_MANAGER = True
+        DM.LOADED.SCREEN_MANAGER = True
     
     @log_time("NavigationManager")
     def _init_navigation_manager(self):
@@ -277,7 +212,7 @@ class TaskApp(App, EventDispatcher):
     @log_time("ExpiryManager")
     def _init_expiry_manager(self):
         from src.managers.app_expiry_manager import AppExpiryManager
-        self.expiry_manager = AppExpiryManager()
+        self.expiry_manager = AppExpiryManager(app=self)
         DM.LOADED.EXPIRY_MANAGER = True
     
     @log_time("TaskManager")

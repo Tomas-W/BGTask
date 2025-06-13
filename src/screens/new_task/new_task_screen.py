@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
@@ -13,10 +13,10 @@ from src.settings import SCREEN, STATE, TEXT, SPACE
 from managers.device.device_manager import DM
 
 if TYPE_CHECKING:
+    from main import TaskApp
     from src.managers.navigation_manager import NavigationManager
     from src.managers.app_task_manager import TaskManager
     from src.managers.app_audio_manager import AppAudioManager
-    from main import TaskApp
 
 
 class NewTaskScreen(BaseScreen):
@@ -36,8 +36,6 @@ class NewTaskScreen(BaseScreen):
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.task_manager: "TaskManager" = app.task_manager
         self.audio_manager: "AppAudioManager" = app.audio_manager
-
-        self.task_manager.bind(on_task_edit_load_task_data=self.load_task_data)
 
         # Edit/delete attributes
         self.in_edit_task_mode: bool = False
@@ -196,18 +194,17 @@ class NewTaskScreen(BaseScreen):
         else:
             self.vibrate_display_field.set_text("Vibrate off")
     
-    def load_task_data(self, instance, task, *args) -> None:
-        """
-        Load task data for editing
-        Called when the on_task_edit_load_task_data event is dispatched from HomeScreen
-        """        
+    def load_task_data(self, task, *args) -> None:
+        """Load task data for editing an existing task."""        
         # Set editing mode
         self.in_edit_task_mode = True
         self.task_manager.task_to_edit = task
 
         # Date and time
         self.task_manager.selected_date = task.timestamp.date()
-        self.task_manager.selected_time = task.timestamp.time()
+        # Convert to datetime, add the snooze time in seconds, then extract time
+        adjusted_datetime = task.timestamp + timedelta(seconds=task.snooze_time)
+        self.task_manager.selected_time = adjusted_datetime.time()
 
         # Message
         self.task_input_field.set_text(task.message)

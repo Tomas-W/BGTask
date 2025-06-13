@@ -8,7 +8,7 @@ from typing import Final, TYPE_CHECKING
 from managers.device.device_manager_utils import (
     Dirs, Paths, Dates, Extensions, Settings, Loaded, Screens,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
-    NotificationType, Actions, ActionTargets, SharedPreferencesTypes, SharedPreferences
+    NotificationType, Actions, ActionTargets
 )
 from src.utils.logger import logger
 
@@ -44,11 +44,7 @@ class DeviceManager:
             self.ACTION: Final[Actions] = Actions()
             self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
             self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
-
-            # SharedPreferences
-            self.PREFERENCE_TYPE: Final[SharedPreferencesTypes] = SharedPreferencesTypes()
-            self.PREFERENCE: Final[SharedPreferences] = SharedPreferences()
-
+    	    
             # Service communication & notifications
             if self.is_android:
                 self.CHANNEL: Final[NotificationChannels] = NotificationChannels()
@@ -74,7 +70,7 @@ class DeviceManager:
         id = task.task_id[:8]
         task_time = task.timestamp + timedelta(seconds=task.snooze_time)
         message = task.message
-        return f"{id} | {task_time} | {message[:8]}"
+        return f"{id[:6]} | {task_time} | {message[:8]}"
 
     @staticmethod
     def get_task_id_log(task_id: str) -> str:

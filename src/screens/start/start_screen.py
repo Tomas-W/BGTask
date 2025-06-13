@@ -1,35 +1,30 @@
-import json
-import os
+import time
 
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.relativelayout import RelativeLayout
-from src.widgets.buttons import CustomButton
 
-from managers.tasks.task import Task
+from managers.tasks.task import Task, TaskGroup
 from managers.device.device_manager import DM
 
 from .start_screen_utils import set_screen_as_wallpaper
 
 from src.widgets.containers import StartContainer, BaseLayout
-from src.screens.home.home_widgets import (TaskHeader, TaskContainer, TaskGroupContainer,
-                                           TimeContainer, TimeLabel, TaskLabel, TaskIcon)
+from src.widgets.buttons import CustomButton
 from src.widgets.labels import PartitionHeader
+from src.screens.home.home_widgets import TaskGroupWidget
 
-from src.utils.misc import get_task_header_text
 from src.utils.wrappers import android_only
-
-from src.settings import SCREEN, STATE, TEXT
 from src.utils.logger import logger
+from src.settings import SCREEN, STATE, TEXT
 
 if TYPE_CHECKING:
-    from src.managers.app_task_manager import TaskManager
-    from src.managers.navigation_manager import NavigationManager
     from main import TaskApp
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_task_manager import TaskManager
 
 
 class StartScreen(Screen):
@@ -50,10 +45,7 @@ class StartScreen(Screen):
         self._start_screen_finished: bool = False
         self.is_taking_screenshot: bool = False
 
-        self.current_task_data: list[dict] = []
-        self.task_date: str = ""
-
-        self.bind(on_task_edit_refresh_start_screen=self._refresh_start_screen)
+        self.task_group_widget = None  # Track TaskGroup widget
 
         # Layout
         self.root_layout = RelativeLayout()
@@ -65,18 +57,6 @@ class StartScreen(Screen):
         # Screen header
         self.screen_header = PartitionHeader(text="<< swipe to continue >>")
         self.start_container.container.add_widget(self.screen_header)
-
-        # TaskGroup
-        self.task_group = BoxLayout(orientation="vertical", size_hint_y=None)
-        self.task_group.bind(minimum_height=self.task_group.setter("height"))
-        # TaskHeader
-        self.day_header = TaskHeader(text=self.task_date)
-        self.task_group.add_widget(self.day_header)
-        # TaskGroupContainer
-        self.tasks_container = TaskGroupContainer()
-        self.task_group.add_widget(self.tasks_container)
-        # Add to container
-        self.start_container.container.add_widget(self.task_group)
 
         # Screenshot button
         self.screenshot_button = CustomButton(text="Set as Wallpaper", width=1,
@@ -97,122 +77,62 @@ class StartScreen(Screen):
         Initializes the TaskManager.
         """
         self.task_manager = task_manager
-        self.task_manager.bind(on_task_edit_refresh_start_screen=self._refresh_start_screen)
-    
-    def _init_current_task_data(self) -> list[dict]:
-        """Loads initial Task data from file when task_manager is not yet available."""
-        task_file_path = DM.get_storage_path(DM.PATH.TASK_FILE)
-        if not os.path.exists(task_file_path):
-            logger.error(f"Error loading Task data, file does not exist: {task_file_path}")
-            return []
-
-        with open(task_file_path, "r") as f:
-            data = json.load(f)
-            date_keys = sorted(data.keys())
-            if not date_keys:
-                return []
         
-        task_data = []
-        today_key = datetime.now().date().isoformat()
-
-        # Get the earliest future date (including today)
-        future_dates = [dk for dk in date_keys if dk >= today_key]
-        try:
-            target_date_key = min(future_dates)
+    def refresh_start_screen(self) -> None:
+        """
+        Updates the Task widgets using the TaskGroup widget.
+        Uses the earliest future TaskGroup.
+        """
+        start_time = time.time()
+        # Remove existing TaskGroup widget
+        if self.task_group_widget:
+            self.start_container.container.remove_widget(self.task_group_widget)
         
-        except ValueError:
-            logger.debug("No future dates found - setting default Task")
+        current_task_group = self._get_start_task_group()        
+        if not current_task_group:
+            # Create default Task
             start_task = Task(timestamp=(datetime.now() - timedelta(minutes=1)).replace(second=0, microsecond=0),
-                              message=TEXT.NO_TASKS,
-                              expired=True)
-            self.day_header.text = get_task_header_text(start_task.get_date_str())
-            return [start_task.to_dict()]
-
-        # Create Task objects and add to list
-        for task_json in data[target_date_key]:
-            task = Task.to_class(task_json)
-            task_data.append(task.to_dict())
-
-        # Set the header text
-        if task_data:
-            task_date = Task.to_date_str(task_data[0]["timestamp"])
-            header_text = get_task_header_text(task_date)
-            self.day_header.text = header_text
-
-        return task_data
-    
-    def _get_current_task_data(self) -> list[dict]:
-        """
-        Gets the current task data from the TaskManager to display on the StartScreen.
-        Uses sorted_active_tasks to get the earliest TaskGroup [current].
-        """
-        earliest_task_group = self.task_manager.sorted_active_tasks[0]
-        if earliest_task_group and "tasks" in earliest_task_group:
-            self.task_date = earliest_task_group["date"]
-            return [task.to_dict() for task in earliest_task_group["tasks"]]
-        
-        return []
-    
-    def _load_current_tasks_widgets(self) -> None:
-        """
-        Updates the Task widgets in the TaskGroupContainer.
-        These contain the next tasks that are expiring, within a single day.
-        """
-        # Clear existing Tasks
-        self.tasks_container.clear_widgets()
-        for task in self.current_task_data:
-            # No Task check
-            no_task = False
-            msg = task["message"]
-            if msg == TEXT.NO_TASKS:
-                no_task = True
-                msg = TEXT.NO_TASKS_SHORT
+                             message=TEXT.NO_TASKS,
+                             expired=True)
             
-            # TaskContainer
-            task_container = TaskContainer()
-            
-            if not no_task:
-                # TimeContainer
-                time_container = TimeContainer()
-                task_container.add_widget(time_container)
-                # TimeLabel
-                task_time = task["timestamp"] + timedelta(seconds=task["snooze_time"])
-                time = Task.to_time_str(task_time)
-                start_time_label = TimeLabel(text=time)
-                time_container.add_widget(start_time_label)
-                # SoundIcon
-                if task["alarm_name"]:
-                    sound_icon = TaskIcon(source=DM.PATH.SOUND_IMG)
-                    time_container.add_widget(sound_icon)
-                # VibrateIcon
-                if task["vibrate"]:
-                    vibrate_icon = TaskIcon(source=DM.PATH.VIBRATE_IMG)
-                    time_container.add_widget(vibrate_icon)
-            
-            # TaskLabel
-            task_message = TaskLabel(text=msg)
-            task_container.add_widget(task_message)
-            
-            # Add to layout
-            self.tasks_container.add_widget(task_container)
-            
-            def update_text_size(instance, value):
-                width = value[0]
-                instance.text_size = (width, None)                
-                instance.texture_update()
-                instance.height = instance.texture_size[1]
-                if not no_task:
-                    task_container.height = start_time_label.height + instance.height
-                else:
-                    task_container.height = instance.height
-            
-            task_message.bind(size=update_text_size)
-        
-        if all(task["expired"] for task in self.current_task_data):
-            self.tasks_container.set_expired(True)
+            # Create TaskGroup
+            self.task_group_widget = TaskGroupWidget(
+                date_str=start_task.get_date_key(),
+                tasks=[start_task],
+                task_manager=self.task_manager,
+                parent_screen=self,
+                clickable=False
+            )
         else:
-            self.tasks_container.set_expired(False)
+            # Create TaskGroup widget
+            self.task_group_widget = TaskGroupWidget(
+                date_str=current_task_group.date_str,
+                tasks=current_task_group.tasks,
+                task_manager=self.task_manager,
+                parent_screen=self,
+                clickable=False
+            )
+        
+        # Insert between header and screenshot button
+        self.start_container.container.add_widget(self.task_group_widget, index=1)
+        logger.info(f"Refreshing start screen took: {round(time.time() - start_time, 6)} seconds")
     
+    def _get_start_task_group(self) -> TaskGroup:
+        """
+        Gets the earliest future TaskGroup (including today).
+        Returns None if no future tasks exist.
+        """
+        if not self.task_manager.task_groups:
+            return None
+        
+        today_key = datetime.now().date().isoformat()
+        # Find earliest future TaskGroup
+        for task_group in self.task_manager.task_groups:
+            if task_group.date_str >= today_key:
+                return task_group
+        
+        return None
+
     @property
     def start_screen_finished(self) -> bool:
         return self._start_screen_finished
@@ -227,7 +147,7 @@ class StartScreen(Screen):
             return
         
         self._start_screen_finished = value
-        Clock.schedule_once(self.app._load_app, 0)
+        Clock.schedule_once(self.app.load_app, 0.05)
 
     def on_pre_enter(self) -> None:
         """
@@ -236,15 +156,13 @@ class StartScreen(Screen):
         """
         if not self._start_screen_finished:
             # Load widgets
-            self.current_task_data = self._init_current_task_data()
-            self._load_current_tasks_widgets()
-    
+            self.refresh_start_screen()
+
     def _refresh_start_screen(self, *args, **kwargs) -> None:
         """
         Re-loads the StartScreen.
         """
-        self.current_task_data = self._init_current_task_data()
-        Clock.schedule_once(lambda dt: self._load_current_tasks_widgets(), 0)
+        Clock.schedule_once(lambda dt: self.refresh_start_screen(), 0)
     
     @android_only
     def _hide_loading_screen(self) -> None:
@@ -267,6 +185,8 @@ class StartScreen(Screen):
             from src.utils.timer import TIMER
             TIMER.stop("start")
             TIMER.stop("start_app")
+            logger.info(TIMER.get_time("start"))
+            logger.info(TIMER.get_time("start_app"))
             
             Clock.schedule_once(self.check_need_to_start_service, 0.1)
     

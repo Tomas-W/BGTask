@@ -94,7 +94,7 @@ class ServiceNotificationManager:
         # Flags based on Android version
         flags = self._get_flags()
         # Request code based on action
-        request_code = self._get_request_code(action)
+        request_code = self._get_request_code(action, task_id)
         
         return PendingIntent.getBroadcast(
             self.context, 
@@ -110,18 +110,22 @@ class ServiceNotificationManager:
             flags |= PendingIntent.FLAG_IMMUTABLE
         return flags
     
-    def _get_request_code(self, action: str) -> int:
-        """Returns the request code based on the action."""
+    def _get_request_code(self, action: str, task_id: str) -> int:
+        """Returns the request code based on the action and task ID."""
+        base_code = 0
         if action.endswith(DM.ACTION.SNOOZE_A):
-            return DM.INTENT.SNOOZE_A
+            base_code = DM.INTENT.SNOOZE_A
         elif action.endswith(DM.ACTION.SNOOZE_B):
-            return DM.INTENT.SNOOZE_B
+            base_code = DM.INTENT.SNOOZE_B
         elif action.endswith(DM.ACTION.CANCEL):
-            return DM.INTENT.CANCEL
+            base_code = DM.INTENT.CANCEL
         elif action.endswith(DM.ACTION.STOP_ALARM):
-            return DM.INTENT.STOP_ALARM
-        else:
-            return 0
+            base_code = DM.INTENT.STOP_ALARM
+        
+        # Add task_id hash to make unique
+        task_id_hash = abs(hash(task_id[:4])) % 1000
+        # Keep within Java int range
+        return base_code + (task_id_hash * 10000)
     
     def create_app_open_intent(self, task_id: str | None = None) -> Any | None:
         """Creates a PendingIntent to open the App's main activity."""

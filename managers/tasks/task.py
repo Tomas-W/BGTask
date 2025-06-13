@@ -62,7 +62,6 @@ class Task:
         }
 
     @staticmethod
-    @lru_cache(maxsize=32)
     def to_date_str(timestamp: datetime) -> str:
         """Get formatted date string [# Thursday 21 Mar]."""
         return timestamp.strftime(DM.DATE.TASK_HEADER)
@@ -72,7 +71,6 @@ class Task:
         """Get formatted time string [HH:MM]."""
         return timestamp.strftime(DM.DATE.TASK_TIME)
 
-    @lru_cache(maxsize=32)
     def get_date_str(self) -> str:
         """Get formatted date string [Day DD Month]."""
         return Task.to_date_str(self.timestamp + timedelta(seconds=self.snooze_time))
@@ -93,6 +91,7 @@ class Task:
         seconds = self.snooze_time % 60
         
         # Build the string, only including non-zero parts
+        # Only uses d/h or h/m or m/s
         parts = []
         if days > 0:
             parts.append(f"{days}d")
@@ -117,3 +116,51 @@ class Task:
         Format: YYYY-MM-DD
         """
         return (self.timestamp + timedelta(seconds=self.snooze_time)).date().isoformat()
+
+
+class TaskGroup:
+    def __init__(self, date_str: str, tasks: list[Task]):
+        self.date_str = date_str
+        self.tasks = tasks
+    
+    @staticmethod
+    def get_task_group_header_text(date_str: str) -> str:
+        """
+        Returns formatted header text for a task group.
+        Uses the date_str to generate a user-friendly header.
+        """
+        today = datetime.now().date()
+        # Convert date_str to date object
+        try:
+            task_date = datetime.strptime(date_str, DM.DATE.DATE_KEY).date()
+        except ValueError:
+            # Cannot parse date_str, return original
+            return date_str
+        
+        # Format [Today, March 21]
+        month_day = task_date.strftime(DM.DATE.MONTH_DAY)
+        if task_date == today:
+            return f"Today, {month_day}"
+        
+        elif task_date == today - timedelta(days=1):
+            return f"Yesterday, {month_day}"
+        
+        elif task_date == today + timedelta(days=1):
+            return f"Tomorrow, {month_day}"
+        
+        return task_date.strftime(DM.DATE.TASK_HEADER)
+    
+    def to_dict(self) -> dict:
+        """Convert TaskGroup to dictionary."""
+        return {
+            "date_str": self.date_str,
+            "tasks": [task.to_dict() for task in self.tasks]
+        }
+
+    def to_json(self) -> dict:
+        """Convert TaskGroup to JSON dictionary."""
+        return {
+            "date_str": self.date_str,
+            "tasks": [task.to_json() for task in self.tasks]
+        }
+    

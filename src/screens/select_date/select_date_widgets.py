@@ -121,7 +121,7 @@ class DateTimeLabel(ButtonBehavior, Label):
                 )
             
             if self._is_current_day:
-                Color(*COL.FIELD_ACTIVE)
+                Color(*COL.FIELD_INPUT)
                 self._background = RoundedRectangle(
                     pos=self.pos,
                     size=self.size,
@@ -177,7 +177,7 @@ class TimeInputField(BoxLayout):
         
         # Create background and border
         with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
+            Color(*COL.FIELD_INPUT)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size,

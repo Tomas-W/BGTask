@@ -39,7 +39,7 @@ class TextField(BoxLayout):
         self.current_text = ""
 
         with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
+            Color(*COL.FIELD_INPUT)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size,
@@ -170,7 +170,7 @@ class InputField(BoxLayout):
         self.current_text = ""
 
         with self.canvas.before:
-            Color(*COL.FIELD_ACTIVE)
+            Color(*COL.FIELD_INPUT)
             self.bg_rect = RoundedRectangle(
                 pos=self.pos, 
                 size=self.size,

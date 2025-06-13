@@ -30,7 +30,7 @@ class Timer:
             raise ValueError(f"Timer {name} not yet stopped")
         
         times = self.logs[name]
-        return round(times[1] - times[0], 6)  # Only round the final difference
+        return f"Loading {name} took: {round(times[1] - times[0], 6)}"  # Only round the final difference
     
     def get_all_logs(self):
         logs = []

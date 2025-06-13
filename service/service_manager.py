@@ -166,8 +166,8 @@ class ServiceManager:
         If loop is off by more than LOOP_DEVIATION seconds, resynchronize.
         Synchronizes by sleeping until the next interval.
         """
-        logger.debug("Synchronizing loop cycle")
         if self.loop_sync_tick >= ServiceManager.LOOP_SYNC_TICK:
+            logger.debug("Synchronizing loop cycle")
             self.loop_sync_tick = 0
             current_seconds = time.localtime().tm_sec
             seconds_from_boundary = current_seconds % 10

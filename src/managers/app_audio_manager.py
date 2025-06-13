@@ -1,6 +1,5 @@
 import os
 
-from kivy.app import App
 from typing import TYPE_CHECKING
 
 from managers.audio.audio_manager import AudioManager
@@ -23,12 +22,6 @@ class AppAudioManager(AudioManager):
         super().__init__()
         self.app = app
         
-        # Bind events
-        app.task_manager.expiry_manager.bind(on_task_expired_trigger_alarm=self.trigger_alarm)
-        app.task_manager.expiry_manager.bind(on_task_cancelled_stop_alarm=self.stop_alarm)
-        app.task_manager.expiry_manager.bind(on_task_snoozed_stop_alarm=self.stop_alarm)
-        # app.bind(on_resume=self.stop_alarm)
-
         # SelectAlarmScreen
         self.alarms: dict[str, str] = {}
         self.load_alarms()  # Loads alarms and recordings into self.alarms
@@ -50,17 +43,12 @@ class AppAudioManager(AudioManager):
         Sorts the files by name and saves them to self.alarms.
         """
         alarms = {}
-
         # Load user recordings
         user_recordings = self._load_alarms(DM.DIR.RECORDINGS)
-        nr_recordings = len(user_recordings)
         alarms.update(user_recordings)
-
         # Load default alarms
         default_alarms = self._load_alarms(DM.DIR.ALARMS)
-        nr_alarms = len(default_alarms)
         alarms.update(default_alarms)
-
         # Sort and save
         sorted_alarms = sorted(alarms.items(), key=lambda x: x[0])
         self.alarms = dict(sorted_alarms)
@@ -141,7 +129,6 @@ class AppAudioManager(AudioManager):
             logger.error(f"Error stopping recording, recording file not found: {recording_path}")
             return False
             
-        # self.alarms[recording_name] = recording_path
         self.load_alarms()
         self.selected_alarm_name = recording_name
         self.selected_alarm_path = recording_path
@@ -217,8 +204,7 @@ class AppAudioManager(AudioManager):
         self.selected_alarm_path = new_path
         
         # Update UI
-        select_alarm_screen = self.app.get_screen(DM.SCREEN.SELECT_ALARM)
-        select_alarm_screen.update_selected_alarm_text()
+        self.app.get_screen(DM.SCREEN.SELECT_ALARM).update_selected_alarm_text()
         return True
     
     def delete_alarm(self, name: str) -> bool:
@@ -237,14 +223,9 @@ class AppAudioManager(AudioManager):
             self.selected_alarm_path = None
             self.load_alarms()
             
-            select_alarm_screen = self.app.get_screen(DM.SCREEN.SELECT_ALARM)
-            select_alarm_screen.update_screen_state()
+            self.app.get_screen(DM.SCREEN.SELECT_ALARM).update_screen_state()
             return True
         
         except Exception as e:
             logger.error(f"Error deleting alarm: {e}")
             return False
-
-    def on_task_expired_trigger_alarm(self, *args, **kwargs):
-        """Default handler for on_task_expired_trigger_alarm event"""
-        pass

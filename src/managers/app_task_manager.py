@@ -8,7 +8,7 @@ from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
 from managers.device.device_manager import DM
-from managers.tasks.task import Task
+from managers.tasks.task import Task, TaskGroup
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
@@ -21,28 +21,21 @@ class TaskManager(EventDispatcher):
     """
     Manages Tasks and their storage using JSON.
     """
+
+    DAYS_IN_PAST: int = 1
+
     def __init__(self, app: "TaskApp"):
         super().__init__()
         self.app = app
-        self.task_file_path: str = DM.PATH.TASK_FILE
-        if not DM.validate_file(self.task_file_path):
-            return
-        
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.expiry_manager: "AppExpiryManager" = app.expiry_manager
         self.communication_manager: "AppCommunicationManager" = None  # connected in main.py
 
-        # Events
-        self.register_event_type("on_task_saved_scroll_to_task")
-        self.register_event_type("on_tasks_changed_update_task_display")
-        self.register_event_type("on_task_edit_load_task_data")
-        self.register_event_type("on_tasks_expired_set_date_expired")
-        self.register_event_type("on_task_edit_refresh_start_screen")
-        self.register_event_type("on_task_edit_refresh_home_screen")
+        self.task_file_path: str = DM.PATH.TASK_FILE
+        if not DM.validate_file(self.task_file_path):
+            return
 
-        # Tasks
-        self.tasks_by_date: dict[str, list[Task]] = self._load_tasks_by_date()
-        self.sorted_active_tasks: list[dict] = None
+        self.task_groups: list[TaskGroup] = self.get_task_groups()
 
         # New/Edit Task attributes
         self.selected_date: datetime | None = None
@@ -54,113 +47,115 @@ class TaskManager(EventDispatcher):
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
     
-    def _connect_communication_manager(self, communication_manager: "AppCommunicationManager") -> None:
-        """Connects the CommunicationManager to the TaskManager."""
-        self.communication_manager = communication_manager
-    
-    def _load_tasks_by_date(self) -> dict[str, list[Task]] | dict:
+    def get_task_groups(self) -> list[TaskGroup]:
         """
         Loads all Tasks from file, which are grouped by date.
-        Returns a dictionary of date keys and lists of Task objects.
+        Returns a list of TaskGroup objects.
         """
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
             
-            tasks_by_date = {}
-            for date_key, tasks_data in data.items():
-                tasks_by_date[date_key] = []
-                for task_data in tasks_data:
-                    task = Task.to_class(task_data)
-                    tasks_by_date[date_key].append(task)
+            today = datetime.now().date()
+            start_date = today - timedelta(days=TaskManager.DAYS_IN_PAST)
             
-            return tasks_by_date
+            task_groups = []
+            for date_key, tasks_data in data.items():
+                # Parse the date key to check if it's within our range
+                task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
+                
+                # Only include entire date groups from start_date onwards
+                if task_date >= start_date:
+                    # Sort tasks by effective time
+                    tasks = [Task.to_class(task_data) for task_data in tasks_data]
+                    sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
+                    task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
+            
+            # Sort task groups by date
+            sorted_task_groups = sorted(task_groups, key=lambda x: x.date_str)
+            return sorted_task_groups
         
         except Exception as e:
-            logger.error(f"Error initializing tasks: {e}")
-            return {}
+            logger.error(f"Error loading Task groups: {e}")
+            return []
     
-    def sort_active_tasks(self) -> None:
+    def refresh_task_groups(self) -> None:
         """
-        Takes the tasks_by_date dictionary and returns a list of Tasks sorted by date [earliest first].
-        Looks at ALL tasks because snoozing could move a task to any future date.
-        Includes all tasks from yesterday (00:00) onwards, regardless of expiry status.
-        Used by HomeScreen's update_task_display to display all active Tasks.
-        Only called on initial load and after Task add/edit/delete.
+        Refreshes the Task groups.
         """
-        sorted_active_tasks = []
-        now = datetime.now()
-        yesterday = (now.date() - timedelta(days=1))  # yesterday at 00:00
-        
-        # Loop over all Task groups
-        for date_key, tasks in self.tasks_by_date.items():
-            task_date = datetime.strptime(date_key, "%Y-%m-%d").date()
-            
-            # Keep all Tasks from yesterday 00:00 onwards
-            active_tasks = [
-                task for task in tasks 
-                if task_date >= yesterday
-            ]
-            
-            if active_tasks:
-                # Sort Tasks by effective time (earliest first)
-                sorted_tasks = sorted(active_tasks, 
-                                    key=lambda task: task.timestamp + timedelta(seconds=task.snooze_time))
-                
-                # Use effective time for date string
-                first_task = sorted_tasks[0]
-                effective_date = Task.to_date_str(first_task.timestamp + timedelta(seconds=first_task.snooze_time))
-                
-                sorted_active_tasks.append({
-                    "date": effective_date,
-                    "tasks": sorted_tasks
-                })
-        
-        # Sort date groups by effective time (earliest first)
-        sorted_active_tasks.sort(
-            key=lambda x: (x["tasks"][0].timestamp + timedelta(seconds=x["tasks"][0].snooze_time)) 
-            if x["tasks"] else datetime.max
-        )
-        
-        if not sorted_active_tasks:
-            start_task = Task(
-                timestamp=(now - timedelta(minutes=1)).replace(second=0, microsecond=0),
-                message="No upcoming tasks!\nPress + to add a new one.",
-                expired=True
-            )
-            sorted_active_tasks.append({
-                "date": start_task.get_date_str(),
-                "tasks": [start_task]
-            })
-        
-        self.sorted_active_tasks = sorted_active_tasks
-
-    def _save_tasks_to_json(self) -> bool:
+        self.task_groups = self.get_task_groups()
+    
+    def save_task_groups(self) -> None:
         """
-        Saves all Tasks to the PATH.TASK_FILE file, grouped by date.
-        Returns True if successful, False otherwise.
-        Called by save_all_tasks with a delay.
-        Only called on Task add/edit/delete.
+        Saves the Task groups to the file.
         """
         try:
+            # Convert TaskGroups to the expected dictionary format
             tasks_json = {}
-            # Group by date
-            for date_key, tasks in self.tasks_by_date.items():
-                tasks_json[date_key] = [task.to_json() for task in tasks]
+            for task_group in self.task_groups:
+                tasks_json[task_group.date_str] = [task.to_json() for task in task_group.tasks]
             
             with open(self.task_file_path, "w") as f:
                 json.dump(tasks_json, f, indent=2)
             time.sleep(0.1)
-            return True
         
         except Exception as e:
-            logger.error(f"Error saving Tasks to file: {e}")
-            return False
+            logger.error(f"Error saving Task groups: {e}")
+    
+    def _add_to_task_groups(self, task: Task) -> None:
+        """
+        Adds a Task to the TaskGroups.
+        """
+        date_key = task.get_date_key()
+        for task_group in self.task_groups:
+            if task_group.date_str == date_key:
+                task_group.tasks.append(task)
+                break
+        else:
+            self.task_groups.append(TaskGroup(date_str=date_key, tasks=[task]))
+    
+    def _remove_from_task_groups(self, task: Task) -> None:
+        """
+        Removes a Task from the TaskGroups.
+        If the last task is removed from a group, the entire group is removed.
+        """
+        date_key = task.get_date_key()
+        for i, task_group in enumerate(self.task_groups):
+            if task_group.date_str == date_key:
+                # Find the task by ID instead of object reference
+                for j, group_task in enumerate(task_group.tasks):
+                    if group_task.task_id == task.task_id:
+                        task_group.tasks.pop(j)
+                        
+                        # If this was the last task in the group, remove the entire group
+                        if not task_group.tasks:
+                            self.task_groups.pop(i)
+                        
+                        return
+                break
+        else:
+            logger.error(f"Error removing Task from TaskGroups, {DM.get_task_log(task)} not found")
+    
+    def get_task_by_id_(self, task_id: str) -> Task | None:
+        """
+        Gets a Task by its ID.
+        """
+        for task_group in self.task_groups:
+            for task in task_group.tasks:
+                if task.task_id == task_id:
+                    return task
+        
+        return None
+    
+    def _connect_communication_manager(self, communication_manager: "AppCommunicationManager") -> None:
+        """Connects the CommunicationManager to the TaskManager."""
+        self.communication_manager = communication_manager
+    
     
     def add_task(self, message: str, timestamp: datetime,
                  alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
-        Adds Task to tasks_by_date, saves the Task to file,
+        Adds Task to task_groups, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
         task = Task(message=message, timestamp=timestamp,
@@ -170,20 +165,16 @@ class TaskManager(EventDispatcher):
         # Round timestamp
         task.timestamp = task.timestamp.replace(second=0, microsecond=0)
         
-        # Get date key and add to appropriate date group
-        date_key = task.get_date_key()
-        if date_key not in self.tasks_by_date:
-            self.tasks_by_date[date_key] = []
-        self.tasks_by_date[date_key].append(task)
-
-        # Save, reload and notify service
-        self._save_tasks_to_json()
+        # Add to TaskGroups
+        self._add_to_task_groups(task)
+        self.save_task_groups()
         # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
+        # Refresh HomeScreen
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -191,17 +182,16 @@ class TaskManager(EventDispatcher):
                     alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
         Updates existing Task by its ID.
-        Updates tasks_by_date, saves the Task to file,
+        Updates task_groups, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
-        task = self.get_task_by_id(task_id)
+        task = self.get_task_by_id_(task_id)
         if not task:
             logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
         
         old_date_key = task.get_date_key()
-        
-        # Update task properties with full precision timestamp
+
         task.timestamp = timestamp
         task.message = message
         task.alarm_name = alarm_name
@@ -210,180 +200,96 @@ class TaskManager(EventDispatcher):
         task.snooze_time = 0
 
         # Update expired state using rounded timestamps
-        now = datetime.now().replace(second=0, microsecond=0)
-        now += timedelta(seconds=1)
-        old_expired = task.expired
-        if timestamp > now and task.expired:
+        group_now = datetime.now().replace(second=0, microsecond=0)
+        group_now += timedelta(seconds=1)
+        if timestamp > group_now and task.expired:
             # Task from past to future, -> not expired
             task.expired = False
-        elif timestamp <= now and not task.expired:
+        elif timestamp <= group_now and not task.expired:
             # Task from future to past, -> expired
             task.expired = True
         
-        logger.trace(f"Task {DM.get_task_id_log(task_id)} expired state changed: {old_expired} -> {task.expired}")
-        
-        # If date will change, move Task to new date group
         new_date_key = task.get_date_key()
         
-        # If date changed, move Task to new date group
         if old_date_key != new_date_key:
-            # Remove from old date group
-            if old_date_key in self.tasks_by_date:
-                self.tasks_by_date[old_date_key].remove(task)
-                # Remove empty date groups
-                if not self.tasks_by_date[old_date_key]:
-                    del self.tasks_by_date[old_date_key]
-            
-            # Add to new date group
-            if new_date_key not in self.tasks_by_date:
-                self.tasks_by_date[new_date_key] = []
-            self.tasks_by_date[new_date_key].append(task)
+            self._remove_from_task_groups(task)
+            self._add_to_task_groups(task)
+        self.save_task_groups()
 
-        # Save
-        self._save_tasks_to_json()
-        logger.debug(f"Updated Task: {DM.get_task_log(task)}")
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self._update_tasks_ui(task=task)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
+        # Refresh HomeScreen
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
     def delete_task(self, task_id: str) -> None:
         """
         Deletes a Task by ID.
-        Updates tasks_by_date, saves the Task to file,
+        Updates task_groups, saves the Task to file,
          dispatches an event to update the Task display.
         """
-        task = self.get_task_by_id(task_id)
-        task_log = DM.get_task_log(task)
+        task = self.get_task_by_id_(task_id)
         if not task:
             logger.error(f"Error deleting Task, {DM.get_task_id_log(task_id)} not found")
             return
         
-        # Save copy before deletion for notification
-        date_key = task.get_date_key()
-        # Remove from memory
-        if date_key in self.tasks_by_date and task in self.tasks_by_date[date_key]:
-            self.tasks_by_date[date_key].remove(task)
-            # Remove empty date groups
-            if not self.tasks_by_date[date_key]:
-                del self.tasks_by_date[date_key]
+        # Remove from TaskGroups
+        self._remove_from_task_groups(task)
+        self.save_task_groups()
         
-        # Save
-        self._save_tasks_to_json()
-        logger.debug(f"Deleted Task: {task_log}")
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self._update_tasks_ui(task=task, scroll_to_task=False)
         # Refresh StartScreen
-        self.dispatch("on_task_edit_refresh_start_screen")
+        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
+        # Refresh HomeScreen
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
-        
-    def _has_time_overlap(self, timestamp: datetime) -> bool:
-        """Checks if the snoozed Task or current Task would overlap with another Task."""
-        for task_group in self.sorted_active_tasks:
-            for task in task_group["tasks"]:
-                if task.timestamp + timedelta(seconds=task.snooze_time) == timestamp:
-                    return True
-        
-        return False
 
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """
         Get a Task object by its timestamp.
-        Only compares date and hours/minutes, ignoring seconds and microseconds.
+        Takes into account snooze time when checking for matches.
+        Compares hours and minutes, ignoring seconds and microseconds.
         """
         target_date_key = target_datetime.strftime(DM.DATE.DATE_KEY)
         target_time = target_datetime.time()
         
-        # First check if we have any tasks on this date
-        if target_date_key not in self.tasks_by_date:
-            return None
-        
-        # Then check for time match on that date
-        for task in self.tasks_by_date[target_date_key]:
-            task_time = (task.timestamp + timedelta(seconds=task.snooze_time)).time()
-            if task_time.hour == target_time.hour and task_time.minute == target_time.minute:
-                return task
-        
-        return None
-    
-    def get_task_by_id(self, task_id: str) -> Task | None:
-        """Get a Task object by its ID."""
-        for date_key, tasks in self.tasks_by_date.items():
-            for task in tasks:
-                if task.task_id == task_id:
-                    return task
+        # Find the task group for this date
+        for task_group in self.task_groups:
+            if task_group.date_str == target_date_key:
+                # Check for time match on that date, comparing only hours and minutes
+                for task in task_group.tasks:
+                    effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
+                    if effective_time.time().hour == target_time.hour and effective_time.time().minute == target_time.minute:
+                        return task
+                break  # Found the date group, no need to continue searching
         
         return None
     
     def date_is_taken(self, target_datetime: datetime) -> bool:
         """
         Check if a date and time is taken by any Task.
-        First checks the date to avoid unnecessary time comparisons.
-        Only compares hours and minutes, ignoring seconds and microseconds.
+        Compares hours and minutes, ignoring seconds and microseconds.
+        Takes into account snooze time when checking for conflicts.
         """
         target_date_key = target_datetime.strftime(DM.DATE.DATE_KEY)
-        
-        # First check if we have any tasks on this date
-        if target_date_key not in self.tasks_by_date:
-            return False
-        
-        # Then check for time conflicts on that date, comparing only hours and minutes
         target_time = target_datetime.time()
-        for task in self.tasks_by_date[target_date_key]:
-            task_time = task.timestamp.time()
-            if task_time.hour == target_time.hour and task_time.minute == target_time.minute:
-                return True
+        
+        # Find the task group for this date
+        for task_group in self.task_groups:
+            if task_group.date_str == target_date_key:
+                # Check if any task's effective time conflicts with target time
+                for task in task_group.tasks:
+                    if task == self.task_to_edit:
+                        continue
+                    effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
+                    if effective_time.time().hour == target_time.hour and effective_time.time().minute == target_time.minute:
+                        return True
+                break
         
         return False
-    
-    def notify_user_of_expiry(self, expired_task: Task) -> None:
-        """
-        Notifies the user of the expiry of a Task by:
-        - Showing a notification
-        - Triggering an alarm
-        - Updating the Task display
-        """
-        self.dispatch("on_task_expired_trigger_alarm", task=expired_task)
-        self.dispatch("on_task_expired_show_task_popup", task=expired_task)
-    
-    def _update_tasks_ui(self, task: Task | None = None, scroll_to_task: bool = True):
-        """Updates the App's Tasks"""
-        # Reload tasks from file
-        self.tasks_by_date = self._load_tasks_by_date()
-        # Resort active tasks
-        self.sort_active_tasks()
-        # Update UI
-        self.dispatch("on_tasks_changed_update_task_display", modified_task=task)
-        if scroll_to_task:
-            Clock.schedule_once(lambda dt: self.dispatch("on_task_saved_scroll_to_task", task=task), 0.1)
-    
-    def on_task_saved_scroll_to_task(self, task, *args):
-        """Default handler for on_task_saved_scroll_to_task event"""
-        pass
-    
-    def on_tasks_changed_update_task_display(self, *args, **kwargs):
-        """Default handler for on_tasks_changed_update_task_display event"""
-        pass
-    
-    def on_task_edit_load_task_data(self, *args, **kwargs):
-        """Default handler for on_task_edit_load_task_data event"""
-        pass
-    
-    def on_tasks_expired_set_date_expired(self, *args, **kwargs):
-        """Default handler for on_tasks_expired_set_date_expired event"""
-        pass
-    
-    def on_task_edit_refresh_start_screen(self, *args, **kwargs):
-        """Default handler for on_task_edit_refresh_start_screen event"""
-        pass
-    
-    def on_task_edit_refresh_home_screen(self, *args, **kwargs):
-        """Default handler for on_task_edit_refresh_home_screen event"""
-        pass

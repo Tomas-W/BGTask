@@ -60,6 +60,7 @@ class Paths(Dirs):
         self.DELETE_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_inactive_64.png")
         # Task file
         self.TASK_FILE: Final[str] = os.path.join(self.ASSETS, "task_file.json")
+        self.TEST_FILE: Final[str] = os.path.join(self.ASSETS, "test_file.json")
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
         # Service
@@ -102,8 +103,6 @@ class Actions:
     Contains action variables for sending actions between App and Service.
     """
     def __init__(self):
-        # App
-        self.SHOW_TASK_POPUP: Final[str] = "SHOW_TASK_POPUP"
         # Service
         self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
@@ -175,7 +174,6 @@ class PendingIntents:
         self.CANCEL: int = 13
         self.OPEN_APP: int = 14
         self.STOP_ALARM: int = 15
-        self.SHOW_TASK_POPUP: int = 16
 
 
 class NotificationType:
@@ -185,22 +183,6 @@ class NotificationType:
     def __init__(self):
         self.FOREGROUND: str = "foreground"
         self.EXPIRED: str = "expired"
-
-
-class SharedPreferencesTypes:
-    """
-    Contains constants for shared preferences types for the App and Service.
-    """
-    def __init__(self):
-        self.ACTIONS: str = "ACTIONS"
-
-
-class SharedPreferences:
-    """
-    Contains constants for shared preferences for the App and Service.
-    """
-    def __init__(self):
-        self.SHOW_TASK_POPUP: str = "SHOW_TASK_POPUP"
 
 
 class Settings:
@@ -242,6 +224,7 @@ class Loaded:
         self.SAVED_ALARMS_SCREEN = False
         self.SETTINGS_SCREEN = False
 
+        self.SCREEN_MANAGER = False
         self.NAVIGATION_MANAGER = False
         self.EXPIRY_MANAGER = False
         self.TASK_MANAGER = False

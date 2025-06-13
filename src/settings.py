@@ -33,9 +33,10 @@ class Colors:
     TEXT = (0, 0, 0, 1.0)
     TEXT_GREY = (0.4, 0.4, 0.4, 1.0)
 
-    FIELD_ACTIVE = (0.45, 0.65, 0.95, 0.3)
+    FIELD_INPUT = (0.45, 0.65, 0.95, 0.3)
+    FIELD_TASK = (0.30, 0.40, 0.95, 0.35)
     FIELD_SELECTED = (0.45, 0.65, 0.95, 0.5)
-    FIELD_INACTIVE = (0.5, 0.5, 0.5, 0.3)
+    FIELD_INACTIVE = (0.7, 0.7, 0.7, 0.3)
     FIELD_ERROR = (1, 0.4, 0.4, 1)
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
 
@@ -50,6 +51,9 @@ class Sizes:
     BOTTOM_BAR_HEIGHT = dp(40)
 
     TOP_BAR_BUTTON_WIDTH = dp(50)
+
+    FLOATING_CONTAINER_HEIGHT = dp(60)
+    FLOATING_CONTAINER_WIDTH = dp(200)
 
     POPUP_ICON = dp(16)
 

@@ -19,9 +19,9 @@ from src.settings import SPACE, STATE, SCREEN
 from managers.device.device_manager import DM
 
 if TYPE_CHECKING:
-    from src.managers.app_task_manager import TaskManager
-    from src.managers.navigation_manager import NavigationManager
     from main import TaskApp
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_task_manager import TaskManager
 
 
 class SelectDateScreen(BaseScreen, SelectDateUtils):
@@ -209,7 +209,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         ## NOT BY TIMESTAMP !
         date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
         task = self.task_manager.get_task_by_timestamp(date)
-        self.task_manager.dispatch("on_task_edit_load_task_data", task=task)
+        self.app.get_screen(SCREEN.NEW_TASK).load_task_data(task=task)
         self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
     
     def init_date_values(self) -> None:
