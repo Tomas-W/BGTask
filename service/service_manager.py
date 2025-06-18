@@ -299,21 +299,18 @@ class ServiceManager:
         logger.debug("Task expired, showing notification")
 
         if self.expiry_manager.expired_task:
-            self._mark_task_as_permanently_expired()
+            self.expiry_manager.expired_task.expired = True
+            self.expiry_manager._save_task_changes(
+                self.expiry_manager.expired_task.task_id, 
+                {"expired": True}
+            )
+        
+        self.notification_manager.cancel_all_notifications()
 
         expired_task = self.expiry_manager.handle_task_expired()
         if expired_task:
             self.notify_user_of_expiry(expired_task)
-
-    def _mark_task_as_permanently_expired(self) -> None:
-        """Marks the expired Task as permanently expired."""
-        self.expiry_manager.expired_task.expired = True
-        self.expiry_manager._save_task_changes(
-            self.expiry_manager.expired_task.task_id, 
-            {"expired": True}
-        )
-        logger.trace(f"Marked previous expired Task {DM.get_task_log(self.expiry_manager.expired_task)} as permanently expired")
-
+    
     def log_expiry_tasks(self) -> None:
         """Logs the current and expired Tasks."""
         if self.expiry_log_tick >= ServiceManager.EXPIRY_LOG_TICK:
