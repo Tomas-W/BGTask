@@ -42,22 +42,12 @@ if platform != "android":
 # TODO: Trigger vibrate when App in foreground?
 
 
-# StartScreen
-# TODO: Refactor StartScreen / Layout / Widgets
-# TODO: Smart loading widgets
-# TODO: Show snooze time
-# TODO: Home and Start -> show cancelled future tasks muted colors
-
 # BaseScreen
-# TODO: Fix synchronized_animate SIZE.BOTTOM_BAR_HEIGHT*1.05
 
 
 # HomeScreen
 # TODO: Smart rendering widgets
 # TODO: Create generic popup for errors
-# TODO: Floating Day label if many/long tasks
-# TODO: Add year to Tasks header when in next year
-# TODO: Show snooze time
 
 
 # NewTaskScreen
@@ -70,7 +60,6 @@ if platform != "android":
 # TODO: Block dates in past
 
 # SelectAlarmScreen
-# TODO: Cache alarm buttons
 # TODO: Repeat alarm
 # TODO: Clean user input (maybe a popup level?)
 
@@ -78,15 +67,11 @@ if platform != "android":
 # SavedAlarmScreen
 
 
-
 # General
 # TODO: Non confim buttons must be custom buttons, regular color is active, active color is custom confirm active
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
 # TODO: Button feedback
 # TODO: Look at caching
-# TODO: Fix black alarm/vibrate icons for Tasks [TRYING]
-# TODO: Slow L&R swiping for screens
-# TODO: Task expired notification shows without snooze time
 
 # Service
 
@@ -104,8 +89,6 @@ class TaskApp(App, EventDispatcher):
     def build(self):
         """
         Builds the App.
-        Only creates what's needed for the StartScreen to be shown.
-        As soon as the StartScreen is shown, the rest of the App is loaded in the background.
         """
         self.title = "Task Manager"
         
@@ -116,7 +99,6 @@ class TaskApp(App, EventDispatcher):
         self._init_task_manager()
         self.expiry_manager._connect_task_manager(self.task_manager)
         
-        # self._init_start_screen()
         self._init_home_screen()
         
         return self.screen_manager
@@ -126,18 +108,14 @@ class TaskApp(App, EventDispatcher):
 
     def load_app(self, *args):
         """
-        Loads the App.
+        Loads rest of the App.
         """
         Clock.schedule_once(self._load_app, 0.1)
     
     def _load_app(self, *args):
         """
-        Called when StartScreen is finished loading.
-        Finishes loading StartScreen by adding NavigationManager and TaskManager.
-        Then loads App components in priority order.
+        Called when HomeScreen is finished loading.
         """
-        # self._init_home_screen()
-
         self._init_audio_manager()
 
         self._init_communication_manager()
@@ -170,8 +148,7 @@ class TaskApp(App, EventDispatcher):
     
     def on_start(self):
         """
-        Called after StartScreen's pre_enter.
-        - Checks SharedPreferences for actions send while App was closed
+        Called after HomeScreen's pre_enter.
         """
         super().on_start()
         print("ON START ON START ON START ON START ON START ON START")
@@ -179,7 +156,6 @@ class TaskApp(App, EventDispatcher):
     def on_resume(self):
         """
         App is resumed from a paused state.
-        - Reloads TaskManager's Tasks and Screens UI
         """
         super().on_resume()
         logger.debug("App is resuming")
@@ -245,16 +221,6 @@ class TaskApp(App, EventDispatcher):
     
     ###############################################
     ################### SCREENS ###################
-    @log_time("StartScreen")
-    def _init_start_screen(self):
-        from src.screens.start.start_screen import StartScreen
-        self.screens = {
-            SCREEN.START: StartScreen(name=SCREEN.START,
-                                      app=self)
-        }
-        self.screen_manager.add_widget(self.screens[SCREEN.START])
-        DM.LOADED.START_SCREEN = True
-    
     @log_time("HomeScreen")
     def _init_home_screen(self):
         from src.screens.home.home_screen import HomeScreen

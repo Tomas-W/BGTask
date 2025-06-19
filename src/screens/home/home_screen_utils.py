@@ -1,6 +1,6 @@
 import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from kivy.animation import Animation
@@ -8,24 +8,45 @@ from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 
-from managers.device.device_manager import DM
-from managers.tasks.task import Task
+from src.screens.home.home_widgets import TaskGroupWidget
+from managers.tasks.task import Task, TaskGroup
 
-from .home_widgets import (TaskGroupWidget)
+from managers.device.device_manager import DM
 
 from src.utils.logger import logger
 from src.settings import COL, FONT, SIZE, SPACE
 
 if TYPE_CHECKING:
-    from managers.tasks import TaskGroup
+    from src.screens.home.home_widgets import TaskInfoLabel
 
 
 class HomeScreenUtils:
+
+    FIRST_TASK_MESSAGE = "No upcomming Tasks!\n\nPress + to add a new one,\nor select a Task to edit or delete."
+
     def __init__(self):
         pass
 
 # ########## REFRESHING ########## #
-    def _refresh_home_screen(self, *args) -> None:
+    def _init_home_screen(self, *args) -> None:
+        """
+        Initializes the HomeScreen UI.
+        Displays the first TaskGroup.
+        """
+        start_time = time.time()
+        start_group = self.get_start_task_group()
+        if start_group is None:
+            self._set_first_task_group()
+            self._init_home_screen()
+            return
+
+        self.scroll_container.container.clear_widgets()
+        task_group_widget = TaskGroupWidget(task_group=start_group)
+        self.scroll_container.container.add_widget(task_group_widget)
+        
+        logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
+    
+    def refresh_home_screen(self, *args) -> None:
         """Refreshes task_groups and rebuilds the HomeScreen UI."""
         start_time = time.time()
         start_group = self.get_start_task_group()
@@ -48,7 +69,7 @@ class HomeScreenUtils:
                     return task_group
         return None
     
-    def get_start_task_group(self) -> "TaskGroup":
+    def get_start_task_group(self) -> TaskGroup | None:
         """
         Gets the earliest future TaskGroup (including today).
         Returns None if no future tasks exist.
@@ -63,9 +84,21 @@ class HomeScreenUtils:
                 return task_group
         
         return None
+
+    def _set_first_task_group(self) -> None:
+        """Sets the first TaskGroup in the TaskManager."""
+        first_task = Task(
+            message=HomeScreenUtils.FIRST_TASK_MESSAGE,
+            timestamp=datetime.now() - timedelta(minutes=1),
+            expired=True,
+        )
+        start_group = TaskGroup(date_str=first_task.get_date_key(),
+                                tasks=[first_task])
+        self.task_manager.task_groups = [start_group]
+        self.task_manager.save_task_groups()
     
 # ########## SELECTING ########## #
-    def select_task(self, task, label=None) -> None:
+    def select_task(self, task: Task, label: "TaskInfoLabel" = None) -> None:
         """Selects a Task and shows the floating action buttons."""
         # Deselect previous task if any
         if self.selected_label:
@@ -88,7 +121,7 @@ class HomeScreenUtils:
         # Show floating buttons
         self.show_floating_buttons()
     
-    def edit_selected_task(self, instance):
+    def edit_selected_task(self, instance) -> None:
         """Navigates to the NewTaskScreen to edit the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id)
@@ -107,7 +140,7 @@ class HomeScreenUtils:
             self.selected_label = None
             self.hide_floating_buttons()
     
-    def delete_selected_task(self, instance):
+    def delete_selected_task(self, instance) -> None:
         """Deletes the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id) 
@@ -125,7 +158,7 @@ class HomeScreenUtils:
                 self.task_manager.delete_task(task_id)
             else:
                 logger.error(f"Error deleting Task: {DM.get_task_id_log(task_id)} not found")
-                self.refresh_home_screen()
+                self._init_home_screen()
                 
                 # Clean up selection state
                 if self.selected_label:
@@ -135,7 +168,17 @@ class HomeScreenUtils:
                 self.selected_label = None
                 self.hide_floating_buttons()
     
-    def create_floating_action_buttons(self):
+    def _highlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
+        """Highlights the Task."""
+        if task_widget is not None:
+            task_widget.set_active(True)
+
+    def _unhighlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
+        """Unhighlights the Task."""
+        if task_widget is not None:
+            task_widget.set_active(False)
+    
+    def create_floating_action_buttons(self) -> None:
         """Creates floating edit/delete buttons that appear when a Task is selected."""
         # Container for the buttons
         self.floating_button_container = BoxLayout(
@@ -174,14 +217,22 @@ class HomeScreenUtils:
         # Add container to the screen
         self.add_widget(self.floating_button_container)
         
-    def show_floating_buttons(self):
+    def show_floating_buttons(self) -> None:
         """Shows the floating action buttons with animation."""
         self.floating_button_container.opacity = 0
         self.floating_button_container.pos_hint = {"center_x": 0.5, "y": 0.05}
         animation = Animation(opacity=1, pos_hint={"center_x": 0.5, "y": 0.1}, duration=0.3)
         animation.start(self.floating_button_container)
     
-    def hide_floating_buttons(self):
+    def hide_floating_buttons(self) -> None:
         """Hides the floating action buttons with animation."""
         animation = Animation(opacity=0, pos_hint={"center_x": 0.5, "y": 0.05}, duration=0.3)
         animation.start(self.floating_button_container)
+
+# ########## LOGGING ########## #
+    def _log_loading_times(self, *args) -> None:
+        """Logs all loading times from the TIMER."""
+        from src.utils.timer import TIMER
+        all_logs = TIMER.get_all_logs()
+        for log in all_logs:
+            logger.timing(log)

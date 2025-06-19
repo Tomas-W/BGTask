@@ -184,4 +184,4 @@ class AppCommunicationManager():
         # Update TaskManager
         self.task_manager.refresh_task_groups()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()

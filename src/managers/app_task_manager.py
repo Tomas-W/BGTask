@@ -170,7 +170,7 @@ class TaskManager(EventDispatcher):
         # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -226,7 +226,7 @@ class TaskManager(EventDispatcher):
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -248,7 +248,7 @@ class TaskManager(EventDispatcher):
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 

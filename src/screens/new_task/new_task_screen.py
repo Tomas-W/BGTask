@@ -2,15 +2,13 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
-
-from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import Partition, CustomButtonRow
+from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.fields import TextField, ButtonField
 
-from src.utils.logger import logger
+from managers.device.device_manager import DM
 
 from src.settings import SCREEN, STATE, TEXT, SPACE
-from managers.device.device_manager import DM
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -100,6 +98,26 @@ class NewTaskScreen(BaseScreen):
         
         # Set save_button state based on user inputs
         self.task_input_field.text_input.bind(text=self.validate_form)
+    
+    def on_pre_enter(self) -> None:
+        super().on_pre_enter()
+        # Reset UI
+        self.task_input_field.hide_border()
+        self.date_display_field.hide_border()
+        self.update_datetime_display()
+        self.update_alarm_display()
+        
+        # Update button text based on mode
+        if self.in_edit_task_mode:
+            self.save_button.set_text("Update Task")
+        else:
+            self.save_button.set_text("Save Task")
+        
+        # Validate form state when entering screen
+        self.validate_form()
+
+    def on_enter(self) -> None:
+        super().on_enter()
     
     def cancel_edit_task(self, instance) -> None:
         """
@@ -287,23 +305,3 @@ class NewTaskScreen(BaseScreen):
         select_date_screen.callback = self.on_datetime_selected
         
         self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
-
-    def on_pre_enter(self) -> None:
-        super().on_pre_enter()
-        self.task_input_field.hide_border()
-        self.date_display_field.hide_border()
-
-        self.update_datetime_display()
-        self.update_alarm_display()
-        
-        # Update button text based on mode
-        if self.in_edit_task_mode:
-            self.save_button.set_text("Update Task")
-        else:
-            self.save_button.set_text("Save Task")
-        
-        # Validate form state when entering screen
-        self.validate_form()
-
-    def on_enter(self) -> None:
-        super().on_enter()

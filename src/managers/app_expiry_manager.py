@@ -70,11 +70,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self._refresh_tasks()
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
-        # Refresh StartScreen
-        # self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        # self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=cancelled_task)
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
     
@@ -101,11 +98,8 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self._refresh_tasks()
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
-        # Refresh StartScreen
-        # self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        # self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=snoozed_task)
+        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         

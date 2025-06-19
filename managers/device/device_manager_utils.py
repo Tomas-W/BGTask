@@ -202,7 +202,6 @@ class Screens:
     Contains constants for screens for the App.
     """
     def __init__(self):
-        self.START = "START"
         self.HOME = "HOME"
         self.NEW_TASK = "NEW_TASK"
         self.SELECT_DATE = "SELECT_DATE"
@@ -216,7 +215,6 @@ class Loaded:
     Contains constants that show whether App components are loaded or not.
     """
     def __init__(self):
-        self.START_SCREEN = False
         self.HOME_SCREEN = False
         self.NEW_TASK_SCREEN = False
         self.SELECT_DATE_SCREEN = False
