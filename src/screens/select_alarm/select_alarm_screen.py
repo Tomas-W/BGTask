@@ -9,7 +9,7 @@ from src.widgets.containers import (Partition, BorderedPartition, CustomButtonRo
 from src.widgets.buttons import (ConfirmButton, SettingsButton,
                                 CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
-from src.widgets.popups import POPUP
+from managers.popups.popup_manager import POPUP
 from managers.device.device_manager import DM
 from src.utils.logger import logger
 

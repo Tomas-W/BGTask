@@ -11,7 +11,7 @@ from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow, Partition, CustomRow
 from src.widgets.labels import PartitionHeader
 
-from src.widgets.popups import POPUP
+from managers.popups.popup_manager import POPUP
 
 from src.utils.logger import logger
 

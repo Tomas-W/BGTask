@@ -28,6 +28,7 @@ if platform != "android":
 
 
 # TODO: Trigger laarm dont change nbutton states
+# TODO: Save user background and add retore option
 
 
 # Widgets
@@ -115,7 +116,8 @@ class TaskApp(App, EventDispatcher):
         self._init_task_manager()
         self.expiry_manager._connect_task_manager(self.task_manager)
         
-        self._init_start_screen()
+        # self._init_start_screen()
+        self._init_home_screen()
         
         return self.screen_manager
     
@@ -134,7 +136,7 @@ class TaskApp(App, EventDispatcher):
         Finishes loading StartScreen by adding NavigationManager and TaskManager.
         Then loads App components in priority order.
         """
-        self._init_home_screen()
+        # self._init_home_screen()
 
         self._init_audio_manager()
 
@@ -158,6 +160,8 @@ class TaskApp(App, EventDispatcher):
     def on_stop(self):
         super().on_stop()
         logger.debug("App is stopping")
+        # from profiler.profiler import profiler
+        # profiler.stop()
     
     def on_pause(self):
         super().on_pause()
@@ -229,7 +233,7 @@ class TaskApp(App, EventDispatcher):
     
     @log_time("PopupManager")
     def _init_popup_manager(self):
-        from src.widgets.popups import _init_popup_manager
+        from managers.popups.popup_manager import _init_popup_manager
         _init_popup_manager(app=self)
         DM.LOADED.POPUP_MANAGER = True
     
@@ -254,8 +258,10 @@ class TaskApp(App, EventDispatcher):
     @log_time("HomeScreen")
     def _init_home_screen(self):
         from src.screens.home.home_screen import HomeScreen
-        self.screens[SCREEN.HOME] = HomeScreen(name=SCREEN.HOME,
-                                               app=self)
+        self.screens = {
+            SCREEN.HOME: HomeScreen(name=SCREEN.HOME,
+                                    app=self)
+            }
         self.screen_manager.add_widget(self.screens[SCREEN.HOME])
         DM.LOADED.HOME_SCREEN = True
 

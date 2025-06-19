@@ -40,6 +40,10 @@ class Colors:
     FIELD_ERROR = (1, 0.4, 0.4, 1)
     FIELD_PASSED = (0.2, 0.7, 0.4, 0.8)
 
+    TASK_SELECTED = (0.45, 0.65, 0.95, 0.5)
+    TASK_ACTIVE = (0.45, 0.65, 0.95, 0.3)
+    TASK_INACTIVE = (0.7, 0.7, 0.7, 0.3)
+
 
 class Sizes:
     TEST = dp(40)
@@ -94,25 +98,23 @@ class Spacing:
 
 
 class Fonts:
-    DEFAULT = sp(20)
-    DEFAULT_BOLD = sp(24)
-    SMALL = sp(16)
+    DEFAULT = int(sp(20))
+    DEFAULT_BOLD = int(sp(24))
+    SMALL = int(sp(16))
 
-    TOP_BAR = sp(25)
-    TOP_BAR_SYMBOL = sp(35)
-    BOTTOM_BAR = sp(35)
+    TOP_BAR = int(sp(25))
+    TOP_BAR_SYMBOL = int(sp(35))
+    BOTTOM_BAR = int(sp(35))
 
-    TEST = sp(50)
+    HEADER = int(sp(25))
+    BUTTON = int(sp(22))
+    BUTTON_FIELD = int(sp(18))
+    BUTTON_SYMBOL = int(sp(30))
 
-    HEADER = sp(25)
-    BUTTON = sp(22)
-    BUTTON_FIELD = sp(18)
-    BUTTON_SYMBOL = sp(30)
-
-    SETTINGS_HEADER = sp(22)
-    SETTINGS_BUTTON = sp(18)
-    SETTINGS_BUTTON_SYMBOL = sp(24)
-    SETTINGS_BUTTON_FIELD = sp(18)
+    SETTINGS_HEADER = int(sp(22))
+    SETTINGS_BUTTON = int(sp(18))
+    SETTINGS_BUTTON_SYMBOL = int(sp(24))
+    SETTINGS_BUTTON_FIELD = int(sp(18))
 
 
 class Styles:

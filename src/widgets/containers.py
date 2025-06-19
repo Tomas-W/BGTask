@@ -3,8 +3,6 @@ from kivy.graphics import Color, Rectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 
-from kivy.logger import Logger as logger
-
 from src.settings import COL, SIZE, SPACE, FONT, STYLE
 
 
@@ -136,7 +134,6 @@ class ScrollContainer(BoxLayout):
     """
     def __init__(self,
                 parent_screen,
-                scroll_callback,
                 allow_scroll_y,
                 allow_scroll_x,
                 **kwargs
@@ -147,10 +144,6 @@ class ScrollContainer(BoxLayout):
             **kwargs
         )
         self.parent_screen = parent_screen
-        self.scroll_callback = scroll_callback
-
-        self.scroll_threshold_pixels = 800
-        self.last_pixels_scrolled = 0
         
         with self.canvas.before:
             Color(*COL.BG)
@@ -165,54 +158,11 @@ class ScrollContainer(BoxLayout):
         )
         self.scroll_view.add_widget(self.container)
         self.add_widget(self.scroll_view)
-        
-        self.scroll_view.bind(scroll_y=self._on_scroll)
     
     def _update(self, instance, value):
         """Update the background"""
         self.bg_rect.pos = instance.pos
         self.bg_rect.size = instance.size
-    
-    def _on_scroll(self, instance, value):
-        """Handle scroll events to show/hide BottomBar"""
-        if not self.parent_screen.bottom_bar:
-            return
-        
-        if self.parent_screen.initial_scroll:
-            return
-        
-        scrollable_height = instance.children[0].height
-        view_height = instance.height
-        max_scroll = scrollable_height - view_height
-
-        pixels_scrolled = (1 - value) * max_scroll
-        self.last_pixels_scrolled = pixels_scrolled
-        if self.scroll_view._touch is not None:
-            return
-        
-        # Show BottomBar
-        if pixels_scrolled > self.scroll_threshold_pixels and not self.parent_screen.bottom_bar.visible:
-            # Set flag so screen can handle animation
-            self.parent_screen.bottom_bar.visible = True
-            if self.scroll_callback:
-                self.scroll_callback()
-
-        # Hide BottomBar
-        elif pixels_scrolled <= self.scroll_threshold_pixels and self.parent_screen.bottom_bar.visible:
-            # Set flag so screen can handle animation
-            self.parent_screen.bottom_bar.visible = False
-            if self.scroll_callback:
-                self.scroll_callback()
-
-    def scroll_to_top(self, *args):
-        """Scroll to the top of the scroll view"""
-        # Stop ongoing scrolling
-        if hasattr(self.scroll_view, "effect_y"):
-            self.scroll_view.effect_y.value = 0
-            self.scroll_view.effect_y.velocity = 0
-        
-        self.scroll_view._touch = None
-        self.scroll_view.scroll_y = 1
 
 
 class TopBarContainer(BoxLayout):

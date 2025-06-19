@@ -304,7 +304,7 @@ class ExpiryManager():
         logger.debug(f"Current task: {DM.get_task_log(self.current_task) if self.current_task else None}")
         logger.debug(f"Expired task: {DM.get_task_log(self.expired_task) if self.expired_task else None}")
         logger.debug("Active tasks:")
-        for task in self.active_tasks:
+        for task in self.active_tasks[:3]:
             logger.debug(f"  {DM.get_task_log(task)}")
     
     @staticmethod

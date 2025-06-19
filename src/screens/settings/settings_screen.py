@@ -17,6 +17,3 @@ class SettingsScreen(BaseScreen):
 
         # TopBar title
         self.top_bar.bar_title.set_text("Settings")
-
-        # Add bottom bar for scrolling to top
-        self.add_bottom_bar()

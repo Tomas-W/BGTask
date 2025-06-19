@@ -45,7 +45,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
             if not self.expired_task:
                 expired_task = self.handle_task_expired()
                 if expired_task:
-                    from src.widgets.popups import POPUP
+                    from managers.popups.popup_manager import POPUP
                     POPUP._handle_task_popup(task=expired_task)
                     self.communication_manager.send_action(DM.ACTION.REMOVE_TASK_NOTIFICATIONS)
     
@@ -71,10 +71,10 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
         # Refresh StartScreen
-        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
+        # self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=cancelled_task)
+        # self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=cancelled_task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
     
@@ -102,10 +102,10 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
         # Refresh StartScreen
-        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
+        # self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=snoozed_task)
+        # self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=snoozed_task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         

@@ -57,10 +57,7 @@ class SavedAlarmScreen(BaseScreen):
         self.confirmation_partition.add_widget(self.confirmation_row)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.confirmation_partition)
-
-        # Add bottom bar
-        self.add_bottom_bar()
-
+    
     def confirm_alarm_selection(self, instance) -> None:
         """Confirm the alarm selection."""
         if self.audio_manager.selected_alarm_name is not None:

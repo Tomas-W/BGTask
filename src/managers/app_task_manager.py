@@ -41,7 +41,6 @@ class TaskManager(EventDispatcher):
         self.selected_date: datetime | None = None
         self.selected_time: datetime | None = None
         self.selected_vibrate: bool = False
-        # self.selected_keep_alarming: bool = False
         # Editing Task attributes
         self.task_to_edit: Task | None = None
         
@@ -170,28 +169,20 @@ class TaskManager(EventDispatcher):
         self.save_task_groups()
         # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh StartScreen
-        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
-    def update_task(self, task_id: str, message: str, timestamp: datetime,
-                    alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+    def _edit_task_in_groups(self, task: Task, message: str, timestamp: datetime,
+                            alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
-        Updates existing Task by its ID.
-        Updates task_groups, saves the Task to file,
-         dispatches an event to update the Task display and scroll to the Task.
+        Directly edits a Task's attributes in the TaskGroups.
+        Only moves the task between groups if the date has changed.
         """
-        task = self.get_task_by_id_(task_id)
-        if not task:
-            logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
-            return
-        
         old_date_key = task.get_date_key()
-
+        
+        # Update task attributes
         task.timestamp = timestamp
         task.message = message
         task.alarm_name = alarm_name
@@ -211,18 +202,31 @@ class TaskManager(EventDispatcher):
         
         new_date_key = task.get_date_key()
         
+        # Only move task between groups if date has changed
         if old_date_key != new_date_key:
             self._remove_from_task_groups(task)
             self._add_to_task_groups(task)
+
+    def update_task(self, task_id: str, message: str, timestamp: datetime,
+                    alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+        """
+        Updates existing Task by its ID.
+        Updates task_groups, saves the Task to file,
+         dispatches an event to update the Task display and scroll to the Task.
+        """
+        task = self.get_task_by_id_(task_id)
+        if not task:
+            logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
+            return
+        
+        # Use the new edit method
+        self._edit_task_in_groups(task, message, timestamp, alarm_name, vibrate, keep_alarming)
         self.save_task_groups()
 
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh StartScreen
-        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task=task)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -243,8 +247,6 @@ class TaskManager(EventDispatcher):
         
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh StartScreen
-        self.app.get_screen(DM.SCREEN.START).refresh_start_screen()
         # Refresh HomeScreen
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
         # Refresh ServiceExpiryManager
