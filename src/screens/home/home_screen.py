@@ -41,7 +41,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # TopBar
         top_bar_callback = self.navigate_to_new_task_screen
-        top_left_callback = self._set_as_background
+        top_left_callback = self.navigate_to_wallpaper_screen
         self.top_bar.make_home_bar(top_left_callback=top_left_callback,
                                    top_bar_callback=top_bar_callback)
         # TopBarExpanded
@@ -66,37 +66,17 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
     def on_enter(self) -> None:
         super().on_enter()
+
         if not self._home_screen_finished:
             self._hide_loading_screen()
-            Clock.schedule_once(self.app.load_app, 0.05)
-            Clock.schedule_once(self.check_need_to_start_service, 0.1)
+            Clock.schedule_once(self.app.load_app, 0.15)
+            Clock.schedule_once(self.check_need_to_start_service, 0.3)
             self._home_screen_finished = True
     
     def on_leave(self) -> None:
         super().on_leave()
         
-        # Deselect Task
-        if self.selected_task:
-            if self.selected_label:
-                self.selected_label.set_selected(False)
-            self.selected_task = None
-            self.selected_label = None
-            self.hide_floating_buttons()
-
-    @property
-    def home_screen_finished(self) -> bool:
-        return self._home_screen_finished
-    
-    @home_screen_finished.setter
-    def home_screen_finished(self, value: bool) -> None:
-        """
-        Triggers loading the rest of the App in the background.
-        """
-        if self._home_screen_finished == False:
-            return
-        
-        self._home_screen_finished = value
-        Clock.schedule_once(self.app.load_app, 0.05)
+        self._deselect_task()
     
     @android_only
     def _hide_loading_screen(self) -> None:
@@ -121,6 +101,18 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             else:
                 logger.debug("Service already running")
     
+    def _deselect_task(self) -> None:
+        """
+        Deselects any selected Task and hides the floating buttons.
+        """
+        if self.selected_task:
+            if self.selected_label:
+                self.selected_label.set_selected(False)
+            
+            self.selected_task = None
+            self.selected_label = None
+            self.hide_floating_buttons()
+    
     def navigate_to_new_task_screen(self, *args) -> None:
         """
         Navigates to the NewTaskScreen.
@@ -131,16 +123,18 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         
-        # Deselect Task
-        if self.selected_task:
-            if self.selected_label:
-                self.selected_label.set_selected(False)
-            
-            self.selected_task = None
-            self.selected_label = None
-            self.hide_floating_buttons()
-        
+        self._deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.NEW_TASK)
     
-    def _set_as_background(self, instance) -> None:
-        pass
+    def navigate_to_wallpaper_screen(self, instance) -> None:
+        """
+        Navigates to the WallpaperScreen.
+        If the edit/delete icons are visible, toggle them off first.
+        Deselects any selected Task.
+        """
+        if not DM.LOADED.WALLPAPER_SCREEN:
+            logger.error("WallpaperScreen not ready - cannot navigate to it")
+            return
+        
+        self._deselect_task()
+        self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)

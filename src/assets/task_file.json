@@ -137,46 +137,6 @@
   ],
   "2025-06-20": [
     {
-      "task_id": "b63ce277-f569-40fc-b2a2-a8a22e41123b",
-      "timestamp": "2025-06-20T17:51:00",
-      "message": "dsfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": true,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "23952461-fd74-4cde-b711-1676d0c44db3",
-      "timestamp": "2025-06-20T18:24:00",
-      "message": "1111",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": true,
-      "snooze_time": 530
-    },
-    {
-      "task_id": "534cdbb3-e1d8-47a0-a6f8-47eafc640027",
-      "timestamp": "2025-06-20T18:25:00",
-      "message": "22222",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": true,
-      "snooze_time": 480
-    },
-    {
-      "task_id": "91ebf3c5-83e1-4562-98d1-5941aa46818a",
-      "timestamp": "2025-06-20T18:48:00",
-      "message": "Aaasas",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": true,
-      "snooze_time": 610
-    },
-    {
       "task_id": "b84cb759-c30d-476c-8bf7-dc8bc6cda6a3",
       "timestamp": "2025-06-20T18:55:00",
       "message": "asdasd",
@@ -187,34 +147,14 @@
       "snooze_time": 200
     },
     {
-      "task_id": "f2b1bdd3-e317-4076-a5b4-05f47561989d",
-      "timestamp": "2025-06-20T19:58:00",
-      "message": "asdasd",
+      "task_id": "6c0e09ef-cb4b-41d5-86f8-97402d55d066",
+      "timestamp": "2025-06-20T19:03:30",
+      "message": "sdfsdfsdf",
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
       "expired": true,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "45a945e4-2ddc-4056-8a00-679ccc4b0b5f",
-      "timestamp": "2025-06-20T20:07:00",
-      "message": "asdasdasdasdasda\nsdasdasdasdasd\nasdasdasdasdasda",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "e9a3f9f5-9ecd-494f-8e61-5b13fdb6678b",
-      "timestamp": "2025-06-20T21:08:00",
-      "message": "asdasdas d\nasd \nas\nd as\nd \nasdasdasda",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
+      "snooze_time": 150
     },
     {
       "task_id": "0b1e7862-288c-4c4b-8699-1691ca68a44d",
@@ -223,47 +163,7 @@
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "be0b7698-ae04-47a3-a382-1c0fe72bf2f2",
-      "timestamp": "2025-06-20T22:09:00",
-      "message": "asdasda\nsd\nasd\nas\nd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "3424b6f1-8d9e-4080-a2f6-9d6f89ca7c2d",
-      "timestamp": "2025-06-20T22:48:00",
-      "message": "asdasdasdasdasdasdasd\na\nsdasdasdasdasdasd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "2ff5766d-fcf1-403c-a8e7-49c7ecd9d3ca",
-      "timestamp": "2025-06-20T23:07:00",
-      "message": "asdasdas dasd d",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
-    {
-      "task_id": "620143c1-7af2-44aa-b562-df8ab07d62d1",
-      "timestamp": "2025-06-20T23:17:00",
-      "message": "asdasdasdasd",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
+      "expired": true,
       "snooze_time": 0
     },
     {
@@ -275,16 +175,6 @@
       "keep_alarming": false,
       "expired": false,
       "snooze_time": 0
-    },
-    {
-      "task_id": "6c0e09ef-cb4b-41d5-86f8-97402d55d066",
-      "timestamp": "2025-06-20T19:03:30",
-      "message": "sdfsdfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": true,
-      "snooze_time": 150
     }
   ],
   "2025-06-21": [

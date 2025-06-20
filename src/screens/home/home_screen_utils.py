@@ -51,6 +51,7 @@ class HomeScreenUtils:
     def refresh_home_screen(self, *args) -> None:
         """
         Rebuilds the HomeScreen UI based on the current TaskGroup.
+        Also refreshes the WallpaperScreen.
         If no TaskGroup is set, it will get the nearest future TaskGroup or welcome TaskGroup.
         """
         start_time = time.time()
@@ -66,6 +67,9 @@ class HomeScreenUtils:
         self.scroll_container.container.clear_widgets()
         task_group_widget = TaskGroupWidget(task_group=self.task_manager.current_task_group)
         self.scroll_container.container.add_widget(task_group_widget)
+
+        # Refresh WallpaperScreen
+        self.app.get_screen(DM.SCREEN.WALLPAPER).refresh_wallpaper_screen()
         
         logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
     

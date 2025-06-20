@@ -14,7 +14,7 @@ except Exception as e:
     pass
 
 
-@android_only_class(except_methods=["__init__"])
+@android_only_class(except_methods=["__init__", "validate_permission"])
 class PermissionManager:
     """
     Manages Permissions for the App and Service.
@@ -40,6 +40,9 @@ class PermissionManager:
         Returns True if the App has the given permission.
         If not, requests permission and returns False.
         """
+        if not DM.is_android:
+            return True
+        
         if permission == self.REQUEST_SCHEDULE_EXACT_ALARM:
             self.request_exact_alarm_permission()
             return False

@@ -203,6 +203,7 @@ class Screens:
     """
     def __init__(self):
         self.HOME = "HOME"
+        self.WALLPAPER = "WALLPAPER"
         self.NEW_TASK = "NEW_TASK"
         self.SELECT_DATE = "SELECT_DATE"
         self.SELECT_ALARM = "SELECT_ALARM"
@@ -216,6 +217,7 @@ class Loaded:
     """
     def __init__(self):
         self.HOME_SCREEN = False
+        self.WALLPAPER_SCREEN = False
         self.NEW_TASK_SCREEN = False
         self.SELECT_DATE_SCREEN = False
         self.SELECT_ALARM_SCREEN = False

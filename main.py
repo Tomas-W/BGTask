@@ -136,6 +136,8 @@ class TaskApp(App, EventDispatcher):
 
         self._init_popup_manager()
 
+        self._init_wallpaper_screen()
+
         self._init_new_task_screen()
         self._init_settings_screen()
 
@@ -259,6 +261,14 @@ class TaskApp(App, EventDispatcher):
             }
         self.screen_manager.add_widget(self.screens[SCREEN.HOME])
         DM.LOADED.HOME_SCREEN = True
+
+    @log_time("WallpaperScreen")
+    def _init_wallpaper_screen(self):
+        from src.screens.wallpaper.wallpaper_screen import WallpaperScreen
+        self.screens[SCREEN.WALLPAPER] = WallpaperScreen(name=SCREEN.WALLPAPER,
+                                                          app=self)
+        self.screen_manager.add_widget(self.screens[SCREEN.WALLPAPER])
+        DM.LOADED.WALLPAPER_SCREEN = True
 
     @log_time("NewTaskScreen")
     def _init_new_task_screen(self):

@@ -160,6 +160,7 @@ class Screens(StrEnum):
     """Screen names used for navigation in the app."""
     START = "START"
     HOME = "HOME"
+    WALLPAPER = "WALLPAPER"
     NEW_TASK = "NEW_TASK"
     SELECT_DATE = "SELECT_DATE"
     SELECT_ALARM = "SELECT_ALARM"

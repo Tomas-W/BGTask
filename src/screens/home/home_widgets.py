@@ -226,17 +226,11 @@ class TaskNavigator(BoxLayout):
         if clicked_task_group == self.task_manager.current_task_group:
             return
         
+        # Scroll to top
+        self.task_manager.app.get_screen(DM.SCREEN.HOME).scroll_container.scroll_view.scroll_y = 1.0
+        # Update TaskManager
         self.task_manager.current_task_group = clicked_task_group
         self.task_manager.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-    
-    def _find_home_screen(self) -> "HomeScreen | None":
-        """Finds the HomeScreen by traversing up the widget hierarchy."""
-        current = self
-        while current:
-            if hasattr(current, "name") and current.name == DM.SCREEN.HOME:
-                return current
-            current = current.parent
-        return None
     
     def _setup_day_labels(self) -> None:
         """
@@ -317,7 +311,7 @@ class TaskGroupWidget(BoxLayout):
         )
         self.task_group: "TaskGroup" = task_group
         self.tasks: list["Task"] = task_group.tasks
-
+        
         header_text = TaskGroup.get_task_group_header_text(task_group.date_str)
         self.header = TaskGroupHeader(text=header_text)
         self.add_widget(self.header)

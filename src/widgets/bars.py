@@ -48,6 +48,13 @@ class TopBarClosed():
         self.bar_title.set_text("+")
         self.bar_title.set_disabled(False)
         self.bar_title.bind(on_release=top_bar_callback)
+    
+    def make_wallpaper_bar(self, top_left_callback, top_bar_callback):
+        """Make the wallpaper bar"""
+        self.bar_title.set_symbol_font_size(FONT.TOP_BAR)
+        self.bar_title.set_text("Set as Wallpaper")
+        self.bar_title.set_disabled(False)
+        self.bar_title.bind(on_release=top_bar_callback)
 
 
 class TopBarExpanded():

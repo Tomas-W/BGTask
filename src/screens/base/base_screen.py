@@ -59,7 +59,7 @@ class BaseScreen(Screen):
         """
         Screenshot the screen.
         """
-        pass
+        self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)
 
     def switch_top_bar(self, on_enter: bool = False, *args) -> None:
         """
