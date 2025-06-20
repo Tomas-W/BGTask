@@ -193,7 +193,7 @@
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,
-      "expired": false,
+      "expired": true,
       "snooze_time": 0
     },
     {

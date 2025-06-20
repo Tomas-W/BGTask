@@ -50,11 +50,12 @@ class TaskNavigator(BoxLayout):
         )
         self.task_group: "TaskGroup" = task_group
         self.task_manager: "TaskManager" = task_manager
-        self.current_week_start = None  # Track the current displayed week
+        self.current_week_start = None  # Track current displayed week
 
         self.week_navigator_container = NavigatorContainer()
         self.add_widget(self.week_navigator_container)
 
+        # Go to previous week
         self.prev_week_button = SettingsButton(
             text="<",
             width=0.4,
@@ -66,17 +67,21 @@ class TaskNavigator(BoxLayout):
         self.prev_week_button.bind(on_press=self._on_prev_week)
         self.week_navigator_container.add_widget(self.prev_week_button)
         
-        self.week_label = Label(
-            text=f"Week {self._get_week_nr()} {self._get_year()}",
+        # Shows month, week number and year
+        self.date_label = Label(
+            text="",
             size_hint=(1, None),
             height=SIZE.HEADER_HEIGHT,
-            pos_hint={"center_y": 0.5},
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
             font_size=FONT.DEFAULT,
             bold=True,
-            color=COL.TEXT,
+            color=COL.TEXT_GREY,
+            halign="center",
+            valign="middle",
         )
-        self.week_navigator_container.add_widget(self.week_label)
+        self.week_navigator_container.add_widget(self.date_label)
         
+        # Go to next week
         self.next_week_button = SettingsButton(
             text=">",
             width=0.4,
@@ -91,6 +96,7 @@ class TaskNavigator(BoxLayout):
         self.day_navigator_container = NavigatorContainer()
         self.add_widget(self.day_navigator_container)
 
+        # Add and style day labels
         self._setup_day_labels()
         
         self.bind(minimum_height=self.setter("height"))
@@ -115,14 +121,58 @@ class TaskNavigator(BoxLayout):
     def _update_week_display(self, week_start) -> None:
         """Update the week display to show the specified week."""        
         self.current_week_start = week_start
+        self.date_label.text = self._get_date_display(week_start)
         
-        # Update week label
+        # Black color if Tasks in week, grey otherwise
+        self._update_date_label_color(week_start)
+        
+        self._setup_day_labels_for_week(week_start)
+    
+    def _update_date_label_color(self, week_start) -> None:
+        """Updates the date label color based on whether the week has Tasks."""
+        # Check if any day in the week has tasks
+        has_tasks_in_week = False
+        for i in range(7):
+            day_date = week_start + timedelta(days=i)
+            day_key = day_date.isoformat()
+            if any(task_group.date_str == day_key for task_group in self.task_manager.task_groups):
+                has_tasks_in_week = True
+                break
+        
+        if has_tasks_in_week:
+            self.date_label.color = COL.TEXT
+        else:
+            self.date_label.color = COL.TEXT_GREY
+    
+    def _get_date_display(self, week_start) -> str:
+        """Returns the date display for the week as a multiline string."""
+        # Get all days in the week
+        week_days = []
+        for i in range(7):
+            day_date = week_start + timedelta(days=i)
+            week_days.append(day_date)
+        
+        # Get months in week for label
+        months = set(day.month for day in week_days)
+        
+        # Get month display
+        if len(months) == 1:
+            # Single month - full name
+            month_name = week_days[0].strftime("%B")
+        else:
+            # Two months - abbreviated names
+            month_names = []
+            for day in week_days:
+                month_name = day.strftime("%b")
+                if month_name not in month_names:
+                    month_names.append(month_name)
+            month_name = " / ".join(month_names)
+        
+        # Get week number and year
         week_number = week_start.isocalendar()[1]
         year = week_start.year
-        self.week_label.text = f"Week {week_number} {year}"
         
-        # Update day labels
-        self._setup_day_labels_for_week(week_start)
+        return f"{month_name} '{str(year)[-2:]}\nweek {week_number}"
     
     def _setup_day_labels_for_week(self, week_start) -> None:
         """Sets up the day labels for a specific week."""        
@@ -132,20 +182,18 @@ class TaskNavigator(BoxLayout):
         # Clear existing day labels
         self.day_navigator_container.clear_widgets()
         
-        # Generate day labels for the week
+        # Generate day labels for week
         for i in range(7):
             day_date = week_start + timedelta(days=i)
             day_key = day_date.isoformat()
             
-            # Check if this day has Tasks
-            has_tasks = any(task_group.date_str == day_key for task_group in self.task_manager.task_groups)
-            
-            # Create day label
             day_label = DateTimeLabel(
                 text=str(day_date.day),
                 markup=True,
             )
-            
+
+            # Check if day has Tasks
+            has_tasks = any(task_group.date_str == day_key for task_group in self.task_manager.task_groups)
             # Current day
             if day_date == current_date:
                 day_label.set_current_day(True)
@@ -202,6 +250,12 @@ class TaskNavigator(BoxLayout):
         days_since_monday = selected_date.isoweekday() - 1
         week_start = selected_date - timedelta(days=days_since_monday)
         self.current_week_start = week_start
+        
+        # Initialize date label
+        self.date_label.text = self._get_date_display(week_start)
+        
+        # Set initial color based on whether week has tasks
+        self._update_date_label_color(week_start)
         
         self._setup_day_labels_for_week(week_start)
     
