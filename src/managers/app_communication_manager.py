@@ -184,4 +184,7 @@ class AppCommunicationManager():
         # Update TaskManager
         self.task_manager.refresh_task_groups()
         # Refresh HomeScreen
+        task = self.task_manager.get_task_by_id_(task_id)
+        if task:
+            self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.task_manager.get_current_task_group(task)
         self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()

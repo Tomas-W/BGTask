@@ -38,7 +38,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         self.log_tick += 1
         self.log_expiry_tasks()
 
-        if self.is_task_expired() and self._is_ready_for_expiry():
+        if self.is_task_expired() and self._is_ready_for_expiry() and self.app.tasks_are_reloaded:
             logger.debug("Task expired, showing notification")
 
             # Only handle new task expiry if there isn't already an expired task

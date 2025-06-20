@@ -27,6 +27,16 @@ if platform != "android":
     Window.top = 316
 
 
+# import gc
+# # Add GC logging
+# def gc_logger(phase, info):
+#     if phase == "start":
+#         logger.info(f"GC START gen={info['generation']} collected={info['collected']} unreachable={info['uncollectable']}")
+#     elif phase == "stop":
+#         logger.info(f"GC STOP gen={info['generation']} collected={info['collected']} unreachable={info['uncollectable']}")
+
+# gc.callbacks.append(gc_logger)
+
 # TODO: Trigger laarm dont change nbutton states
 # TODO: Save user background and add retore option
 
@@ -91,7 +101,8 @@ class TaskApp(App, EventDispatcher):
         Builds the App.
         """
         self.title = "Task Manager"
-        
+        self.tasks_are_reloaded = True
+
         self._init_screen_manager()
         self._init_navigation_manager()
         
@@ -146,6 +157,7 @@ class TaskApp(App, EventDispatcher):
     def on_pause(self):
         super().on_pause()
         logger.debug("App is pausing")
+        self.tasks_are_reloaded = False
         return True
     
     def on_start(self):
@@ -164,7 +176,12 @@ class TaskApp(App, EventDispatcher):
 
         self.audio_manager.stop_alarm()
         self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
-    
+
+        self.expiry_manager._refresh_tasks()
+        self.task_manager.refresh_task_groups()
+        self.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        self.tasks_are_reloaded = True
+        
     ###############################################
     ################### MISC ######################
     @log_time("ServicePermissions")

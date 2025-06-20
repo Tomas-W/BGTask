@@ -216,8 +216,6 @@ class TaskNavigator(BoxLayout):
         # Store the current week start for navigation
         self.current_week_start = week_start
         
-        logger.info(f"Current date: {current_date}, Selected date: {selected_date}, Week start: {week_start}")
-        
         # Use the new method to set up day labels
         self._setup_day_labels_for_week(week_start)
     

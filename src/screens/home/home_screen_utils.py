@@ -9,10 +9,11 @@ from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 
 from src.screens.home.home_widgets import TaskGroupWidget
-from managers.tasks.task import Task, TaskGroup
 
+from managers.tasks.task import Task, TaskGroup
 from managers.device.device_manager import DM
 
+from src.utils.wrappers import disable_gc
 from src.utils.logger import logger
 from src.settings import COL, FONT, SIZE, SPACE
 
@@ -47,6 +48,7 @@ class HomeScreenUtils:
         
         logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
     
+    @disable_gc
     def refresh_home_screen(self, *args) -> None:
         """Refreshes task_groups and rebuilds the HomeScreen UI."""
         start_time = time.time()

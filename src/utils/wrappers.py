@@ -64,3 +64,27 @@ def android_only_class(except_methods=None):
                 setattr(cls, name, android_only(method))
         return cls
     return decorator
+
+
+def disable_gc(func):
+    """
+    Decorator that disables garbage collection during function execution.
+    Re-enables GC after function completes and schedules a light cleanup.
+    """
+    import gc
+    from kivy.clock import Clock
+    
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        gc.disable()
+        
+        try:
+            result = func(*args, **kwargs)
+            return result
+            
+        finally:
+            gc.enable()
+            # Light cleanup
+            gc.collect(0)
+    
+    return wrapper

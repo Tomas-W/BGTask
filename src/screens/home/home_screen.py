@@ -71,7 +71,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         super().on_enter()
         if not self._home_screen_finished:
             self._hide_loading_screen()
-            self.app.load_app()
+            Clock.schedule_once(self.app.load_app, 0.05)
+            Clock.schedule_once(self.check_need_to_start_service, 0.1)
             self._home_screen_finished = True
     
     def on_leave(self) -> None:
