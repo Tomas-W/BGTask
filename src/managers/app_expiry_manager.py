@@ -41,7 +41,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         if self.is_task_expired() and self._is_ready_for_expiry() and self.app.tasks_are_reloaded:
             logger.debug("Task expired, showing notification")
 
-            # Only handle new task expiry if there isn't already an expired task
+            # Allows expired Tasks to 'stack' so they can be handled individually
             if not self.expired_task:
                 expired_task = self.handle_task_expired()
                 if expired_task:
@@ -50,7 +50,7 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
                     self.communication_manager.send_action(DM.ACTION.REMOVE_TASK_NOTIFICATIONS)
     
     def _is_ready_for_expiry(self) -> bool:
-        """Returns True if the ExpiryManager is ready to check for task expiry."""
+        """Returns True if the ExpiryManager is ready to check for Task expiry."""
         required_managers = [
             DM.LOADED.TASK_MANAGER,
             DM.LOADED.AUDIO_MANAGER
@@ -66,13 +66,15 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         - Refreshes StartScreen.
         - Refreshes ServiceExpiryManager.
         """
+        # Store the date key before refreshing
+        date_key = cancelled_task.get_date_key()
+        
         # Refresh ExpiryManager
         self._refresh_tasks()
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
-        # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.task_manager.get_current_task_group(cancelled_task)
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        # Update HomeScreen
+        self.task_manager.update_home_after_changes(date_key)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
     
@@ -89,19 +91,20 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
     def _handle_snoozed_task(self, snoozed_task: "Task") -> None:
         """
         Snoozes a Task through a Popup.
-        - Stops the alarm.
         - Refreshes ExpiryManager.
+        - Refreshes TaskManager.
         - Refreshes HomeScreen.
-        - Refreshes StartScreen.
         - Refreshes ServiceExpiryManager.
         """
+        # Store the date key before refreshing
+        date_key = snoozed_task.get_date_key()
+        
         # Refresh ExpiryManager
         self._refresh_tasks()
         # Refresh TaskManager
         self.task_manager.refresh_task_groups()
-        # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.task_manager.get_current_task_group(snoozed_task)
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        # Update HomeScreen
+        self.task_manager.update_home_after_changes(date_key)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
         

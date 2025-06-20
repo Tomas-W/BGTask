@@ -57,7 +57,6 @@ class ExpiryManager():
         snooze_seconds = self._get_snooze_seconds(action)
         # Add time to avoid overlapping with other Tasks
         overlap_time = self._get_overlap_time(snoozed_task, snooze_seconds, time_since_expiry)
-        # Total
         total_snooze_time = snooze_seconds + \
                             time_since_expiry + \
                             overlap_time
@@ -71,10 +70,7 @@ class ExpiryManager():
             "snooze_time": snoozed_task.snooze_time + total_snooze_time,
             "expired": False
         })
-
-        logger.info(f"Snoozed Task {DM.get_task_log(snoozed_task)} for {snooze_seconds/60:.1f}m plus {time_since_expiry/60:.1f}m waiting time.")
-        logger.info(f"Total added snooze time: {total_snooze_time}s")
-
+        
         self._handle_snoozed_task(snoozed_task)
     
     def _get_snoozed_task(self, task_id: str) -> tuple[Task, bool] | None:

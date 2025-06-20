@@ -1,21 +1,22 @@
 import json
 import time
 
-from typing import TYPE_CHECKING
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
 
 from managers.device.device_manager import DM
 from managers.tasks.task import Task, TaskGroup
+
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_communication_manager import AppCommunicationManager
-    from src.managers.app_expiry_manager import AppExpiryManager
     from main import TaskApp
+    from src.managers.navigation_manager import NavigationManager
+    from src.managers.app_expiry_manager import AppExpiryManager
+    from src.managers.app_communication_manager import AppCommunicationManager
 
 class TaskManager(EventDispatcher):
     """
@@ -23,19 +24,24 @@ class TaskManager(EventDispatcher):
     """
 
     DAYS_IN_PAST: int = 1
+    TASK_HISTORY_DAYS: int = 30
+    FIRST_TASK_MESSAGE = "No upcomming Tasks!\n\nPress + to add a new one,\nor select a Task to edit or delete."
 
     def __init__(self, app: "TaskApp"):
         super().__init__()
-        self.app = app
+        self.app: "TaskApp" = app
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.expiry_manager: "AppExpiryManager" = app.expiry_manager
         self.communication_manager: "AppCommunicationManager" = None  # connected in main.py
 
+        # Task file
         self.task_file_path: str = DM.PATH.TASK_FILE
         if not DM.validate_file(self.task_file_path):
             return
 
-        self.task_groups = self.get_task_groups()
+        # Task groups
+        self.task_groups: list[TaskGroup] = self.get_task_groups()
+        self.current_task_group: TaskGroup | None = self.get_current_task_group()
 
         # New/Edit Task attributes
         self.selected_date: datetime | None = None
@@ -48,30 +54,29 @@ class TaskManager(EventDispatcher):
     
     def get_task_groups(self) -> list[TaskGroup]:
         """
-        Loads all Tasks from file, which are grouped by date.
-        Returns a list of TaskGroup objects.
+        Loads all Tasks from the last TASK_HISTORY_DAYS days, which are grouped by date.
+        Returns a list of sorted TaskGroup objects with sorted Tasks, earliest first.
         """
+        start_time = time.time()
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
             
-            today = datetime.now().date()
-            # start_date = today - timedelta(days=TaskManager.DAYS_IN_PAST)
-            
+            # Get earliest date to include
+            earliest_date = datetime.now().date() - timedelta(days=TaskManager.TASK_HISTORY_DAYS)
             task_groups = []
             for date_key, tasks_data in data.items():
-                # Parse the date key to check if it's within our range
-                # task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
-                
-                # Only include entire date groups from start_date onwards
-                # if task_date >= start_date:
-                    # Sort tasks by effective time
-                tasks = [Task.to_class(task_data) for task_data in tasks_data]
-                sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
-                task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
+                task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
+                # Only include dates in range
+                if task_date >= earliest_date:
+                    # Sort by effective time
+                    tasks = [Task.to_class(task_data) for task_data in tasks_data]
+                    sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
+                    task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
             
-            # Sort task groups by date
+            # Sort by date
             sorted_task_groups = sorted(task_groups, key=lambda x: x.date_str)
+            logger.error(f"Loading Task groups took: {round(time.time() - start_time, 6)} seconds")
             return sorted_task_groups
         
         except Exception as e:
@@ -80,17 +85,35 @@ class TaskManager(EventDispatcher):
     
     def get_current_task_group(self, task: Task | None = None) -> TaskGroup | None:
         """
-        Gets the current TaskGroup or the TaskGroup of the given Task.
+        Gets the current TaskGroup, the TaskGroup of the given Task or the welcome TaskGroup.
         """
+        if not self.task_groups:
+            self._set_welcome_task_group()
+            return self.get_current_task_group()
+
         if task is None:
             date_key = datetime.now().date().isoformat()
         else:
-            date_key = task.get_date_key()  # This accounts for snooze time
+            date_key = task.get_date_key()
         
         for task_group in self.task_groups:
             if task_group.date_str >= date_key and task_group.tasks:
                 return task_group
+        
+        logger.critical(f"No TaskGroup found for date: {date_key}")
         return None
+
+    def _set_welcome_task_group(self) -> None:
+        """Sets the welcome TaskGroup in the TaskManager."""
+        first_task = Task(
+            message=TaskManager.FIRST_TASK_MESSAGE,
+            timestamp=datetime.now() - timedelta(minutes=1),
+            expired=True,
+        )
+        start_group = TaskGroup(date_str=first_task.get_date_key(),
+                                tasks=[first_task])
+        self.task_groups = [start_group]
+        self.save_task_groups()
     
     def refresh_task_groups(self) -> None:
         """
@@ -182,24 +205,12 @@ class TaskManager(EventDispatcher):
         self._add_to_task_groups(task)
         self.save_task_groups()
         
-        # Get the task group that was just added
-        task_group = None
-        for group in self.task_groups:
-            if group.date_str == task.get_date_key():
-                task_group = group
-                break
-        
         # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
-        
-        # Refresh HomeScreen with the new task's group
-        home_screen = self.app.get_screen(DM.SCREEN.HOME)
-        if task_group:
-            home_screen.current_task_group = task_group
-            home_screen.refresh_home_screen()
-        else:
-            home_screen._init_home_screen()
-            
+        # Refresh TaskManager
+        self.refresh_task_groups()
+        # Update HomeScreen
+        self.update_home_after_changes(task.get_date_key())
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -248,31 +259,15 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
         
-        # Store the old date key before updating
-        old_date_key = task.get_date_key()
-        
-        # Use the new edit method
         self._edit_task_in_groups(task, message, timestamp, alarm_name, vibrate, keep_alarming)
         self.save_task_groups()
-
-        # Get the task group that contains the updated task
-        task_group = None
-        for tg in self.task_groups:
-            if tg.date_str == task.get_date_key():
-                task_group = tg
-                break
         
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        
-        # Refresh HomeScreen with the updated task's group
-        home_screen = self.app.get_screen(DM.SCREEN.HOME)
-        if task_group:
-            home_screen.current_task_group = task_group
-            home_screen.refresh_home_screen()
-        else:
-            home_screen._init_home_screen()
-            
+        # Refresh TaskManager
+        self.refresh_task_groups()
+        # Update HomeScreen
+        self.update_home_after_changes(task.get_date_key())
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -283,6 +278,7 @@ class TaskManager(EventDispatcher):
          dispatches an event to update the Task display.
         """
         task = self.get_task_by_id_(task_id)
+        date_key = task.get_date_key()
         if not task:
             logger.error(f"Error deleting Task, {DM.get_task_id_log(task_id)} not found")
             return
@@ -293,11 +289,28 @@ class TaskManager(EventDispatcher):
         
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.get_current_task_group()
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        # Refresh TaskManager (this sorts the tasks)
+        self.refresh_task_groups()
+        # Update HomeScreen
+        self.update_home_after_changes(date_key)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+    
+    def update_home_after_changes(self, date_key: str) -> None:
+        """
+        Updates the current TaskGroup and refreshes the HomeScreen to display the correct TaskGroup.
+        """
+        found = False
+        for group in self.task_groups:
+            if group.date_str == date_key:
+                self.current_task_group = group
+                found = True
+                break
+        
+        if not found:
+            self.current_task_group = self.get_current_task_group()
+        
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
 
     def get_task_by_timestamp(self, target_datetime: datetime) -> Task | None:
         """
@@ -308,15 +321,15 @@ class TaskManager(EventDispatcher):
         target_date_key = target_datetime.strftime(DM.DATE.DATE_KEY)
         target_time = target_datetime.time()
         
-        # Find the task group for this date
+        # Find TaskGroup for this date
         for task_group in self.task_groups:
             if task_group.date_str == target_date_key:
-                # Check for time match on that date, comparing only hours and minutes
+                # Check for match
                 for task in task_group.tasks:
                     effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
                     if effective_time.time().hour == target_time.hour and effective_time.time().minute == target_time.minute:
                         return task
-                break  # Found the date group, no need to continue searching
+                break
         
         return None
     

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskInfoLabel
     from src.managers.navigation_manager import NavigationManager
     from src.managers.app_task_manager import TaskManager
-    from managers.tasks.task import Task, TaskGroup
+    from managers.tasks.task import Task
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
@@ -35,9 +35,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         self._home_screen_finished: bool = False
 
-        # Current TaskGroup
-        self.current_task_group: "TaskGroup" | None = self.task_manager.get_current_task_group()
-
         # Task selection
         self.selected_task: "Task" | None = None
         self.selected_label: "TaskInfoLabel" | None = None
@@ -51,7 +48,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
 
         # TaskNavigator
-        self.task_navigator = TaskNavigator(task_group=self.current_task_group,
+        self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group,
                                             task_manager=self.task_manager)
         self.layout.add_widget(self.task_navigator, index=1)
 

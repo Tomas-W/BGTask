@@ -46,6 +46,7 @@ if platform != "android":
 
 
 # TaskManager
+# TODO: Set max history for saving/loading Tasks
 
 
 # ExpiryManager

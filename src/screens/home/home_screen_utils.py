@@ -8,7 +8,7 @@ from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 
-from src.screens.home.home_widgets import TaskGroupWidget
+from src.screens.home.home_widgets import TaskGroupWidget, TaskNavigator
 
 from managers.tasks.task import Task, TaskGroup
 from managers.device.device_manager import DM
@@ -22,91 +22,52 @@ if TYPE_CHECKING:
 
 
 class HomeScreenUtils:
-
-    FIRST_TASK_MESSAGE = "No upcomming Tasks!\n\nPress + to add a new one,\nor select a Task to edit or delete."
-
+    """
+    Utility class for the HomeScreen.
+    """
     def __init__(self):
         pass
-
+    
 # ########## REFRESHING ########## #
     def _init_home_screen(self, *args) -> None:
         """
-        Initializes the HomeScreen UI.
-        Displays the first TaskGroup.
+        Displays the current TaskGroup or else creates and displays the welcome TaskGroup.
         """
         start_time = time.time()
-        # start_group = self.get_start_task_group()
-        start_group = self.task_manager.get_current_task_group()
-        if start_group is None:
-            self._set_first_task_group()
+        task_group = self.task_manager.get_current_task_group()
+        # No current TaskGroup, create welcome TaskGroup and recall
+        if task_group is None:
+            self._set_welcome_task_group()
             self._init_home_screen()
             return
 
         self.scroll_container.container.clear_widgets()
-        task_group_widget = TaskGroupWidget(task_group=start_group)
+        task_group_widget = TaskGroupWidget(task_group=task_group)
         self.scroll_container.container.add_widget(task_group_widget)
         
         logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
     
     @disable_gc
     def refresh_home_screen(self, *args) -> None:
-        """Refreshes task_groups and rebuilds the HomeScreen UI."""
+        """
+        Rebuilds the HomeScreen UI based on the current TaskGroup.
+        If no TaskGroup is set, it will get the nearest future TaskGroup or welcome TaskGroup.
+        """
         start_time = time.time()
 
         self.deselect_task()
-
-        # Use provided task_group if available, otherwise get the start task group
-        if self.current_task_group is not None:
-            current_task_group = self.current_task_group
-        else:
-            current_task_group = self.get_start_task_group()
         
-        logger.info(f"Current task group: {current_task_group.date_str}")
+        # Update TaskNavigator
+        self.layout.remove_widget(self.task_navigator)
+        self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group, task_manager=self.task_manager)
+        self.layout.add_widget(self.task_navigator, index=1)
         
-        # Update the existing TaskNavigator with the new task group
-        if hasattr(self, 'task_navigator'):
-            # Remove the old TaskNavigator
-            self.layout.remove_widget(self.task_navigator)
-            
-            # Create a new TaskNavigator with the updated task group
-            from src.screens.home.home_widgets import TaskNavigator
-            self.task_navigator = TaskNavigator(task_group=current_task_group, task_manager=self.task_manager)
-            self.layout.add_widget(self.task_navigator, index=1)
-        
-        # Clear and recreate the scroll container content
+        # Update TaskGroupWidget
         self.scroll_container.container.clear_widgets()
-        task_group_widget = TaskGroupWidget(task_group=current_task_group)
+        task_group_widget = TaskGroupWidget(task_group=self.task_manager.current_task_group)
         self.scroll_container.container.add_widget(task_group_widget)
         
         logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
-    
-    def get_start_task_group(self) -> TaskGroup | None:
-        """
-        Gets the earliest future TaskGroup (including today).
-        Returns None if no future tasks exist.
-        """
-        if not self.task_manager.task_groups:
-            return None
-        
-        today_key = datetime.now().date().isoformat()
-        # Find earliest future TaskGroup
-        for task_group in self.task_manager.task_groups:
-            if task_group.date_str >= today_key:
-                return task_group
-        
-        return None
-
-    def _set_first_task_group(self) -> None:
-        """Sets the first TaskGroup in the TaskManager."""
-        first_task = Task(
-            message=HomeScreenUtils.FIRST_TASK_MESSAGE,
-            timestamp=datetime.now() - timedelta(minutes=1),
-            expired=True,
-        )
-        start_group = TaskGroup(date_str=first_task.get_date_key(),
-                                tasks=[first_task])
-        self.task_manager.task_groups = [start_group]
-        self.task_manager.save_task_groups()
     
 # ########## SELECTING ########## #
     def select_task(self, task: Task, label: "TaskInfoLabel" = None) -> None:

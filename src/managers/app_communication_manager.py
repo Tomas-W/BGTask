@@ -1,4 +1,5 @@
 from typing import Any, TYPE_CHECKING
+from datetime import datetime
 
 from kivy.clock import Clock
 
@@ -183,8 +184,13 @@ class AppCommunicationManager():
         self.task_manager.expiry_manager._refresh_tasks()
         # Update TaskManager
         self.task_manager.refresh_task_groups()
-        # Refresh HomeScreen
-        task = self.task_manager.get_task_by_id_(task_id)
-        if task:
-            self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.task_manager.get_current_task_group(task)
-        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
+        
+        # Update HomeScreen
+        if task_id:
+            task = self.task_manager.get_task_by_id_(task_id)
+            if task:
+                date_key = task.get_date_key()
+                self.task_manager.update_home_after_changes(date_key)
+        
+        # No task_id or Task, use today's date
+        self.task_manager.update_home_after_changes(datetime.now().date().isoformat())
