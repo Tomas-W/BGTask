@@ -14,9 +14,9 @@ from src.utils.logger import logger
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_expiry_manager import AppExpiryManager
-    from src.managers.app_communication_manager import AppCommunicationManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_expiry_manager import AppExpiryManager
+    from src.app_managers.app_communication_manager import AppCommunicationManager
 
 class TaskManager(EventDispatcher):
     """

@@ -137,6 +137,16 @@
   ],
   "2025-06-20": [
     {
+      "task_id": "c5b1f32e-b122-4e73-b051-5f2acf8e9d97",
+      "timestamp": "2025-06-20T15:07:00",
+      "message": "asdasd",
+      "alarm_name": null,
+      "vibrate": false,
+      "keep_alarming": false,
+      "expired": true,
+      "snooze_time": 0
+    },
+    {
       "task_id": "b84cb759-c30d-476c-8bf7-dc8bc6cda6a3",
       "timestamp": "2025-06-20T18:55:00",
       "message": "asdasd",
@@ -167,27 +177,17 @@
       "snooze_time": 0
     },
     {
-      "task_id": "24ad6086-1f68-4fde-a549-3ec107e9e940",
-      "timestamp": "2025-06-21T17:46:00",
-      "message": "asdasdas",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
+      "task_id": "69cca580-5005-4ca4-94e4-fbfd2e013001",
+      "timestamp": "2025-06-20T23:11:00",
+      "message": "asdasd",
+      "alarm_name": "scanner",
+      "vibrate": true,
+      "keep_alarming": true,
+      "expired": true,
+      "snooze_time": 100
     }
   ],
   "2025-06-21": [
-    {
-      "task_id": "38f0c0b5-fa6d-468d-b6d9-07c092873c47",
-      "timestamp": "2025-06-21T19:37:00",
-      "message": "zxczxc",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    },
     {
       "task_id": "45a945e4-2ddc-4056-8a00-679ccc4b0b5f",
       "timestamp": "2025-06-21T20:07:00",
@@ -351,18 +351,6 @@
       "snooze_time": 0
     }
   ],
-  "2025-06-23": [
-    {
-      "task_id": "4d4528ee-afbc-41fe-b4a4-07242e3a9e21",
-      "timestamp": "2025-06-23T14:23:00",
-      "message": "sdfsf",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
   "2025-06-24": [
     {
       "task_id": "a1fc35a6-ea75-49f3-a1ac-85b900c395b6",
@@ -420,30 +408,6 @@
       "task_id": "94214547-6899-4c42-acc2-7e121f02209f",
       "timestamp": "2025-06-25T14:05:00",
       "message": "sdfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
-  "2025-06-26": [
-    {
-      "task_id": "8bd420ba-c507-40a6-943b-51b0121cae96",
-      "timestamp": "2025-06-26T14:23:00",
-      "message": "sdfsdf",
-      "alarm_name": null,
-      "vibrate": false,
-      "keep_alarming": false,
-      "expired": false,
-      "snooze_time": 0
-    }
-  ],
-  "2025-06-27": [
-    {
-      "task_id": "378e79ac-9fbf-4bb6-aa2b-79428c1b2526",
-      "timestamp": "2025-06-27T14:28:00",
-      "message": "asdasd",
       "alarm_name": null,
       "vibrate": false,
       "keep_alarming": false,

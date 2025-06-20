@@ -17,7 +17,7 @@ from src.settings import SPACE, SIZE, COL, FONT, STATE
 
 if TYPE_CHECKING:
     from src.screens.home.home_screen import HomeScreen
-    from src.managers.app_task_manager import TaskManager
+    from src.app_managers.app_task_manager import TaskManager
     from managers.tasks.task import Task, TaskGroup
 
 
@@ -303,7 +303,7 @@ class TaskGroupWidget(BoxLayout):
           |-- TaskInfo      [Label][background]
           |-- ...
     """
-    def __init__(self, task_group: "TaskGroup", **kwargs):
+    def __init__(self, task_group: "TaskGroup", clickable: bool = True, **kwargs):
         super().__init__(
             orientation="vertical",
             size_hint_y=None,
@@ -311,6 +311,7 @@ class TaskGroupWidget(BoxLayout):
         )
         self.task_group: "TaskGroup" = task_group
         self.tasks: list["Task"] = task_group.tasks
+        self.clickable: bool = clickable
         
         header_text = TaskGroup.get_task_group_header_text(task_group.date_str)
         self.header = TaskGroupHeader(text=header_text)
@@ -364,6 +365,7 @@ class TaskGroupWidget(BoxLayout):
                                         expired=expired,
                                         is_first_task=is_first_task,
                                         is_last_task=is_last_task,
+                                        clickable=self.clickable,
                                        )
         self.task_info_container.add_widget(task_info_label)
 
@@ -374,7 +376,7 @@ class TaskInfoLabel(Label):
     Contains formatted time, snooze time and message.
     """
     def __init__(self, text: str, task: "Task" = None, expired: bool = False,
-                 is_first_task: bool = False, is_last_task: bool = False, **kwargs):
+                 is_first_task: bool = False, is_last_task: bool = False, clickable: bool = True, **kwargs):
         super().__init__(
             text=text,
             size_hint=(1, None),
@@ -391,6 +393,7 @@ class TaskInfoLabel(Label):
         self.selected: bool = False
         self.is_first_task: bool = is_first_task  # For padding
         self.is_last_task: bool = is_last_task    # For padding
+        self.clickable: bool = clickable          # For WallpaperScreen
 
         self.bind(width=self._update_text_size)
         self.bind(texture_size=self._update_height)
@@ -455,7 +458,8 @@ class TaskInfoLabel(Label):
     
     def on_touch_down(self, touch) -> None:
         """Handles the touch down event."""
-        if not self.collide_point(*touch.pos) or not self.task_id:
+        # If not clickable (WallpaperScreen), do not allow selection
+        if not self.collide_point(*touch.pos) or not self.task_id or not self.clickable:
             return super().on_touch_down(touch)
         
         home_screen = self._find_home_screen()
@@ -517,7 +521,7 @@ class TaskContainer(BoxLayout):
         self.bind(minimum_height=self.setter("height"))
         
         with self.canvas.before:
-            self.bg_color = Color(*COL.FIELD_INPUT)  # Active by default
+            self.bg_color = Color(*COL.FIELD_INPUT)  # Placeholder color
             self.bg_rect = Rectangle(
                 pos=self.pos,
                 size=self.size

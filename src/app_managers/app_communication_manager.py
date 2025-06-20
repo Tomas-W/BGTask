@@ -20,9 +20,9 @@ except Exception as e:
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.app_expiry_manager import AppExpiryManager
-    from src.managers.app_task_manager import TaskManager 
-    from src.managers.app_audio_manager import AppAudioManager
+    from src.app_managers.app_expiry_manager import AppExpiryManager
+    from src.app_managers.app_task_manager import TaskManager 
+    from src.app_managers.app_audio_manager import AppAudioManager
 
 
 @android_only_class()

@@ -20,8 +20,8 @@ from managers.device.device_manager import DM
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_task_manager import TaskManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
 
 
 class SelectDateScreen(BaseScreen, SelectDateUtils):

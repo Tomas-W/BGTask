@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from src.screens.base.base_screen import BaseScreen
 
 if TYPE_CHECKING:
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_task_manager import TaskManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
     from main import TaskApp
 
 

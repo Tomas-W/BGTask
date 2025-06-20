@@ -9,9 +9,9 @@ from src.utils.logger import logger
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.app_task_manager import TaskManager
-    from src.managers.app_audio_manager import AppAudioManager
-    from src.managers.app_communication_manager import AppCommunicationManager
+    from src.app_managers.app_task_manager import TaskManager
+    from src.app_managers.app_audio_manager import AppAudioManager
+    from src.app_managers.app_communication_manager import AppCommunicationManager
     from managers.tasks.task import Task
 
 

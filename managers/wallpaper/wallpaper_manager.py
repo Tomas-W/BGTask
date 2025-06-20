@@ -4,7 +4,7 @@ from kivy.core.window import Window
 from PIL import Image
 
 from managers.device.device_manager import DM
-from src.managers.permission_manager import PM
+from src.app_managers.permission_manager import PM
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
 from src.settings import COL
@@ -39,6 +39,7 @@ class WallpaperManager:
         - Centers the image on a background canvas
         - Sets the image as wallpaper (Android only)
         """
+        logger.trace("Processing wallpaper creation")
         try:
             if not PM.validate_permission(PM.SET_WALLPAPER):
                 return
@@ -87,7 +88,7 @@ class WallpaperManager:
                 logger.error("Error validating screenshot file, aborting")
                 return None
             
-            logger.info(f"Screenshot captured: {layout.size} -> {texture.size}")
+            logger.trace(f"Screenshot captured: {layout.size} -> {texture.size}")
             return screenshot_path
             
         except Exception as e:
@@ -130,7 +131,7 @@ class WallpaperManager:
                 
                 # Save optimized image
                 background.save(image_path)
-                logger.info(f"Image optimized: {img.size} -> {new_size} (screen: {screen_width}x{screen_height})")
+                logger.trace(f"Image optimized: {img.size} -> {new_size} (screen: {screen_width}x{screen_height})")
                         
         except Exception as e:
             logger.error(f"Error optimizing image: {str(e)}")
@@ -163,6 +164,7 @@ class WallpaperManager:
             WallpaperManager = autoclass("android.app.WallpaperManager")
             wallpaper_manager = WallpaperManager.getInstance(context)
             wallpaper_manager.setBitmap(bitmap)
+            logger.trace("Android wallpaper set")
                     
         except Exception as e:
             logger.error(f"Error setting Android wallpaper: {str(e)}")

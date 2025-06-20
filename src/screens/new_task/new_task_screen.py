@@ -12,9 +12,9 @@ from src.settings import SCREEN, STATE, TEXT, SPACE
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_task_manager import TaskManager
-    from src.managers.app_audio_manager import AppAudioManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
+    from src.app_managers.app_audio_manager import AppAudioManager
 
 
 class NewTaskScreen(BaseScreen):

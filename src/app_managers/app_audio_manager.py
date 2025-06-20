@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from managers.audio.audio_manager import AudioManager
 from managers.tasks.task import Task
 from managers.device.device_manager import DM
-from src.managers.permission_manager import PM
+from src.app_managers.permission_manager import PM
 
 from src.utils.logger import logger
 

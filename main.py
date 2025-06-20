@@ -189,7 +189,7 @@ class TaskApp(App, EventDispatcher):
     ################### MISC ######################
     @log_time("ServicePermissions")
     def _init_service_permissions(self):
-        from src.managers.permission_manager import PM
+        from src.app_managers.permission_manager import PM
         PM.validate_permission(PM.POST_NOTIFICATIONS)
         PM.validate_permission(PM.REQUEST_SCHEDULE_EXACT_ALARM)
         PM.validate_permission(PM.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
@@ -213,7 +213,7 @@ class TaskApp(App, EventDispatcher):
     
     @log_time("NavigationManager")
     def _init_navigation_manager(self):
-        from src.managers.navigation_manager import NavigationManager
+        from src.app_managers.navigation_manager import NavigationManager
         self.navigation_manager = NavigationManager(
             app=self,
             start_screen=DM.SCREEN.HOME
@@ -222,19 +222,19 @@ class TaskApp(App, EventDispatcher):
     
     @log_time("ExpiryManager")
     def _init_expiry_manager(self):
-        from src.managers.app_expiry_manager import AppExpiryManager
+        from src.app_managers.app_expiry_manager import AppExpiryManager
         self.expiry_manager = AppExpiryManager(app=self)
         DM.LOADED.EXPIRY_MANAGER = True
     
     @log_time("TaskManager")
     def _init_task_manager(self):
-        from src.managers.app_task_manager import TaskManager
+        from src.app_managers.app_task_manager import TaskManager
         self.task_manager = TaskManager(app=self)
         DM.LOADED.TASK_MANAGER = True
     
     @log_time("CommunicationManager")
     def _init_communication_manager(self):
-        from src.managers.app_communication_manager import AppCommunicationManager
+        from src.app_managers.app_communication_manager import AppCommunicationManager
         self.communication_manager = AppCommunicationManager(app=self)
         DM.LOADED.COMMUNICATION_MANAGER = True
     
@@ -246,7 +246,7 @@ class TaskApp(App, EventDispatcher):
     
     @log_time("AudioManager")
     def _init_audio_manager(self):
-        from src.managers.app_audio_manager import AppAudioManager
+        from src.app_managers.app_audio_manager import AppAudioManager
         self.audio_manager = AppAudioManager(app=self)
         DM.LOADED.AUDIO_MANAGER = True
     

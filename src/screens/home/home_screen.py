@@ -15,8 +15,8 @@ from src.utils.logger import logger
 if TYPE_CHECKING:
     from main import TaskApp
     from src.screens.home.home_widgets import TaskInfoLabel
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_task_manager import TaskManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
     from managers.tasks.task import Task
 
 

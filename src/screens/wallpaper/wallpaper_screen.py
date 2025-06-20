@@ -14,8 +14,8 @@ from src.settings import SPACE
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.managers.navigation_manager import NavigationManager
-    from src.managers.app_task_manager import TaskManager
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
 
 
 class WallpaperScreen(BaseScreen):
@@ -40,8 +40,10 @@ class WallpaperScreen(BaseScreen):
                                         top_bar_callback=self.set_screen_as_wallpaper)
 
         self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_L]
-    	
-        self.task_group = TaskGroupWidget(self.task_manager.current_task_group)
+
+        # TaskGroupWidget - make sure it is not clickable
+        self.task_group = TaskGroupWidget(self.task_manager.current_task_group,
+                                          clickable=False)
         self.scroll_container.container.add_widget(self.task_group)
 
     def on_pre_enter(self) -> None:
@@ -67,8 +69,9 @@ class WallpaperScreen(BaseScreen):
         # Remove the current task group widget
         self.scroll_container.container.remove_widget(self.task_group)
         
-        # Create a new task group widget with updated data
-        self.task_group = TaskGroupWidget(self.task_manager.current_task_group)
+        # Create new TaskGroupWidget - make sure it is not clickable
+        self.task_group = TaskGroupWidget(self.task_manager.current_task_group,
+                                          clickable=False)
         self.scroll_container.container.add_widget(self.task_group)
         logger.info(f"Refreshing WallpaperScreen took: {round(time.time() - start_time, 6)} seconds")
 
