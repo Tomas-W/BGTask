@@ -7,6 +7,8 @@ from src.screens.home.home_screen_utils import HomeScreenUtils
 
 from managers.device.device_manager import DM
 
+from src.screens.home.home_widgets import TaskNavigator
+from src.settings import SPACE
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
 
@@ -15,7 +17,7 @@ if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskInfoLabel
     from src.managers.navigation_manager import NavigationManager
     from src.managers.app_task_manager import TaskManager
-    from managers.tasks.task import Task
+    from managers.tasks.task import Task, TaskGroup
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
@@ -33,6 +35,9 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         self._home_screen_finished: bool = False
 
+        # Current TaskGroup
+        self.current_task_group: "TaskGroup" | None = self.task_manager.get_current_task_group()
+
         # Task selection
         self.selected_task: "Task" | None = None
         self.selected_label: "TaskInfoLabel" | None = None
@@ -45,6 +50,14 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
 
+        # TaskNavigator
+        self.task_navigator = TaskNavigator(task_group=self.current_task_group,
+                                            task_manager=self.task_manager)
+        self.layout.add_widget(self.task_navigator, index=1)
+
+        # Edit padding top
+        self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_S]
+        
         # Edit and delete buttons
         self.create_floating_action_buttons()
 
@@ -58,7 +71,6 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         super().on_enter()
         if not self._home_screen_finished:
             self._hide_loading_screen()
-            self._log_loading_times()
             self.app.load_app()
             self._home_screen_finished = True
     

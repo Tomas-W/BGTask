@@ -35,7 +35,7 @@ class TaskManager(EventDispatcher):
         if not DM.validate_file(self.task_file_path):
             return
 
-        self.task_groups: list[TaskGroup] = self.get_task_groups()
+        self.task_groups = self.get_task_groups()
 
         # New/Edit Task attributes
         self.selected_date: datetime | None = None
@@ -56,19 +56,19 @@ class TaskManager(EventDispatcher):
                 data = json.load(f)
             
             today = datetime.now().date()
-            start_date = today - timedelta(days=TaskManager.DAYS_IN_PAST)
+            # start_date = today - timedelta(days=TaskManager.DAYS_IN_PAST)
             
             task_groups = []
             for date_key, tasks_data in data.items():
                 # Parse the date key to check if it's within our range
-                task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
+                # task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
                 
                 # Only include entire date groups from start_date onwards
-                if task_date >= start_date:
+                # if task_date >= start_date:
                     # Sort tasks by effective time
-                    tasks = [Task.to_class(task_data) for task_data in tasks_data]
-                    sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
-                    task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
+                tasks = [Task.to_class(task_data) for task_data in tasks_data]
+                sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
+                task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
             
             # Sort task groups by date
             sorted_task_groups = sorted(task_groups, key=lambda x: x.date_str)
@@ -77,6 +77,20 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error loading Task groups: {e}")
             return []
+    
+    def get_current_task_group(self, task: Task | None = None) -> TaskGroup | None:
+        """
+        Gets the current TaskGroup or the TaskGroup of the given Task.
+        """
+        if task is None:
+            date_key = datetime.now().date().isoformat()
+        else:
+            date_key = task.get_date_key()  # This accounts for snooze time
+        
+        for task_group in self.task_groups:
+            if task_group.date_str >= date_key and task_group.tasks:
+                return task_group
+        return None
     
     def refresh_task_groups(self) -> None:
         """
@@ -167,10 +181,25 @@ class TaskManager(EventDispatcher):
         # Add to TaskGroups
         self._add_to_task_groups(task)
         self.save_task_groups()
+        
+        # Get the task group that was just added
+        task_group = None
+        for group in self.task_groups:
+            if group.date_str == task.get_date_key():
+                task_group = group
+                break
+        
         # Refresh AppExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
+        
+        # Refresh HomeScreen with the new task's group
+        home_screen = self.app.get_screen(DM.SCREEN.HOME)
+        if task_group:
+            home_screen.current_task_group = task_group
+            home_screen.refresh_home_screen()
+        else:
+            home_screen._init_home_screen()
+            
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -219,14 +248,31 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
         
+        # Store the old date key before updating
+        old_date_key = task.get_date_key()
+        
         # Use the new edit method
         self._edit_task_in_groups(task, message, timestamp, alarm_name, vibrate, keep_alarming)
         self.save_task_groups()
 
+        # Get the task group that contains the updated task
+        task_group = None
+        for tg in self.task_groups:
+            if tg.date_str == task.get_date_key():
+                task_group = tg
+                break
+        
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
-        # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
+        
+        # Refresh HomeScreen with the updated task's group
+        home_screen = self.app.get_screen(DM.SCREEN.HOME)
+        if task_group:
+            home_screen.current_task_group = task_group
+            home_screen.refresh_home_screen()
+        else:
+            home_screen._init_home_screen()
+            
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
@@ -248,7 +294,8 @@ class TaskManager(EventDispatcher):
         # Refresh ExpiryManager
         self.expiry_manager._refresh_tasks()
         # Refresh HomeScreen
-        self.app.get_screen(DM.SCREEN.HOME)._init_home_screen()
+        self.app.get_screen(DM.SCREEN.HOME).current_task_group = self.get_current_task_group()
+        self.app.get_screen(DM.SCREEN.HOME).refresh_home_screen()
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 

@@ -132,6 +132,8 @@ class TaskApp(App, EventDispatcher):
         self._init_saved_alarm_screen()
 
         self._init_service_permissions()
+
+        self._log_loading_times()
     
     ###############################################
     ################### EVENTS ####################
@@ -171,6 +173,15 @@ class TaskApp(App, EventDispatcher):
         PM.validate_permission(PM.POST_NOTIFICATIONS)
         PM.validate_permission(PM.REQUEST_SCHEDULE_EXACT_ALARM)
         PM.validate_permission(PM.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+    
+    def _log_loading_times(self, *args) -> None:
+        """Logs all loading times from the TIMER."""
+        from src.utils.timer import TIMER
+        TIMER.stop("start_app")
+        TIMER.stop("start")
+        all_logs = TIMER.get_all_logs()
+        for log in all_logs:
+            logger.timing(log)
     
     ###############################################
     ################### MANAGERS ##################

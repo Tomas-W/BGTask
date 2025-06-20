@@ -288,7 +288,7 @@ class SettingsButton(CustomButton):
     - Is 2/3 the height of the CustomButton
     - Always remains clickable regardless of visual state
     """
-    def __init__(self, width: int, symbol: bool = False, color_state: str = STATE.INACTIVE, **kwargs):
+    def __init__(self, width: int, symbol: bool = False, color_state: str = STATE.INACTIVE, color: tuple | None = None, bg_color: tuple | None = None, **kwargs):
         super().__init__(
             width=width,
             symbol=symbol,
@@ -299,6 +299,10 @@ class SettingsButton(CustomButton):
         self.font_size = FONT.SETTINGS_BUTTON if not symbol else FONT.SETTINGS_BUTTON_SYMBOL
         self.always_clickable = True
         self.disabled = False
+        if color is not None:
+            self.color = color
+        if bg_color is not None:
+            self.color_instr.rgba = bg_color
 
 
 class CustomSettingsButton(SettingsButton):

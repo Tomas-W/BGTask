@@ -34,7 +34,8 @@ class HomeScreenUtils:
         Displays the first TaskGroup.
         """
         start_time = time.time()
-        start_group = self.get_start_task_group()
+        # start_group = self.get_start_task_group()
+        start_group = self.task_manager.get_current_task_group()
         if start_group is None:
             self._set_first_task_group()
             self._init_home_screen()
@@ -49,25 +50,33 @@ class HomeScreenUtils:
     def refresh_home_screen(self, *args) -> None:
         """Refreshes task_groups and rebuilds the HomeScreen UI."""
         start_time = time.time()
-        start_group = self.get_start_task_group()
+
+        self.deselect_task()
+
+        # Use provided task_group if available, otherwise get the start task group
+        if self.current_task_group is not None:
+            current_task_group = self.current_task_group
+        else:
+            current_task_group = self.get_start_task_group()
+        
+        logger.info(f"Current task group: {current_task_group.date_str}")
+        
+        # Update the existing TaskNavigator with the new task group
+        if hasattr(self, 'task_navigator'):
+            # Remove the old TaskNavigator
+            self.layout.remove_widget(self.task_navigator)
+            
+            # Create a new TaskNavigator with the updated task group
+            from src.screens.home.home_widgets import TaskNavigator
+            self.task_navigator = TaskNavigator(task_group=current_task_group, task_manager=self.task_manager)
+            self.layout.add_widget(self.task_navigator, index=1)
+        
+        # Clear and recreate the scroll container content
         self.scroll_container.container.clear_widgets()
-        task_group_widget = TaskGroupWidget(task_group=start_group)
+        task_group_widget = TaskGroupWidget(task_group=current_task_group)
         self.scroll_container.container.add_widget(task_group_widget)
         
         logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
-    
-    def get_task_group(self, task: Task) -> TaskGroupWidget | None:
-        """Returns the TaskGroup widget that contains the Task."""
-        task_id = task.task_id
-        for task_group in self.scroll_container.container.children:
-            # Find TaskGroupWidget
-            if not isinstance(task_group, TaskGroupWidget):
-                continue
-            # Check if it contains the Task
-            for task_item in task_group.tasks:
-                if task_item.task_id == task_id:
-                    return task_group
-        return None
     
     def get_start_task_group(self) -> TaskGroup | None:
         """
@@ -140,7 +149,7 @@ class HomeScreenUtils:
             self.selected_label = None
             self.hide_floating_buttons()
     
-    def delete_selected_task(self, instance) -> None:
+    def delete_selected_task(self, instance=None) -> None:
         """Deletes the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id) 
@@ -158,7 +167,7 @@ class HomeScreenUtils:
                 self.task_manager.delete_task(task_id)
             else:
                 logger.error(f"Error deleting Task: {DM.get_task_id_log(task_id)} not found")
-                self._init_home_screen()
+                self.refresh_home_screen()
                 
                 # Clean up selection state
                 if self.selected_label:
@@ -167,6 +176,14 @@ class HomeScreenUtils:
                 self.selected_task = None
                 self.selected_label = None
                 self.hide_floating_buttons()
+    
+    def deselect_task(self) -> None:
+        """Deselects the currently selected Task."""
+        if self.selected_label:
+            self.selected_label.set_selected(False)
+        self.selected_task = None
+        self.selected_label = None
+        self.hide_floating_buttons()
     
     def _highlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
         """Highlights the Task."""
@@ -228,11 +245,3 @@ class HomeScreenUtils:
         """Hides the floating action buttons with animation."""
         animation = Animation(opacity=0, pos_hint={"center_x": 0.5, "y": 0.05}, duration=0.3)
         animation.start(self.floating_button_container)
-
-# ########## LOGGING ########## #
-    def _log_loading_times(self, *args) -> None:
-        """Logs all loading times from the TIMER."""
-        from src.utils.timer import TIMER
-        all_logs = TIMER.get_all_logs()
-        for log in all_logs:
-            logger.timing(log)

@@ -9,6 +9,7 @@ from src.widgets.bars import TopBarClosed, TopBarExpanded
 from src.widgets.containers import BaseLayout, ScrollContainer
 
 from managers.device.device_manager import DM
+from src.settings import STATE
 
 
 class BaseScreen(Screen):
@@ -53,7 +54,7 @@ class BaseScreen(Screen):
         self.layout.add_widget(self.scroll_container)
         self.root_layout.add_widget(self.layout)
         self.add_widget(self.root_layout)
-    
+
     def _screenshot_callback(self, instance):
         """
         Screenshot the screen.
