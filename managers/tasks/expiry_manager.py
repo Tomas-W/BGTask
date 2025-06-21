@@ -13,7 +13,7 @@ from src.utils.logger import logger
 class ExpiryManager():
 
     SNOOZE_A_SECONDS: int = 30
-    SNOOZE_B_SECONDS: int = 3600
+    SNOOZE_B_SECONDS: int = 60
     SNOOZE_OVERLAP_TIME: int = 10
 
     """

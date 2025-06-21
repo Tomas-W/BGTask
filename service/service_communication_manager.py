@@ -272,12 +272,10 @@ class ServiceCommunicationManager:
         try:
             # Service side
             self.expiry_manager.snooze_task(action, task_id)
-            self.audio_manager.stop_alarm()
             self.service_manager.update_foreground_notification_info()
             # App side
             self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
-            self.send_action(DM.ACTION.STOP_ALARM)
-        
+
         except Exception as e:
             logger.error(f"Error handling snooze action: {e}")
 
@@ -290,12 +288,10 @@ class ServiceCommunicationManager:
         try:
             # Service side
             self.expiry_manager.cancel_task(task_id)
-            self.audio_manager.stop_alarm()
             self.service_manager.update_foreground_notification_info()
             # App side
             self.send_action(DM.ACTION.UPDATE_TASKS, task_id)
-            self.send_action(DM.ACTION.STOP_ALARM)
-        
+
         except Exception as e:
             logger.error(f"Error handling cancel action: {e}")
     

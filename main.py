@@ -1,7 +1,6 @@
 from src.utils.timer import TIMER
 TIMER.start("start")
 
-import os
 from src.utils.logger import logger
 logger.timing(f"Starting main.py")
 
@@ -27,6 +26,10 @@ if platform != "android":
     Window.left = -386
     Window.top = 316
 
+# from typing import TYPE_CHECKING
+
+# if TYPE_CHECKING:
+#     from managers.tasks.task import Task
 
 # import gc
 # # Add GC logging
@@ -40,6 +43,8 @@ if platform != "android":
 
 # TODO: Trigger laarm dont change nbutton states
 # TODO: Save user background and add retore option
+# TODO: Fix back button. go_to_screen on 1 way scrfeens, back on settings ect
+# TODO: Loading screen on_resume when refreshing to revent blank screen
 
 
 # Widgets
@@ -100,7 +105,7 @@ class TaskApp(App, EventDispatcher):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)        
         self.active_popup = None
-        self._need_updates = False
+        self._need_updates: str | None = None
 
     def build(self):
         """
@@ -185,10 +190,17 @@ class TaskApp(App, EventDispatcher):
 
         # If snoozed or cancelled while in background,
         #  AppCommunicationManager sets _need_updates to the Task's date_key
-        if self._need_updates:
-            self.task_manager.update_home_after_changes(self._need_updates)
-            self._need_updates = False
-            logger.info("App needed an update")
+        if self._need_updates is not None:
+            task = self.task_manager.get_task_by_id_(self._need_updates)
+            if task is None:
+                logger.error(f"Error getting Task to scroll on_resume: {DM.get_task_id_log(self._need_updates)}")
+                return
+            
+            date_key = task.get_date_key()
+            self.task_manager.update_home_after_changes(date_key)
+            Clock.schedule_once(lambda dt: self.get_screen(DM.SCREEN.HOME).scroll_to_task(task), 0.4)
+            self._need_updates = None
+            logger.debug("_need_updates is not None: Updated")
             
     ###############################################
     ################### MISC ######################

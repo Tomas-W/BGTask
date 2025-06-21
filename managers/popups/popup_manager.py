@@ -131,6 +131,7 @@ class PopupManager:
     def _snooze_a_task(self, task_id: str) -> None:
         """Calls SNOOZE with SNOOZE_A on ExpiryManager."""
         self.app.expiry_manager.snooze_task(DM.ACTION.SNOOZE_A, task_id)
+        
     
     def _snooze_b_task(self, task_id: str) -> None:
         """Calls SNOOZE with SNOOZE_B on ExpiryManager."""

@@ -177,30 +177,19 @@ class AppCommunicationManager():
         Task_id is only provided after snooze or cancel from a Service notification,
          for invalidation of cached Task data.
         """
-        logger.info(f"Updating tasks action with task_id: {task_id}")
-        # Update AppExpiryManager
         self.task_manager.expiry_manager._refresh_tasks()
-        # Update TaskManager
         self.task_manager.refresh_task_groups()
         
-        # Update HomeScreen
-        if task_id:
-            task = self.task_manager.get_task_by_id_(task_id)
-            if task:
-                logger.info(f"Using date_key from Task")
-                date_key = task.get_date_key()
-            else:
-                logger.info("Using today's date")
-                date_key = datetime.now().date().isoformat()
+        task = self.task_manager.get_task_by_id_(task_id)
+        date_key = task.get_date_key()
 
         if self._is_app_in_foreground():
-            logger.info("App is in foreground, scheduling update")
             Clock.schedule_once(lambda dt: self.task_manager.update_home_after_changes(date_key), 0)
+            Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task), 0.15)
             return
         
-        # If app is in background, set _need_updates to date_key
-        self.app._need_updates = date_key
-        logger.info("App is in background, setting _need_updates")
+        # If app is in background, set _need_updates to task_id
+        self.app._need_updates = task_id
         return
     
     def _is_app_in_foreground(self) -> bool:

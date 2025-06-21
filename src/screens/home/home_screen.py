@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from src.screens.home.home_widgets import TaskInfoLabel
     from src.app_managers.navigation_manager import NavigationManager
     from src.app_managers.app_task_manager import TaskManager
+    from src.screens.home.home_widgets import TaskGroupWidget
     from managers.tasks.task import Task
 
 
@@ -139,10 +140,42 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self._deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)
     
-    def scroll_to_deleted_task(self, pos: float, date: str) -> None:
+    def scroll_to_pos_on_date(self, pos: float, date: str) -> None:
         """
-        Scrolls to where scroll_y was before deleting a Task.
-        Only scrolls if the Task's TaskGroup is still displayed.
+        Scrolls to the position if the date is the currently displayed TaskGroup.
         """
         if self.task_manager.current_task_group.date_str == date:
             self.scroll_container.scroll_view.scroll_y = pos
+
+    def _get_task_widget(self, task: "Task") -> "TaskInfoLabel | None":
+        """
+        Returns the TaskInfoLabel widget for a given Task.
+        """
+        task_group_widget = self._get_current_task_group_widget()
+        if not task_group_widget:
+            return None
+        
+        # Find by ID
+        for task_info_label in task_group_widget.task_info_container.children:
+            if task_info_label.task_id == task.task_id:
+                return task_info_label
+        
+        return None
+
+    def _get_current_task_group_widget(self) -> "TaskGroupWidget | None":
+        """Returns the TaskGroupWidget that is being displayed."""
+        children = self.scroll_container.container.children
+        if children:
+            return children[0]  # Should be only one
+        
+        return None
+
+    def scroll_to_task(self, task: "Task") -> None:
+        """Scrolls down till the Task is fully visible."""
+        task_widget = self._get_task_widget(task)
+        if not task_widget:
+            logger.warning(f"Task widget not found to scroll to for Task {DM.get_task_id_log(task.task_id)}")
+            return
+        
+        self.scroll_container.scroll_view.scroll_to(task_widget, animate=True)
+        logger.debug(f"Scrolled to Task {DM.get_task_id_log(task.task_id)}")

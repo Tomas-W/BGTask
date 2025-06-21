@@ -67,6 +67,9 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         # Store the date key before refreshing
         date_key = cancelled_task.get_date_key()
         self._update_managers(date_key)
+
+        # Scroll to Task
+        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(cancelled_task)
     
     def _handle_snoozed_task(self, snoozed_task: "Task") -> None:
         """
@@ -74,7 +77,10 @@ class AppExpiryManager(ExpiryManager, EventDispatcher):
         """
         # Store the date key before refreshing
         date_key = snoozed_task.get_date_key()
+
         self._update_managers(date_key)
+        # Scroll to Task
+        self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(snoozed_task)
     
     def _update_managers(self, date_key: str) -> None:
         """Updates the managers."""

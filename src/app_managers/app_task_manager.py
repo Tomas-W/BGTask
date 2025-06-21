@@ -225,6 +225,9 @@ class TaskManager(EventDispatcher):
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
 
+        Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task), 0.15)
+        logger.debug(f"Added Task: {DM.get_task_log(task)}")
+
     def _edit_task_in_groups(self, task: Task, message: str, timestamp: datetime,
                             alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
         """
@@ -281,6 +284,9 @@ class TaskManager(EventDispatcher):
         self.update_home_after_changes(task.get_date_key())
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+        
+        Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_task(task), 0.15)
+        logger.debug(f"Updated Task: {DM.get_task_log(task)}")
 
     def delete_task(self, task_id: str) -> None:
         """
@@ -295,7 +301,7 @@ class TaskManager(EventDispatcher):
             return
         
         # Scroll to old pos if TaskGroup is still displayed
-        self._scroll_to_old_pos()
+        self.scroll_to_old_pos()
         
         # Remove from TaskGroups
         self._remove_from_task_groups(task)
@@ -309,6 +315,8 @@ class TaskManager(EventDispatcher):
         self.update_home_after_changes(date_key)
         # Refresh ServiceExpiryManager
         self.communication_manager.send_action(DM.ACTION.UPDATE_TASKS)
+
+        logger.debug(f"Deleted Task: {DM.get_task_log(task)}")
     
     def update_home_after_changes(self, date_key: str) -> None:
         """
@@ -370,11 +378,11 @@ class TaskManager(EventDispatcher):
         
         return False
 
-    def _scroll_to_old_pos(self) -> None:
+    def scroll_to_old_pos(self) -> None:
         """
         Records the current scroll position and date.
         Schedules to scroll to the old position.
         """
         old_pos = self.app.get_screen(DM.SCREEN.HOME).scroll_container.scroll_view.scroll_y
         old_date = self.app.get_screen(DM.SCREEN.HOME).task_manager.current_task_group.date_str
-        Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_deleted_task(old_pos, old_date), 0.1)
+        Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_pos_on_date(old_pos, old_date), 0.15)
