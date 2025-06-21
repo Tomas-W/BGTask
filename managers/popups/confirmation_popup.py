@@ -12,7 +12,12 @@ from src.widgets.misc import Spacer
 
 
 class ConfirmationPopup(BasePopup):
-    """Popup with a message and confirm/cancel buttons"""
+    """
+    A ConfirmationPopup has a:
+    - Header
+    - Field
+    - Confirm and Cancel buttons
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
@@ -50,7 +55,7 @@ class ConfirmationPopup(BasePopup):
 
         self.bind(width=self._update_text_size)
     
-    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
+    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable) -> None:
         """Un- and re-bind callbacks"""
         # Unbind callbacks
         if self._confirm_handler:
@@ -70,6 +75,6 @@ class ConfirmationPopup(BasePopup):
         self.confirm_button.bind(on_release=self._confirm_handler)
         self.cancel_button.bind(on_release=self._cancel_handler)
 
-    def update_field_text(self, text: str):
+    def update_field_text(self, text: str) -> None:
         """Update the text displayed in the field"""
         self.field.label.text = text

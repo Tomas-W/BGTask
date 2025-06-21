@@ -14,7 +14,13 @@ from src.widgets.misc import Spacer
 
 
 class TaskPopup(BasePopup):
-    """Popup with a Task and snooze/stop alarm buttons"""
+    """
+    A TaskPopup has a:
+    - Header
+    - Task label
+    - SnoozeAButton and SnoozeBButton
+    - CancelButton
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.min_message_height = SIZE.TASK_POPUP_HEIGHT
@@ -22,6 +28,10 @@ class TaskPopup(BasePopup):
         self.header = TaskPopupHeader(text="Task Expired!")
         self.header.bind(texture_size=self._update_label_height)
         self.content_layout.add_widget(self.header)
+
+        # Handlers
+        self._snooze_a_handler: Callable | None = None
+        self._snooze_b_handler: Callable | None = None
 
         # Task spacer
         self.task_spacer = Spacer(height=SPACE.SPACE_M)
@@ -63,16 +73,28 @@ class TaskPopup(BasePopup):
         self.button_spacer = Spacer(height=SPACE.SPACE_L)
         self.content_layout.add_widget(self.button_spacer)
 
-        # Button row
-        self.button_row = CustomButtonRow()
-        # Stop button
-        self.stop_alarm = CancelButton(text="Stop", width=2)
-        self.button_row.add_widget(self.stop_alarm)
-        # Snooze button
-        self.snooze_alarm = ConfirmButton(text="Snooze 1m", width=2)
-        self.button_row.add_widget(self.snooze_alarm)
+        # Snooze row
+        self.snooze_row = CustomButtonRow()
+        self.content_layout.add_widget(self.snooze_row)
+        # Snooze A
+        self.snooze_a_button = ConfirmButton(text="Snooze 1m", width=2)
+        self.snooze_row.add_widget(self.snooze_a_button)
+        # Snooze B
+        self.snooze_b_button = ConfirmButton(text="Snooze 1h", width=2)
+        self.snooze_row.add_widget(self.snooze_b_button)
+
+        # Button spacer
+        self.button_spacer = Spacer(height=SPACE.SPACE_M)
+        self.content_layout.add_widget(self.button_spacer)
+        
+        # Cancel row
+        self.cancel_row = CustomButtonRow()
+        self.content_layout.add_widget(self.cancel_row)
+        # Cancel
+        self.cancel_button = CancelButton(text="Cancel", width=1)
+        self.cancel_row.add_widget(self.cancel_button)
         # Add to layout
-        self.content_layout.add_widget(self.button_row)
+        
 
         self.bind(width=self._update_text_size)
     
@@ -84,22 +106,28 @@ class TaskPopup(BasePopup):
         self.scroll_view.height = new_height
         instance.height = label_height
 
-    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
+    def update_callbacks(self, snooze_a: Callable, snooze_b: Callable, cancel: Callable):
         """Un- and re-bind callbacks"""
         # Unbind callbacks
-        if self._confirm_handler:
-            self.snooze_alarm.unbind(on_release=self._confirm_handler)
+        if self._snooze_a_handler:
+            self.snooze_a_button.unbind(on_release=self._snooze_a_handler)
+        if self._snooze_b_handler:
+            self.snooze_b_button.unbind(on_release=self._snooze_b_handler)
         if self._cancel_handler:
-            self.stop_alarm.unbind(on_release=self._cancel_handler)
+            self.cancel_button.unbind(on_release=self._cancel_handler)
         
         # Create new handlers
-        self._confirm_handler = lambda x: self.hide_animation(
-            on_complete=lambda *args: self._safe_call(on_confirm)
+        self._snooze_a_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(snooze_a)
+        )
+        self._snooze_b_handler = lambda x: self.hide_animation(
+            on_complete=lambda *args: self._safe_call(snooze_b)
         )
         self._cancel_handler = lambda x: self.hide_animation(
-            on_complete=lambda *args: self._safe_call(on_cancel) if on_cancel else None
+            on_complete=lambda *args: self._safe_call(cancel)
         )
         
         # Bind new callbacks
-        self.snooze_alarm.bind(on_release=self._confirm_handler)
-        self.stop_alarm.bind(on_release=self._cancel_handler)
+        self.snooze_a_button.bind(on_release=self._snooze_a_handler)
+        self.snooze_b_button.bind(on_release=self._snooze_b_handler)
+        self.cancel_button.bind(on_release=self._cancel_handler)

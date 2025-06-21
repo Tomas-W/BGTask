@@ -2,7 +2,7 @@ import json
 import time
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
@@ -51,6 +51,17 @@ class TaskManager(EventDispatcher):
         self.task_to_edit: Task | None = None
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
+    
+    def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
+        """Returns a dictionary of Tasks from the Task file."""
+        try:
+            with open(self.task_file_path, "r") as f:
+                data = json.load(f)
+            return data
+        
+        except Exception as e:
+            logger.error(f"Error getting Task data: {e}")
+            return {}
     
     def get_task_groups(self) -> list[TaskGroup]:
         """
@@ -283,6 +294,9 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error deleting Task, {DM.get_task_id_log(task_id)} not found")
             return
         
+        # Scroll to old pos if TaskGroup is still displayed
+        self._scroll_to_old_pos()
+        
         # Remove from TaskGroups
         self._remove_from_task_groups(task)
         self.save_task_groups()
@@ -355,3 +369,12 @@ class TaskManager(EventDispatcher):
                 break
         
         return False
+
+    def _scroll_to_old_pos(self) -> None:
+        """
+        Records the current scroll position and date.
+        Schedules to scroll to the old position.
+        """
+        old_pos = self.app.get_screen(DM.SCREEN.HOME).scroll_container.scroll_view.scroll_y
+        old_date = self.app.get_screen(DM.SCREEN.HOME).task_manager.current_task_group.date_str
+        Clock.schedule_once(lambda dt: self.app.get_screen(DM.SCREEN.HOME).scroll_to_deleted_task(old_pos, old_date), 0.1)

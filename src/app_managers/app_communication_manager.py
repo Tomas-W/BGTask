@@ -14,6 +14,8 @@ try:
     AndroidString = autoclass("java.lang.String")
     Intent = autoclass("android.content.Intent")
     PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    Context = autoclass("android.content.Context")
+    RunningAppProcessInfo = autoclass("android.app.ActivityManager$RunningAppProcessInfo")
 
 except Exception as e:
     pass
@@ -94,7 +96,7 @@ class AppCommunicationManager():
         - Returns early if the target is not ACTION_TARGET.APP
         - Extracts pure action from intent
         - Extracts task_id from the intent if present
-        - Schedules the actions effect handler
+        - Calls action handler
         """
         try:
             target = intent.getStringExtra(DM.ACTION_TARGET.TARGET)
@@ -106,17 +108,12 @@ class AppCommunicationManager():
                 logger.error("Error receiving callback - intent with null action")
                 return
             
-            logger.debug(f"AppCommunicationManager received intent with target: {target} and action: {pure_action}")
-            # Extract task_id from intent extras
+            logger.debug(f"AppCommunicationManager received intent with action: {pure_action}")
             task_id = intent.getStringExtra("task_id")
-            # Schedule the actions effect
-            Clock.schedule_once(
-                lambda dt: self.handle_action(pure_action, task_id), 
-                0
-            )
+            self.handle_action(pure_action, task_id)
+                
         except Exception as e:
-            logger.error(f"Error receiving Service action: {e}")
-
+            logger.error(f"Error in broadcast receiver callback: {e}")
     def handle_action(self, pure_action: str, task_id: str | None = None) -> None:
         """
         Calls the appropriate method based on the action received from the receiver.
@@ -180,6 +177,7 @@ class AppCommunicationManager():
         Task_id is only provided after snooze or cancel from a Service notification,
          for invalidation of cached Task data.
         """
+        logger.info(f"Updating tasks action with task_id: {task_id}")
         # Update AppExpiryManager
         self.task_manager.expiry_manager._refresh_tasks()
         # Update TaskManager
@@ -189,8 +187,46 @@ class AppCommunicationManager():
         if task_id:
             task = self.task_manager.get_task_by_id_(task_id)
             if task:
+                logger.info(f"Using date_key from Task")
                 date_key = task.get_date_key()
-                self.task_manager.update_home_after_changes(date_key)
+            else:
+                logger.info("Using today's date")
+                date_key = datetime.now().date().isoformat()
+
+        if self._is_app_in_foreground():
+            logger.info("App is in foreground, scheduling update")
+            Clock.schedule_once(lambda dt: self.task_manager.update_home_after_changes(date_key), 0)
+            return
         
-        # No task_id or Task, use today's date
-        self.task_manager.update_home_after_changes(datetime.now().date().isoformat())
+        # If app is in background, set _need_updates to date_key
+        self.app._need_updates = date_key
+        logger.info("App is in background, setting _need_updates")
+        return
+    
+    def _is_app_in_foreground(self) -> bool:
+        """Returns True if the App is currently in the foreground."""
+        try:
+            if not self.context:
+                return False
+            
+            # Get ActivityManager service
+            activity_manager = self.context.getSystemService(Context.ACTIVITY_SERVICE)
+            if not activity_manager:
+                return False
+            
+            # Get running App processes
+            running_apps = activity_manager.getRunningAppProcesses()
+            if not running_apps:
+                return False
+            
+            # Check if in foreground
+            for process in running_apps:
+                if (process.processName == self.package_name and 
+                    process.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND):
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error checking app foreground state: {e}")
+            return False

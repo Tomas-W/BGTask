@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from managers.tasks.expiry_manager import ExpiryManager
 from managers.device.device_manager import DM
+
 from src.utils.logger import logger
 
 if TYPE_CHECKING:

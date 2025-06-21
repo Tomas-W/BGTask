@@ -5,6 +5,7 @@ from PIL import Image
 
 from managers.device.device_manager import DM
 from src.app_managers.permission_manager import PM
+
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
 from src.settings import COL
@@ -106,16 +107,15 @@ class WallpaperManager:
             with Image.open(image_path) as img:
                 screen_width, screen_height = map(int, Window.size)
                 
-                # If image is already screen size, no optimization needed
+                # If already screen size, no optimization
                 if img.size == (screen_width, screen_height):
-                    logger.info("Image already matches screen dimensions")
                     return
                 
-                # Create background canvas with screen dimensions
+                # Create canvas with screen dimensions
                 background_color = tuple(int(c * 255) for c in COL.BG[:3])
                 background = Image.new("RGB", (screen_width, screen_height), background_color)
                 
-                # Calculate scale to fit image within screen bounds
+                # MAke image fit
                 scale_x = screen_width / img.width
                 scale_y = screen_height / img.height
                 scale = min(scale_x, scale_y, 1.0)  # Don't scale up, only down if needed
@@ -124,12 +124,12 @@ class WallpaperManager:
                 new_size = (int(img.width * scale), int(img.height * scale))
                 resized_img = img.resize(new_size, Image.LANCZOS)
                 
-                # Center the resized image
+                # Center image
                 x_offset = (screen_width - new_size[0]) // 2
                 y_offset = (screen_height - new_size[1]) // 2
                 background.paste(resized_img, (x_offset, y_offset))
                 
-                # Save optimized image
+                # Save
                 background.save(image_path)
                 logger.trace(f"Image optimized: {img.size} -> {new_size} (screen: {screen_width}x{screen_height})")
                         

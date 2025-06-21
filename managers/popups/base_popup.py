@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 from kivy.animation import Animation
 from kivy.uix.boxlayout import BoxLayout
@@ -30,24 +30,25 @@ class BasePopup(Popup):
         self.content_layout.bind(minimum_height=self._update_height)
 
         # Store callbacks
-        self._confirm_handler = None
-        self._cancel_handler = None
+        self._confirm_handler: Callable | None = None
+        self._cancel_handler: Callable | None = None
+        # TaskPopup has its own handlers (snooze_a, snooze_b, cancel)
 
-    def _update_height(self, instance, value):
+    def _update_height(self, instance, value: float) -> None:
         """Update popup height based on content"""
         self.height = value + SPACE.SPACE_XL
     
-    def _update_text_size(self, instance, value):
+    def _update_text_size(self, instance, value: float) -> None:
         """Update text_size to enable text wrapping based on width"""
         width = self.width - SPACE.SPACE_XL
         self.header.text_size = (width, None)
         
-    def _update_label_height(self, instance, value):
+    def _update_label_height(self, instance, value: float) -> None:
         """Update label height to match its texture height"""
         texture_height = instance.texture_size[1]
         instance.height = texture_height
     
-    def _safe_call(self, func: Callable, arg=None):
+    def _safe_call(self, func: Callable, arg: Any | None = None) -> Any:
         """Call a function that might expect arguments"""
         import inspect
         if func:
@@ -57,7 +58,7 @@ class BasePopup(Popup):
             else:
                 return func(arg)
     
-    def show_animation(self, *args):
+    def show_animation(self, *args) -> None:
         """Show popup with fade animation"""
         self.opacity = 0
         self.open()
@@ -65,7 +66,7 @@ class BasePopup(Popup):
         anim = Animation(opacity=1, duration=0.3)
         anim.start(self)
     
-    def hide_animation(self, on_complete=None):
+    def hide_animation(self, on_complete: Callable | None = None) -> None:
         """Hide popup immediately and call callback"""
         self.dismiss()
         if on_complete:

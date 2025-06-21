@@ -12,7 +12,12 @@ from src.widgets.misc import Spacer
 
 
 class TextInputPopup(BasePopup):
-    """Popup with a text input field and confirm/cancel buttons"""
+    """
+    A TextInputPopup has a:
+    - Header
+    - Input field
+    - Confirm and Cancel buttons
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
@@ -53,8 +58,8 @@ class TextInputPopup(BasePopup):
         
         self.bind(width=self._update_text_size)
     
-    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable):
-        """Un- and re-bind callbacks"""
+    def update_callbacks(self, on_confirm: Callable, on_cancel: Callable) -> None:
+        """Un- and re-bind callbacks."""
         # Unbind callbacks
         if self._confirm_handler:
             self.confirm_button.unbind(on_release=self._confirm_handler)

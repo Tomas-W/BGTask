@@ -1,6 +1,7 @@
 from src.utils.timer import TIMER
 TIMER.start("start")
 
+import os
 from src.utils.logger import logger
 logger.timing(f"Starting main.py")
 
@@ -52,6 +53,9 @@ if platform != "android":
 # ExpiryManager
 # TODO: Trigger vibrate when App in foreground?
 
+# PopupManager
+# TODO: Add snooze B and restructure popup
+
 
 # BaseScreen
 
@@ -96,13 +100,13 @@ class TaskApp(App, EventDispatcher):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)        
         self.active_popup = None
+        self._need_updates = False
 
     def build(self):
         """
         Builds the App.
         """
         self.title = "Task Manager"
-        self.tasks_are_reloaded = True
 
         self._init_screen_manager()
         self._init_navigation_manager()
@@ -160,7 +164,6 @@ class TaskApp(App, EventDispatcher):
     def on_pause(self):
         super().on_pause()
         logger.debug("App is pausing")
-        self.tasks_are_reloaded = False
         return True
     
     def on_start(self):
@@ -180,11 +183,13 @@ class TaskApp(App, EventDispatcher):
         self.audio_manager.stop_alarm()
         self.communication_manager.send_action(DM.ACTION.STOP_ALARM)
 
-        self.expiry_manager._refresh_tasks()
-        self.task_manager.refresh_task_groups()
-        self.get_screen(DM.SCREEN.HOME).refresh_home_screen()
-        self.tasks_are_reloaded = True
-        
+        # If snoozed or cancelled while in background,
+        #  AppCommunicationManager sets _need_updates to the Task's date_key
+        if self._need_updates:
+            self.task_manager.update_home_after_changes(self._need_updates)
+            self._need_updates = False
+            logger.info("App needed an update")
+            
     ###############################################
     ################### MISC ######################
     @log_time("ServicePermissions")

@@ -60,7 +60,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # Build Screen
         self._init_home_screen()
-    
+
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
 
@@ -138,3 +138,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         
         self._deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)
+    
+    def scroll_to_deleted_task(self, pos: float, date: str) -> None:
+        """
+        Scrolls to where scroll_y was before deleting a Task.
+        Only scrolls if the Task's TaskGroup is still displayed.
+        """
+        if self.task_manager.current_task_group.date_str == date:
+            self.scroll_container.scroll_view.scroll_y = pos

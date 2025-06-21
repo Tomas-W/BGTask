@@ -218,11 +218,10 @@ class NewTaskScreen(BaseScreen):
         self.in_edit_task_mode = True
         self.task_manager.task_to_edit = task
 
+        effective_timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
         # Date and time
-        self.task_manager.selected_date = task.timestamp.date()
-        # Convert to datetime, add the snooze time in seconds, then extract time
-        adjusted_datetime = task.timestamp + timedelta(seconds=task.snooze_time)
-        self.task_manager.selected_time = adjusted_datetime.time()
+        self.task_manager.selected_date = effective_timestamp.date()
+        self.task_manager.selected_time = effective_timestamp.time()
 
         # Message
         self.task_input_field.set_text(task.message)

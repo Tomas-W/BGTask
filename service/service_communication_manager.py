@@ -78,7 +78,7 @@ class ServiceCommunicationManager:
     def _init_receiver(self) -> None:
         """
         Initializes the broadcast receiver for App and Service actions.
-        - Listens for ACTION_TARGET: SERVICE and APP
+        - Does not listen for ACTION_TARGETs - accepts all actions
         - Listens for ACTION: SNOOZE_A | SNOOZE_B | CANCEL
         - Listens for ACTION: STOP_ALARM | UPDATE_TASKS | REMOVE_TASK_NOTIFICATIONS
         - Listens for ACTION: BOOT_COMPLETED | RESTART_SERVICE
@@ -125,7 +125,7 @@ class ServiceCommunicationManager:
                 logger.error("Error receiving callback - intent with null action")
                 return
             
-            logger.info(f"ServiceCommunicationManager received intent with action: {pure_action}")
+            logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
             task_id = self._get_task_id(intent, pure_action)
             self.handle_action(intent,pure_action, task_id)
                 
@@ -143,7 +143,7 @@ class ServiceCommunicationManager:
         # Check boot and restart actions
         if pure_action in self.boot_actions:
             self._handle_boot_action(pure_action)
-            logger.critical("ServiceCommunicationManager received boot action")
+            logger.debug("ServiceCommunicationManager received boot action")
             return Service.START_STICKY
 
         # Cancel all notifications for any non-boot action
@@ -185,7 +185,7 @@ class ServiceCommunicationManager:
         - Processes snooze/cancel actions from notifications
         - Updates service state and sends actions to App
         """
-        logger.info(f"_handle_service_action: {pure_action}")
+        logger.debug(f"_handle_service_action: {pure_action}")
         # Snooze
         if pure_action == DM.ACTION.SNOOZE_A or pure_action == DM.ACTION.SNOOZE_B:
             self._snooze_action(pure_action, task_id)
@@ -268,7 +268,7 @@ class ServiceCommunicationManager:
 
     def _snooze_action(self, action: str, task_id: str) -> None:
         """Handles snooze actions from notifications."""
-        logger.debug(f"Handling snooze action for Task with ID: {DM.get_task_id_log(task_id)}")
+        logger.trace(f"Handling snooze action for Task with ID: {DM.get_task_id_log(task_id)}")
         try:
             # Service side
             self.expiry_manager.snooze_task(action, task_id)
@@ -286,7 +286,7 @@ class ServiceCommunicationManager:
         Handles cancel and open app actions from notifications.
         Same functionality for both actions, except different snooze times.
         """
-        logger.info(f"Handling cancel action for Task with ID: {DM.get_task_id_log(task_id)}")
+        logger.trace(f"Handling cancel action for Task with ID: {DM.get_task_id_log(task_id)}")
         try:
             # Service side
             self.expiry_manager.cancel_task(task_id)
@@ -301,19 +301,19 @@ class ServiceCommunicationManager:
     
     def _update_tasks_action(self) -> None:
         """Refreshes ExpiryManager Tasks and updates foreground notification."""
-        logger.debug("Handling update tasks action")
+        logger.trace("Handling update tasks action")
         self.expiry_manager._refresh_tasks()
         self.service_manager.update_foreground_notification_info()
         logger.trace("Updated Tasks and foreground notification through service action")
     
     def _stop_alarm_action(self) -> None:
         """Stops the Service alarm through the AudioManager."""
-        logger.debug("Handling stop alarm action")
+        logger.trace("Handling stop alarm action")
         self.audio_manager.stop_alarm()
 
     def _remove_task_notifications_action(self) -> None:
         """Removes all task notifications."""
-        logger.debug("Handling remove task notifications action")
+        logger.trace("Handling remove task notifications action")
         self.notification_manager.cancel_all_notifications()
     
     def _get_pure_action(self, intent: Any) -> str | None:

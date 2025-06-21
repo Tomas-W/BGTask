@@ -67,6 +67,7 @@ class Paths(Dirs):
         self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
         # Both
         self.SERVICE_HEARTBEAT_FLAG: Final[str] = self._get_storage_path(is_android, "app/service/service_heartbeat.flag")
+        
 
 
 class Dates:
