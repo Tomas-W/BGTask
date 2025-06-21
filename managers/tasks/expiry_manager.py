@@ -74,7 +74,7 @@ class ExpiryManager():
         """
         logger.debug(f"Cancelling Task with ID: {DM.get_task_id_log(task_id)}")
         
-        cancelled_task = self.get_task_by_id(task_id)
+        cancelled_task = self.get_active_task_by_id(task_id)
         if not cancelled_task:
             # Cancelling old expired Task through notification
             # No need to handle
@@ -118,11 +118,11 @@ class ExpiryManager():
         - Searches active Tasks first.
         - If not found, searches expired Tasks.
         """
-        snoozed_task = self.get_task_by_id(task_id)
+        snoozed_task = self.get_active_task_by_id(task_id)
         old_task = False
         if not snoozed_task:
             # Old expired Task, search in expired Tasks aswell
-            snoozed_task = self._search_expired_task(task_id)
+            snoozed_task = self.get_any_task_by_id(task_id)
             old_task = True
         
         if not snoozed_task:
@@ -273,7 +273,7 @@ class ExpiryManager():
         if self.expired_task:
             self.expired_task = None
     
-    def get_task_by_id(self, task_id: str) -> Task | None:
+    def get_active_task_by_id(self, task_id: str) -> Task | None:
         """Get a Task object by its ID."""
         # First check expired task
         if self.expired_task and self.expired_task.task_id == task_id:
@@ -286,7 +286,7 @@ class ExpiryManager():
         
         return None
     
-    def _search_expired_task(self, task_id: str) -> Task | None:
+    def get_any_task_by_id(self, task_id: str) -> Task | None:
         """Searches for the expired task"""
         tasks_data = self.get_task_data()
         for task_data in tasks_data.values():

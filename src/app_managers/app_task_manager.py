@@ -183,7 +183,7 @@ class TaskManager(EventDispatcher):
         else:
             logger.error(f"Error removing Task from TaskGroups, {DM.get_task_log(task)} not found")
     
-    def get_task_by_id_(self, task_id: str) -> Task | None:
+    def get_task_by_id(self, task_id: str) -> Task | None:
         """
         Gets a Task by its ID.
         """
@@ -268,7 +268,7 @@ class TaskManager(EventDispatcher):
         Updates task_groups, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
-        task = self.get_task_by_id_(task_id)
+        task = self.get_task_by_id(task_id)
         if not task:
             logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
@@ -294,7 +294,7 @@ class TaskManager(EventDispatcher):
         Updates task_groups, saves the Task to file,
          dispatches an event to update the Task display.
         """
-        task = self.get_task_by_id_(task_id)
+        task = self.get_task_by_id(task_id)
         date_key = task.get_date_key()
         if not task:
             logger.error(f"Error deleting Task, {DM.get_task_id_log(task_id)} not found")

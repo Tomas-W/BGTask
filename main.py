@@ -191,7 +191,7 @@ class TaskApp(App, EventDispatcher):
         # If snoozed or cancelled while in background,
         #  AppCommunicationManager sets _need_updates to the Task's date_key
         if self._need_updates is not None:
-            task = self.task_manager.get_task_by_id_(self._need_updates)
+            task = self.task_manager.get_task_by_id(self._need_updates)
             if task is None:
                 logger.error(f"Error getting Task to scroll on_resume: {DM.get_task_id_log(self._need_updates)}")
                 return

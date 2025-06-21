@@ -180,7 +180,7 @@ class AppCommunicationManager():
         self.task_manager.expiry_manager._refresh_tasks()
         self.task_manager.refresh_task_groups()
         
-        task = self.task_manager.get_task_by_id_(task_id)
+        task = self.task_manager.get_task_by_id(task_id)
         date_key = task.get_date_key()
 
         if self._is_app_in_foreground():

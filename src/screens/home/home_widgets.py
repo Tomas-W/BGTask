@@ -472,7 +472,7 @@ class TaskInfoLabel(Label):
         task_manager = home_screen.task_manager
         task_to_select = self.task
 
-        fresh_task = task_manager.get_task_by_id_(self.task_id)
+        fresh_task = task_manager.get_task_by_id(self.task_id)
         if fresh_task:
             task_to_select = fresh_task
         else:

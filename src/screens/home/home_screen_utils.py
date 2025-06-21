@@ -18,6 +18,9 @@ from src.utils.logger import logger
 from src.settings import COL, FONT, SIZE, SPACE
 
 if TYPE_CHECKING:
+    from main import TaskApp
+    from src.app_managers.navigation_manager import NavigationManager
+    from src.app_managers.app_task_manager import TaskManager
     from src.screens.home.home_widgets import TaskInfoLabel
 
 
@@ -26,7 +29,9 @@ class HomeScreenUtils:
     Utility class for the HomeScreen.
     """
     def __init__(self):
-        pass
+        self.app: "TaskApp"
+        self.navigation_manager: "NavigationManager"
+        self.task_manager: "TaskManager"
     
 # ########## REFRESHING ########## #
     @log_time("init_home_screen")
@@ -96,7 +101,7 @@ class HomeScreenUtils:
         """Navigates to the NewTaskScreen to edit the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id)
-            task_to_edit = self.task_manager.get_task_by_id_(task_id)
+            task_to_edit = self.task_manager.get_task_by_id(task_id)
             if task_to_edit:
                 self.app.get_screen(DM.SCREEN.NEW_TASK).load_task_data(task=task_to_edit)
                 Clock.schedule_once(lambda dt: self.navigation_manager.navigate_to(DM.SCREEN.NEW_TASK), 0.1)
@@ -115,7 +120,7 @@ class HomeScreenUtils:
         """Deletes the currently selected Task."""
         if self.selected_task:
             task_id = str(self.selected_task.task_id) 
-            task_to_delete = self.task_manager.get_task_by_id_(task_id)
+            task_to_delete = self.task_manager.get_task_by_id(task_id)
             if task_to_delete:
                 # Remove selection
                 if self.selected_label:
