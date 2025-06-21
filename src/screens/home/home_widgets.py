@@ -447,8 +447,10 @@ class TaskInfoLabel(Label):
     def set_selected(self, selected: bool = True) -> None:
         """Sets the background color based on selected state."""
         self.selected = selected
-        if selected:
+        if selected and self.task and not self.task.expired:
             self.bg_color.rgba = COL.TASK_SELECTED
+        elif selected and self.task and self.task.expired:
+            self.bg_color.rgba = COL.TASK_INACTIVE_SELECTED
         else:
             # When deselecting, check Task expiry state
             if self.task and self.task.expired:

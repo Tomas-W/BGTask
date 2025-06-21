@@ -70,8 +70,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         if not self._home_screen_finished:
             self._hide_loading_screen()
-            Clock.schedule_once(self.app.load_app, 0.15)
-            Clock.schedule_once(self.check_need_to_start_service, 0.3)
+            Clock.schedule_once(self.app.load_app, 0.3)
+            Clock.schedule_once(self.check_need_to_start_service, 1.0)
             self._home_screen_finished = True
     
     def on_leave(self) -> None:
@@ -178,4 +178,21 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             return
         
         self.scroll_container.scroll_view.scroll_to(task_widget, animate=True)
+
+        Clock.schedule_once(lambda dt: self._highlight_task(task_widget), 0.3)
+        Clock.schedule_once(lambda dt: self._unhighlight_task(task_widget), 2.5)
         logger.debug(f"Scrolled to Task {DM.get_task_id_log(task.task_id)}")
+    
+    def _highlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
+        """
+        Highlights the Task.
+        """
+        if task_widget is not None:
+            task_widget.set_selected()
+    
+    def _unhighlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
+        """
+        Unhighlights the Task.
+        """
+        if task_widget is not None:
+            task_widget.set_selected(False)
