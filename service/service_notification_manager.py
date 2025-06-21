@@ -333,6 +333,7 @@ class ServiceNotificationManager:
             # Clear the active notifications set
             self.active_notification_ids.clear()
             self.current_notification_id = None
+            logger.trace(f"Cancelled all notifications")
         
         except Exception as e:
             logger.error(f"Error cancelling all notifications: {e}")

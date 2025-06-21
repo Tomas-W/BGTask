@@ -77,7 +77,7 @@ class PopupManager:
                 display_new_popup(0)
         
         Clock.schedule_once(show_popup, 0)
-        logger.trace(f"Displaying TaskPopup: {DM.get_task_id_log(task.task_id)}")
+        logger.debug(f"Displaying TaskPopup: {DM.get_task_id_log(task.task_id)}")
     
     def show_confirmation_popup(self, header: str, field_text: str,
                                  on_confirm: Callable, on_cancel: Callable) -> None:
@@ -131,7 +131,7 @@ class PopupManager:
     def _snooze_a_task(self, task_id: str) -> None:
         """Calls SNOOZE with SNOOZE_A on ExpiryManager."""
         self.app.expiry_manager.snooze_task(DM.ACTION.SNOOZE_A, task_id)
-        
+
     
     def _snooze_b_task(self, task_id: str) -> None:
         """Calls SNOOZE with SNOOZE_B on ExpiryManager."""

@@ -248,7 +248,6 @@ class ServiceManager:
     
     def update_foreground_notification_info(self) -> None:
         """Updates the foreground notification with the current Task's info."""
-        logger.debug("Updating foreground notification info")
         if self.expiry_manager.current_task:
             time_label = get_service_timestamp(self.expiry_manager.current_task)
             message = self.expiry_manager.current_task.message
@@ -292,12 +291,11 @@ class ServiceManager:
         if not self.expiry_manager.is_task_expired():
             return
         
+        logger.trace(f"Task expired, handling expiry")
         self._handle_task_expiry()
     
     def _handle_task_expiry(self) -> None:
         """Handles the expiry of a Task."""
-        logger.debug("Task expired, showing notification")
-
         if self.expiry_manager.expired_task:
             self.expiry_manager.expired_task.expired = True
             self.expiry_manager._save_task_changes(
@@ -323,13 +321,13 @@ class ServiceManager:
         - Showing a notification
         - Playing an alarm
         """
-        logger.debug(f"Notifying user of expiry of Task: {DM.get_task_log(expired_task)}")
         self.notification_manager.show_task_notification(
                     "Task Expired",
                     expired_task.message
                 )
         self.audio_manager.trigger_alarm(expired_task)
         self.update_foreground_notification_info()
+        logger.trace(f"Showed and updated notifications")
     
     def _init_activity_manager(self) -> None:
         """Initializes ActivityManager and gets package name."""

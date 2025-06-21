@@ -30,21 +30,9 @@ def android_only(func):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        func_name = func.__name__
+        if not DM.is_android:
+            return
         
-        if args and hasattr(args[0], "__class__"):
-            # Get class name
-            class_name = args[0].__class__.__name__
-            if not DM.is_android:
-                logger.debug(f"Device is not android, skipping {class_name}.{func_name}")
-                return
-        else:
-            # Get module name
-            module_name = func.__module__.split(".")[-1]
-            if not DM.is_android:
-                logger.debug(f"Device is not android, skipping {module_name}.{func_name}")
-                return
-                
         return func(*args, **kwargs)
     return wrapper
 

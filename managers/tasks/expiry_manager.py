@@ -60,7 +60,7 @@ class ExpiryManager():
         })
         
         logger.trace(f"Snoozed: {DM.get_task_log(snoozed_task)}")
-        logger.trace(f"Added: {total_snooze_time//60}m for a total of {snoozed_task.snooze_time + total_snooze_time//60}m")
+        logger.trace(f"Added: {total_snooze_time/60:.1f}m for a total of {snoozed_task.snooze_time + total_snooze_time/60:.1f}m")
 
         self._handle_snoozed_task(snoozed_task)
     
@@ -255,11 +255,10 @@ class ExpiryManager():
         
         # Store current task as expired before refreshing
         self.expired_task = self.current_task
-        logger.debug(f"Task {DM.get_task_log(self.expired_task)} expired")
-        
         # Re-load Tasks but don't reset expired Task
         self.refresh_active_tasks()
         self.refresh_current_task()
+        logger.trace(f"Task expired, Tasks refreshed")
 
         return self.expired_task
     

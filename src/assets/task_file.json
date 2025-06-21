@@ -406,7 +406,27 @@
       "vibrate": false,
       "keep_alarming": false,
       "expired": false,
+      "snooze_time": 1750
+    },
+    {
+      "task_id": "a6257b2a-6936-4f2f-a738-d4d4b7fd6f64",
+      "timestamp": "2025-06-21T23:44:00",
+      "message": "asdasd",
+      "alarm_name": null,
+      "vibrate": false,
+      "keep_alarming": false,
+      "expired": false,
       "snooze_time": 110
+    },
+    {
+      "task_id": "d940716b-f4f7-4f4d-93bd-6033052f1aa1",
+      "timestamp": "2025-06-21T23:45:00",
+      "message": "asdasd",
+      "alarm_name": "scanner",
+      "vibrate": false,
+      "keep_alarming": true,
+      "expired": true,
+      "snooze_time": 0
     }
   ],
   "2025-06-22": [

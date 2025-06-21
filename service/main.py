@@ -226,7 +226,7 @@ def main() -> None:
     """Service entry point."""
     global _service
     try:
-        logger.trace("Starting background Service")
+        logger.debug("Starting background Service")
         _service = BackgroundService()
         _service.on_start_command(None, 0, 1)
     
