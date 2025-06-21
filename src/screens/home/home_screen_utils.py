@@ -13,7 +13,7 @@ from src.screens.home.home_widgets import TaskGroupWidget, TaskNavigator
 from managers.tasks.task import Task, TaskGroup
 from managers.device.device_manager import DM
 
-from src.utils.wrappers import disable_gc
+from src.utils.wrappers import disable_gc, log_time
 from src.utils.logger import logger
 from src.settings import COL, FONT, SIZE, SPACE
 
@@ -29,11 +29,11 @@ class HomeScreenUtils:
         pass
     
 # ########## REFRESHING ########## #
+    @log_time("init_home_screen")
     def _init_home_screen(self, *args) -> None:
         """
         Displays the current TaskGroup or else creates and displays the welcome TaskGroup.
         """
-        start_time = time.time()
         task_group = self.task_manager.get_current_task_group()
         # No current TaskGroup, create welcome TaskGroup and recall
         if task_group is None:
@@ -45,17 +45,14 @@ class HomeScreenUtils:
         task_group_widget = TaskGroupWidget(task_group=task_group)
         self.scroll_container.container.add_widget(task_group_widget)
         
-        logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
-    
     @disable_gc
+    @log_time("refresh_home_screen")
     def refresh_home_screen(self, *args) -> None:
         """
         Rebuilds the HomeScreen UI based on the current TaskGroup.
         Also refreshes the WallpaperScreen.
         If no TaskGroup is set, it will get the nearest future TaskGroup or welcome TaskGroup.
         """
-        start_time = time.time()
-
         self.deselect_task()
         
         # Update TaskNavigator
@@ -71,8 +68,6 @@ class HomeScreenUtils:
         # Refresh WallpaperScreen
         self.app.get_screen(DM.SCREEN.WALLPAPER).refresh_wallpaper_screen()
         
-        logger.info(f"Refreshing HomeScreen took: {round(time.time() - start_time, 6)} seconds")
-    
 # ########## SELECTING ########## #
     def select_task(self, task: Task, label: "TaskInfoLabel" = None) -> None:
         """Selects a Task and shows the floating action buttons."""
@@ -151,16 +146,6 @@ class HomeScreenUtils:
         self.selected_task = None
         self.selected_label = None
         self.hide_floating_buttons()
-    
-    def _highlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
-        """Highlights the Task."""
-        if task_widget is not None:
-            task_widget.set_active(True)
-
-    def _unhighlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
-        """Unhighlights the Task."""
-        if task_widget is not None:
-            task_widget.set_active(False)
     
     def create_floating_action_buttons(self) -> None:
         """Creates floating edit/delete buttons that appear when a Task is selected."""

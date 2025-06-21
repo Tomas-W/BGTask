@@ -10,6 +10,7 @@ from kivy.event import EventDispatcher
 from managers.device.device_manager import DM
 from managers.tasks.task import Task, TaskGroup
 
+from src.utils.wrappers import log_time
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
@@ -63,12 +64,12 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error getting Task data: {e}")
             return {}
     
+    @log_time("get_task_groups")
     def get_task_groups(self) -> list[TaskGroup]:
         """
         Loads all Tasks from the last TASK_HISTORY_DAYS days, which are grouped by date.
         Returns a list of sorted TaskGroup objects with sorted Tasks, earliest first.
         """
-        start_time = time.time()
         try:
             with open(self.task_file_path, "r") as f:
                 data = json.load(f)
@@ -87,7 +88,6 @@ class TaskManager(EventDispatcher):
             
             # Sort by date
             sorted_task_groups = sorted(task_groups, key=lambda x: x.date_str)
-            logger.error(f"Loading Task groups took: {round(time.time() - start_time, 6)} seconds")
             return sorted_task_groups
         
         except Exception as e:
@@ -100,7 +100,7 @@ class TaskManager(EventDispatcher):
         """
         if not self.task_groups:
             self._set_welcome_task_group()
-            return self.get_current_task_group()
+            return self.task_groups[0]
 
         if task is None:
             date_key = datetime.now().date().isoformat()

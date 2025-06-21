@@ -6,7 +6,7 @@ from PIL import Image
 from managers.device.device_manager import DM
 from src.app_managers.permission_manager import PM
 
-from src.utils.wrappers import android_only
+from src.utils.wrappers import android_only, log_time
 from src.utils.logger import logger
 from src.settings import COL
 
@@ -20,6 +20,7 @@ class WallpaperManager:
     def __init__(self):
         self._is_processing = False
     
+    @log_time("create_wallpaper_from_screen")
     def create_wallpaper_from_screen(self, layout: "BoxLayout") -> None:
         """
         Schedules the wallpaper creation process.

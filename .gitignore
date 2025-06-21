@@ -30,6 +30,10 @@ backups/
 *.db-shm
 *.db-wal
 
+# Task file
+src/assets/task_file.json
+
+# Other
 playground.py
 info.txt
 info2.txt

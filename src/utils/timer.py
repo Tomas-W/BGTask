@@ -1,13 +1,15 @@
 import time
 
+from src.utils.logger import logger
+
 
 class Timer:
     def __init__(self):
         self.logs = {}
     
     def start(self, name: str):
-        if name in self.logs:
-            raise ValueError(f"Timer {name} already started")
+        # if name in self.logs:
+        #     raise ValueError(f"Timer {name} already started")
         
         self.logs[name] = [time.time(), None]
     
@@ -18,6 +20,7 @@ class Timer:
         times = self.logs[name]
         times[1] = time.time()
         self.logs[name] = times
+        logger.timing(f"Loading {name} took: {self.get_time(name)}")
     
     def get_time(self, name: str):
         if name not in self.logs:

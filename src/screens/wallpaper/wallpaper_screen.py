@@ -9,6 +9,7 @@ from src.screens.home.home_widgets import TaskGroupWidget
 
 from managers.wallpaper.wallpaper_manager import WallpaperManager
 
+from src.utils.wrappers import log_time
 from src.utils.logger import logger
 from src.settings import SPACE
 
@@ -60,12 +61,12 @@ class WallpaperScreen(BaseScreen):
         """
         super().on_enter()
 
+    @log_time("refresh_wallpaper_screen")
     def refresh_wallpaper_screen(self) -> None:
         """
         Refreshes the screen by removing the current TaskGroupWidget and creating
         a new one with the updated task_manager.current_task_group.
         """
-        start_time = time.time()
         # Remove the current task group widget
         self.scroll_container.container.remove_widget(self.task_group)
         
@@ -73,8 +74,7 @@ class WallpaperScreen(BaseScreen):
         self.task_group = TaskGroupWidget(self.task_manager.current_task_group,
                                           clickable=False)
         self.scroll_container.container.add_widget(self.task_group)
-        logger.info(f"Refreshing WallpaperScreen took: {round(time.time() - start_time, 6)} seconds")
-
+    
     def set_screen_as_wallpaper(self, instance) -> None:
         """
         Takes a screenshot of the current screen and,

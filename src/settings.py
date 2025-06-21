@@ -43,6 +43,7 @@ class Colors:
     TASK_SELECTED = (0.45, 0.65, 0.95, 0.5)
     TASK_ACTIVE = (0.45, 0.65, 0.95, 0.3)
     TASK_INACTIVE = (0.7, 0.7, 0.7, 0.3)
+    TASK_INACTIVE_SELECTED = (0.7, 0.7, 0.7, 0.6)
 
 
 class Sizes:

@@ -131,7 +131,7 @@ class TaskApp(App, EventDispatcher):
         """
         Loads rest of the App.
         """
-        Clock.schedule_once(self._load_app, 0.1)
+        Clock.schedule_once(self._load_app, 0.4)
     
     def _load_app(self, *args):
         """
