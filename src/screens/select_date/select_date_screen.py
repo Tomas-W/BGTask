@@ -151,14 +151,13 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         # Update selected time in task_manager
         try:
             time_tuple = self.time_input.get_time()
-            if time_tuple is None:
-                return False
-                
+            
             hours, minutes = time_tuple
             current_time = self.task_manager.selected_time or datetime.now().time()
             updated_time = current_time.replace(hour=hours, minute=minutes)
             self.task_manager.selected_time = updated_time
             return True
+
         except ValueError:
             return False
     
@@ -170,7 +169,14 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         """
         date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
         if self.task_manager.date_is_taken(date):
-            POPUP.show_custom_popup(
+            self.show_date_is_taken_popup()
+            return True
+        
+        return False
+    
+    def show_date_is_taken_popup(self) -> None:
+        """Show a popup to the user to ask if they want to edit the existing task"""
+        POPUP.show_custom_popup(
                 header="Existing task found for:",
                 field_text=f"{self.task_manager.selected_date} at {self.task_manager.selected_time.strftime(DM.DATE.SELECTED_TIME)}",
                 extra_info="Cancel to resume selection\nEdit to update existing task",
@@ -178,9 +184,6 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
                 on_confirm=self.edit_existing_task,
                 on_cancel=lambda: None
             )
-            return True
-        
-        return False
     
     def confirm_date_selection(self, instance) -> None:
         """Return to new task screen, passing selected date"""
@@ -193,11 +196,31 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         if self.check_date_is_taken():
             return
         
+        if self.task_is_in_past():
+            self.show_date_in_past_popup()
+            return
+        
         # Handle callback
         if self.callback:
             self.callback(self.task_manager.selected_date, self.task_manager.selected_time)
 
         self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
+    
+    def task_is_in_past(self) -> bool:
+        """Check if the task is in the past"""
+        date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
+        return date < datetime.now()
+    
+    def show_date_in_past_popup(self) -> None:
+        """Show a popup to the user to ask if they want to select a date in the future"""
+        POPUP.show_custom_popup(
+            header="Task is in the past!",
+            field_text=f"{self.task_manager.selected_date} at {self.task_manager.selected_time.strftime(DM.DATE.SELECTED_TIME)}",
+            extra_info="Please select date in the future.",
+            confirm_text="Confirm",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
     
     def edit_existing_task(self, instance) -> None:
         """

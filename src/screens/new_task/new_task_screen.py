@@ -271,8 +271,14 @@ class NewTaskScreen(BaseScreen):
         if has_error:
             return
         
+        # Prevent saving in past
+        if self.app.get_screen(DM.SCREEN.SELECT_DATE).task_is_in_past():
+            self.app.get_screen(DM.SCREEN.SELECT_DATE).show_date_in_past_popup()
+            return
+        
         task_datetime = datetime.combine(self.task_manager.selected_date,
                                          self.task_manager.selected_time)
+        # Update existing
         if self.in_edit_task_mode:
             self.task_manager.update_task(
                 task_id=self.task_manager.task_to_edit.task_id,
@@ -284,6 +290,7 @@ class NewTaskScreen(BaseScreen):
             )
             self.in_edit_task_mode = False
             self.task_manager.task_to_edit = None
+        # Add new
         else:
             self.task_manager.add_task(
                 timestamp=task_datetime,
