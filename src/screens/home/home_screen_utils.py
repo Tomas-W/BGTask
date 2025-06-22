@@ -34,7 +34,6 @@ class HomeScreenUtils:
         self.task_manager: "TaskManager"
     
 # ########## REFRESHING ########## #
-    @log_time("init_home_screen")
     def _init_home_screen(self, *args) -> None:
         """
         Displays the current TaskGroup or else creates and displays the welcome TaskGroup.
@@ -51,7 +50,6 @@ class HomeScreenUtils:
         self.scroll_container.container.add_widget(task_group_widget)
         
     @disable_gc
-    @log_time("refresh_home_screen")
     def refresh_home_screen(self, *args) -> None:
         """
         Rebuilds the HomeScreen UI based on the current TaskGroup.

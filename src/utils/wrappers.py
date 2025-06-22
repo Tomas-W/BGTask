@@ -1,8 +1,7 @@
-import functools
+from functools import wraps
 
 from managers.device.device_manager import DM
 from src.utils.timer import TIMER
-from src.utils.logger import logger
 
 
 def log_time(name):
@@ -11,13 +10,12 @@ def log_time(name):
     Usage: @log_time("name_to_time")
     """
     def decorator(func):
-        @functools.wraps(func)
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
             TIMER.start(name)
             result = func(self, *args, **kwargs)
             TIMER.stop(name)
             
-            # logger.timing(f"Loading {name} took: {TIMER.get_time(name)}")
             return result
         return wrapper
     return decorator
@@ -28,7 +26,7 @@ def android_only(func):
     Function decorator that returns early if the device is not Android.
     Logs class name for class methods and function name for regular functions.
     """
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if not DM.is_android:
             return
@@ -57,22 +55,20 @@ def android_only_class(except_methods=None):
 def disable_gc(func):
     """
     Decorator that disables garbage collection during function execution.
-    Re-enables GC after function completes and schedules a light cleanup.
+    Re-enables GC immediately after function completes and schedules small collection.
     """
     import gc
     from kivy.clock import Clock
     
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(*args, **kwargs):
         gc.disable()
         
         try:
-            result = func(*args, **kwargs)
-            return result
-            
+            return func(*args, **kwargs)
+        
         finally:
             gc.enable()
-            # Light cleanup
-            gc.collect(0)
+            Clock.schedule_once(lambda dt: gc.collect(0), 0)
     
     return wrapper

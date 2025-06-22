@@ -61,7 +61,6 @@ class WallpaperScreen(BaseScreen):
         """
         super().on_enter()
 
-    @log_time("refresh_wallpaper_screen")
     def refresh_wallpaper_screen(self) -> None:
         """
         Refreshes the screen by removing the current TaskGroupWidget and creating

@@ -71,20 +71,12 @@ class TaskManager(EventDispatcher):
         Returns a list of sorted TaskGroup objects with sorted Tasks, earliest first.
         """
         try:
-            with open(self.task_file_path, "r") as f:
-                data = json.load(f)
+            data = self.get_task_data()
             
             # Get earliest date to include
             earliest_date = datetime.now().date() - timedelta(days=TaskManager.TASK_HISTORY_DAYS)
-            task_groups = []
-            for date_key, tasks_data in data.items():
-                task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
-                # Only include dates in range
-                if task_date >= earliest_date:
-                    # Sort by effective time
-                    tasks = [Task.to_class(task_data) for task_data in tasks_data]
-                    sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
-                    task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
+            task_groups = self._extract_task_data(data,
+                                                  earliest_date)
             
             # Sort by date
             sorted_task_groups = sorted(task_groups, key=lambda x: x.date_str)
@@ -93,6 +85,32 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error loading Task groups: {e}")
             return []
+    
+    def get_task_data(self) -> dict[str, list[dict[str, Any]]]:
+        """Returns a dictionary of Tasks from the Task file."""
+        try:
+            with open(self.task_file_path, "r") as f:
+                data = json.load(f)
+                # Check is valid json
+            return data
+        
+        except Exception as e:
+            logger.error(f"Error getting Task data: {e}")
+            return {}
+    
+    def _extract_task_data(self, data: dict[str, list[dict[str, Any]]], earliest_date: datetime) -> list[Task]:
+        """Extracts the Task data from the Task file."""
+        task_groups = []
+        for date_key, tasks_data in data.items():
+            task_date = datetime.strptime(date_key, DM.DATE.DATE_KEY).date()
+            # Only include dates in range
+            if task_date >= earliest_date:
+                # Sort by effective time
+                tasks = [Task.to_class(task_data) for task_data in tasks_data]
+                sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
+                task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
+        
+        return task_groups
     
     def get_current_task_group(self, task: Task | None = None) -> TaskGroup | None:
         """

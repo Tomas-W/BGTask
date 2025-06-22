@@ -20,7 +20,6 @@ class WallpaperManager:
     def __init__(self):
         self._is_processing = False
     
-    @log_time("create_wallpaper_from_screen")
     def create_wallpaper_from_screen(self, layout: "BoxLayout") -> None:
         """
         Schedules the wallpaper creation process.
@@ -32,7 +31,7 @@ class WallpaperManager:
         self._is_processing = True        
         Clock.schedule_once(lambda dt: self._process_wallpaper_creation(dt,
                                                                         layout), 0)
-    
+    @log_time("process_wallpaper_creation")
     def _process_wallpaper_creation(self, dt: float, layout: "BoxLayout") -> None:
         """
         Creates a wallpaper from the layout.

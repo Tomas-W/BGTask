@@ -11,6 +11,8 @@ from src.widgets.buttons import SettingsButton
 from managers.tasks.task import TaskGroup
 from managers.device.device_manager import DM
 
+from src.utils.timer import TIMER
+from src.utils.wrappers import log_time
 from src.utils.logger import logger
 from src.settings import SPACE, SIZE, COL, FONT, STATE
 
