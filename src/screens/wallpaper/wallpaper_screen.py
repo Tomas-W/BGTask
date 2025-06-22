@@ -9,9 +9,8 @@ from src.screens.home.home_widgets import TaskGroupWidget
 
 from managers.wallpaper.wallpaper_manager import WallpaperManager
 
-from src.utils.wrappers import log_time
 from src.utils.logger import logger
-from src.settings import SPACE
+from src.settings import COL, SPACE
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -20,6 +19,8 @@ if TYPE_CHECKING:
 
 
 class WallpaperScreen(BaseScreen):
+
+    MIN_SCREENSHOT_TIME: float = 3.0
     """
     WallpaperScreen is the screen that is shown when the user wants to set
      the active TaskGroup as wallpaper.
@@ -32,9 +33,10 @@ class WallpaperScreen(BaseScreen):
         self.app: "TaskApp" = app
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.task_manager: "TaskManager" = app.task_manager
-        self.wallpaper_manager: WallpaperManager = WallpaperManager()
+        self.wallpaper_manager: WallpaperManager = WallpaperManager(self)
 
         self.is_taking_screenshot: bool = False
+        self.screenshot_time: float = 0
 
         # TopBar - add set wallpaper button on TopBarClosed
         self.top_bar.make_wallpaper_bar(top_left_callback=self.navigation_manager.go_back,
@@ -86,11 +88,43 @@ class WallpaperScreen(BaseScreen):
             return
             
         self.is_taking_screenshot = True
-        self.top_bar.bar_title.set_text("Setting Wallpaper...")
+        self.screenshot_time = time.time()
+        self._prepare_screen()
         
         self.wallpaper_manager.create_wallpaper_from_screen(self.scroll_container.container)
-
-        # Reset TopBar
-        Clock.schedule_once(lambda dt: self.top_bar.bar_title.set_text("Set as Wallpaper"), 1)
-        # Reset is_taking_screenshot flag
-        Clock.schedule_once(lambda dt: setattr(self, 'is_taking_screenshot', False), 1)
+    
+    def _prepare_screen(self) -> None:
+        """
+        Sets the title of the top bar.
+        """
+        self.top_bar.bar_title.set_text("Setting Wallpaper...")
+        self.top_bar.bar_title.color = COL.TEXT_GREY
+    
+    def _reset_screen(self, scheduled=False, *args) -> None:
+        """
+        Resets the title of the top bar.
+        Order is important here.
+        """
+        now = time.time()
+        time_elapsed = now - self.screenshot_time
+        
+        # Setting wallpaper > MIN_SCREENSHOT_TIME
+        if time_elapsed > WallpaperScreen.MIN_SCREENSHOT_TIME:
+            logger.info("time_elapsed > MIN_SCREENSHOT_TIME")
+            # Reset immediately if enough time has passed
+            self.top_bar.bar_title.set_text("Set as Wallpaper")
+            self.top_bar.bar_title.color = COL.WHITE
+            self.is_taking_screenshot = False
+        
+        # First call
+        elif not args:
+            extra_time = WallpaperScreen.MIN_SCREENSHOT_TIME - time_elapsed + 0.2  # + buffer
+            logger.info(f"Extra time: {extra_time}")
+            Clock.schedule_once(lambda dt: self._reset_screen(scheduled=True), extra_time)
+        
+        # Scheduled with extra time
+        elif scheduled:
+            logger.info("scheduled")
+            self.top_bar.bar_title.set_text("Set as Wallpaper")
+            self.top_bar.bar_title.color = COL.WHITE
+            self.is_taking_screenshot = False

@@ -12,12 +12,13 @@ from src.settings import COL
 
 if TYPE_CHECKING:
     from kivy.uix.boxlayout import BoxLayout
+    from src.screens.wallpaper.wallpaper_screen import WallpaperScreen
 
 
 class WallpaperManager:
     """Manages wallpaper functionality including screenshots and setting wallpapers."""
-    
-    def __init__(self):
+    def __init__(self, screen: "WallpaperScreen"):
+        self.wallpaper_screen: "WallpaperScreen" = screen
         self._is_processing = False
     
     def create_wallpaper_from_screen(self, layout: "BoxLayout") -> None:
@@ -50,15 +51,15 @@ class WallpaperManager:
                 return
                 
             self._optimize_image_for_wallpaper(screenshot_path)
-            
-            # if DM.is_android:
             self._set_android_wallpaper(screenshot_path)
+            self.wallpaper_screen._reset_screen()
         
         except Exception as e:
             logger.error(f"Error creating wallpaper: {str(e)}")
         finally:
             self._is_processing = False
     
+    @log_time("capture_screenshot")
     def _capture_screenshot(self, layout: "BoxLayout") -> Optional[str]:
         """
         Saves a screenshot of the layout to the storage SCREENSHOT_PATH.
@@ -69,21 +70,17 @@ class WallpaperManager:
         - Returns the path to the saved image
         """
         try:
-            # Force layout to use full screen width
+            # Fit to screen
             screen_width, screen_height = map(int, Window.size)
-            layout.size_hint = (1, None)  # Use full width
+            layout.size_hint = (1, None)
             layout.width = screen_width
-            
-            # Ensure proper layout
             layout.do_layout()
             
-            # Capture the image
+            # Capture
             texture = layout.export_as_image()
-            
             # Save
             screenshot_path = DM.get_storage_path(DM.PATH.SCREENSHOT_PATH)
             texture.save(screenshot_path)
-            
             # Verify
             if not DM.validate_file(screenshot_path):
                 logger.error("Error validating screenshot file, aborting")
@@ -96,6 +93,7 @@ class WallpaperManager:
             logger.error(f"Error capturing screenshot: {str(e)}")
             return None
     
+    @log_time("optimize_image_for_wallpaper")
     def _optimize_image_for_wallpaper(self, image_path: str) -> None:
         """
         Optimizes the captured image for wallpaper use:
@@ -111,24 +109,20 @@ class WallpaperManager:
                 if img.size == (screen_width, screen_height):
                     return
                 
-                # Create canvas with screen dimensions
+                # Create canvas
                 background_color = tuple(int(c * 255) for c in COL.BG[:3])
                 background = Image.new("RGB", (screen_width, screen_height), background_color)
-                
-                # MAke image fit
+                # Make image fit
                 scale_x = screen_width / img.width
                 scale_y = screen_height / img.height
-                scale = min(scale_x, scale_y, 1.0)  # Don't scale up, only down if needed
-                
-                # Resize image
+                scale = min(scale_x, scale_y, 1.0)
+                # Resize
                 new_size = (int(img.width * scale), int(img.height * scale))
                 resized_img = img.resize(new_size, Image.LANCZOS)
-                
-                # Center image
+                # Center
                 x_offset = (screen_width - new_size[0]) // 2
                 y_offset = (screen_height - new_size[1]) // 2
                 background.paste(resized_img, (x_offset, y_offset))
-                
                 # Save
                 background.save(image_path)
                 logger.trace(f"Image optimized: {img.size} -> {new_size} (screen: {screen_width}x{screen_height})")
@@ -136,6 +130,7 @@ class WallpaperManager:
         except Exception as e:
             logger.error(f"Error optimizing image: {str(e)}")
     
+    @log_time("set_android_wallpaper")
     @android_only
     def _set_android_wallpaper(self, image_path: str) -> None:
         """
@@ -152,7 +147,6 @@ class WallpaperManager:
             # Load image as bitmap
             File = autoclass("java.io.File")
             BitmapFactory = autoclass("android.graphics.BitmapFactory")
-            
             file = File(image_path)
             bitmap = BitmapFactory.decodeFile(file.getAbsolutePath())
             
