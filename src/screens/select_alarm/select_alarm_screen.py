@@ -13,7 +13,7 @@ from managers.popups.popup_manager import POPUP
 from managers.device.device_manager import DM
 from src.utils.logger import logger
 
-from src.settings import STATE, SCREEN
+from src.settings import STATE
 
 if TYPE_CHECKING:
     from src.app_managers.app_audio_manager import AppAudioManager
@@ -48,7 +48,7 @@ class SelectAlarmScreen(BaseScreen):
         self.saved_alarms_partition = Partition()
         # Saved alarms button
         self.saved_alarms_button = SettingsButton(text="Saved Alarms", width=1, color_state=STATE.ACTIVE)
-        self.saved_alarms_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(SCREEN.SAVED_ALARMS))
+        self.saved_alarms_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(DM.SCREEN.SAVED_ALARMS))
         self.saved_alarms_partition.add_widget(self.saved_alarms_button)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.saved_alarms_partition)
@@ -291,12 +291,12 @@ class SelectAlarmScreen(BaseScreen):
         if current_alarm_settings != self.select_alarm_settings:
             self._restore_select_alarm_state()
         
-        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
     
     def select_alarm(self, instance) -> None:
         """Select the alarm and return to NewTaskScreen"""
         self.unschedule_audio_check()
-        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
     
     def deselect_alarm(self, instance) -> None:
         """Deselect the alarm and return to NewTaskScreen"""

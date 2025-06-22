@@ -2,13 +2,12 @@ from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
 
-from src.widgets.containers import Partition, ScrollContainer, CustomButtonRow
-from src.widgets.buttons import (ConfirmButton, SettingsButton,
-                                 CancelButton)
+from src.widgets.containers import Partition, CustomButtonRow
+from src.widgets.buttons import ConfirmButton, SettingsButton, CancelButton
 
+from managers.device.device_manager import DM
 from src.utils.logger import logger
-
-from src.settings import STATE, SCREEN
+from src.settings import STATE
 
 if TYPE_CHECKING:
     from src.app_managers.navigation_manager import NavigationManager
@@ -61,7 +60,7 @@ class SavedAlarmScreen(BaseScreen):
     def confirm_alarm_selection(self, instance) -> None:
         """Confirm the alarm selection."""
         if self.audio_manager.selected_alarm_name is not None:
-            self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
+            self.navigation_manager.navigate_back_to(DM.SCREEN.SELECT_ALARM)
         
         else:
             self.show_error_popup("Selection Error", "No alarm selected")
@@ -70,7 +69,7 @@ class SavedAlarmScreen(BaseScreen):
         """
         Cancel the alarm selection.
         """
-        self.navigation_manager.navigate_back_to(SCREEN.SELECT_ALARM)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.SELECT_ALARM)
 
     def create_alarm_buttons(self) -> None:
         """

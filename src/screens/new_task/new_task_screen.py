@@ -8,7 +8,7 @@ from src.widgets.fields import TextField, ButtonField
 
 from managers.device.device_manager import DM
 
-from src.settings import SCREEN, STATE, TEXT, SPACE
+from src.settings import STATE, TEXT, SPACE
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -69,7 +69,7 @@ class NewTaskScreen(BaseScreen):
         self.select_alarm_partition = Partition()
         # Alarm picker button
         self.select_alarm_button = ConfirmButton(text="Select Alarm", color_state=STATE.ACTIVE)
-        self.select_alarm_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(SCREEN.SELECT_ALARM))
+        self.select_alarm_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(DM.SCREEN.SELECT_ALARM))
         self.select_alarm_partition.add_widget(self.select_alarm_button)
         # Alarm display box
         self.alarm_display_field = ButtonField(text="", width=1, color_state=STATE.INACTIVE)
@@ -132,7 +132,7 @@ class NewTaskScreen(BaseScreen):
         self.audio_manager.selected_vibrate = False
         self.audio_manager.selected_keep_alarming = False
 
-        self.navigation_manager.navigate_back_to(SCREEN.HOME)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
     def clear_inputs(self) -> None:
         """Clear the task_input_field and date_display_field data."""
@@ -294,13 +294,13 @@ class NewTaskScreen(BaseScreen):
             )
         
         self.clear_inputs()
-        self.navigation_manager.navigate_to(SCREEN.HOME)
+        self.navigation_manager.navigate_to(DM.SCREEN.HOME)
 
     def go_to_select_date_screen(self, instance) -> None:
         """Navigate to select date screen and set up callback for return"""
-        select_date_screen = self.manager.get_screen(SCREEN.SELECT_DATE)
+        select_date_screen = self.manager.get_screen(DM.SCREEN.SELECT_DATE)
         
         # Set up callback for when returning from the date selection screen
         select_date_screen.callback = self.on_datetime_selected
         
-        self.navigation_manager.navigate_to(SCREEN.SELECT_DATE)
+        self.navigation_manager.navigate_to(DM.SCREEN.SELECT_DATE)

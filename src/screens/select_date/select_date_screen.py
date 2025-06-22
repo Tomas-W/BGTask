@@ -13,10 +13,9 @@ from src.widgets.labels import PartitionHeader
 
 from managers.popups.popup_manager import POPUP
 
-from src.utils.logger import logger
-
-from src.settings import SPACE, STATE, SCREEN
 from managers.device.device_manager import DM
+from src.utils.logger import logger
+from src.settings import SPACE, STATE
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -94,7 +93,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         self.confirmation_row = CustomButtonRow()
         # Cancel button
         self.cancel_button = CancelButton(text="Cancel", width=2)
-        self.cancel_button.bind(on_release=lambda instance: self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK))
+        self.cancel_button.bind(on_release=lambda instance: self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK))
         # Confirm button
         self.confirm_button = ConfirmButton(text="Confirm", width=2,
                                                   color_state=STATE.ACTIVE)
@@ -198,7 +197,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         if self.callback:
             self.callback(self.task_manager.selected_date, self.task_manager.selected_time)
 
-        self.navigation_manager.navigate_back_to(SCREEN.NEW_TASK)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
     
     def edit_existing_task(self, instance) -> None:
         """
@@ -209,8 +208,8 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         ## NOT BY TIMESTAMP !
         date = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time)
         task = self.task_manager.get_task_by_timestamp(date)
-        self.app.get_screen(SCREEN.NEW_TASK).load_task_data(task=task)
-        self.navigation_manager.navigate_to(SCREEN.NEW_TASK)
+        self.app.get_screen(DM.SCREEN.NEW_TASK).load_task_data(task=task)
+        self.navigation_manager.navigate_to(DM.SCREEN.NEW_TASK)
     
     def init_date_values(self) -> None:
         """Initialize date values"""

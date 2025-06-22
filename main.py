@@ -18,8 +18,6 @@ from managers.device.device_manager import DM
 from src.utils.wrappers import log_time
 
 
-from src.settings import SCREEN
-
 if platform != "android":
     Window.size = (360, 736)
     Window.dpi = 100
@@ -273,58 +271,58 @@ class TaskApp(App, EventDispatcher):
     def _init_home_screen(self):
         from src.screens.home.home_screen import HomeScreen
         self.screens = {
-            SCREEN.HOME: HomeScreen(name=SCREEN.HOME,
+            DM.SCREEN.HOME: HomeScreen(name=DM.SCREEN.HOME,
                                     app=self)
             }
-        self.screen_manager.add_widget(self.screens[SCREEN.HOME])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.HOME])
         DM.LOADED.HOME_SCREEN = True
 
     @log_time("WallpaperScreen")
     def _init_wallpaper_screen(self):
         from src.screens.wallpaper.wallpaper_screen import WallpaperScreen
-        self.screens[SCREEN.WALLPAPER] = WallpaperScreen(name=SCREEN.WALLPAPER,
+        self.screens[DM.SCREEN.WALLPAPER] = WallpaperScreen(name=DM.SCREEN.WALLPAPER,
                                                           app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.WALLPAPER])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.WALLPAPER])
         DM.LOADED.WALLPAPER_SCREEN = True
 
     @log_time("NewTaskScreen")
     def _init_new_task_screen(self):
         from src.screens.new_task.new_task_screen import NewTaskScreen
-        self.screens[SCREEN.NEW_TASK] = NewTaskScreen(name=SCREEN.NEW_TASK,
+        self.screens[DM.SCREEN.NEW_TASK] = NewTaskScreen(name=DM.SCREEN.NEW_TASK,
                                                       app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.NEW_TASK])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.NEW_TASK])
         DM.LOADED.NEW_TASK_SCREEN = True
     
     @log_time("SettingsScreen")
     def _init_settings_screen(self):
         from src.screens.settings.settings_screen import SettingsScreen
-        self.screens[SCREEN.SETTINGS] = SettingsScreen(name=SCREEN.SETTINGS,
+        self.screens[DM.SCREEN.SETTINGS] = SettingsScreen(name=DM.SCREEN.SETTINGS,
                                                       app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.SETTINGS])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.SETTINGS])
         DM.LOADED.SETTINGS_SCREEN = True
 
     @log_time("SelectDateScreen")
     def _init_select_date_screen(self):
         from src.screens.select_date.select_date_screen import SelectDateScreen
-        self.screens[SCREEN.SELECT_DATE] = SelectDateScreen(name=SCREEN.SELECT_DATE,
+        self.screens[DM.SCREEN.SELECT_DATE] = SelectDateScreen(name=DM.SCREEN.SELECT_DATE,
                                                             app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.SELECT_DATE])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.SELECT_DATE])
         DM.LOADED.SELECT_DATE_SCREEN = True
     
     @log_time("SelectAlarmScreen")
     def _init_select_alarm_screen(self):
         from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
-        self.screens[SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=SCREEN.SELECT_ALARM,
+        self.screens[DM.SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=DM.SCREEN.SELECT_ALARM,
                                                             app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.SELECT_ALARM])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.SELECT_ALARM])
         DM.LOADED.SELECT_ALARM_SCREEN = True
     
     @log_time("SavedAlarmScreen")
     def _init_saved_alarm_screen(self):
         from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
-        self.screens[SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=SCREEN.SAVED_ALARMS,
+        self.screens[DM.SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=DM.SCREEN.SAVED_ALARMS,
                                                             app=self)
-        self.screen_manager.add_widget(self.screens[SCREEN.SAVED_ALARMS])
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.SAVED_ALARMS])
         DM.LOADED.SAVED_ALARMS_SCREEN = True
 
 

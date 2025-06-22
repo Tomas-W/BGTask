@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
@@ -11,6 +11,9 @@ from src.screens.base.base_screen_utils import FPSCounter
 
 from managers.device.device_manager import DM
 
+if TYPE_CHECKING:
+    from src.app_managers.navigation_manager import NavigationManager
+
 
 class BaseScreen(Screen):
     """
@@ -22,7 +25,7 @@ class BaseScreen(Screen):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)        
-
+        self.navigation_manager: "NavigationManager"
         self.top_bar_is_expanded = False
         
         self.root_layout = RelativeLayout()

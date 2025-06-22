@@ -39,8 +39,7 @@ class WallpaperScreen(BaseScreen):
         self.screenshot_time: float = 0
 
         # TopBar - add set wallpaper button on TopBarClosed
-        self.top_bar.make_wallpaper_bar(top_left_callback=self.navigation_manager.go_back,
-                                        top_bar_callback=self.set_screen_as_wallpaper)
+        self.top_bar.make_wallpaper_bar(top_bar_callback=self.set_screen_as_wallpaper)
 
         self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_L]
 

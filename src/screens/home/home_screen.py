@@ -42,8 +42,8 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.selected_label: "TaskInfoLabel" | None = None
 
         # TopBar
-        top_bar_callback = self.navigate_to_new_task_screen
         top_left_callback = self.navigate_to_wallpaper_screen
+        top_bar_callback = self.navigate_to_new_task_screen
         self.top_bar.make_home_bar(top_left_callback=top_left_callback,
                                    top_bar_callback=top_bar_callback)
         # TopBarExpanded
