@@ -41,8 +41,6 @@ if platform != "android":
 
 # TODO: Trigger laarm dont change nbutton states
 # TODO: Save user background and add retore option
-# TODO: Fix back button. go_to_screen on 1 way scrfeens, back on settings ect
-# TODO: Loading screen on_resume when refreshing to revent blank screen
 
 
 # Widgets
@@ -50,7 +48,6 @@ if platform != "android":
 
 
 # TaskManager
-# TODO: Set max history for saving/loading Tasks
 
 
 # ExpiryManager
@@ -75,7 +72,7 @@ if platform != "android":
 # SelectDateScreen
 # TODO: Optimize layout / widgets
 # TODO: Wider input field for better selecting
-# TODO: Block dates in past
+
 
 # SelectAlarmScreen
 # TODO: Repeat alarm
@@ -92,6 +89,7 @@ if platform != "android":
 # TODO: Look at caching
 
 # Service
+# TODO: Prevent swiping notifications
 
 
 TIMER.start("start_app")

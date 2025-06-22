@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
@@ -218,10 +218,9 @@ class NewTaskScreen(BaseScreen):
         self.in_edit_task_mode = True
         self.task_manager.task_to_edit = task
 
-        effective_timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
         # Date and time
-        self.task_manager.selected_date = effective_timestamp.date()
-        self.task_manager.selected_time = effective_timestamp.time()
+        self.task_manager.selected_date = task.timestamp.date()
+        self.task_manager.selected_time = task.timestamp.time()
 
         # Message
         self.task_input_field.set_text(task.message)

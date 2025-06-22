@@ -12,7 +12,7 @@ def get_service_timestamp(task: Any) -> str:
     This includes the snooze time
     """
     try:
-        timestamp = task.timestamp + timedelta(seconds=task.snooze_time)
+        timestamp = task.timestamp
         today = datetime.now().date()
         tomorrow = today + timedelta(days=1)
 

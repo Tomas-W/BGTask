@@ -36,11 +36,8 @@ class TaskManager(EventDispatcher):
         self.expiry_manager: "AppExpiryManager" = app.expiry_manager
         self.communication_manager: "AppCommunicationManager" = None  # connected in main.py
 
-        # Task file
+        # Task file - validated by ExpiryManager
         self.task_file_path: str = DM.PATH.TASK_FILE
-        if not self.validate_task_data():
-            self._reset_task_file()
-            return
         
         # Remove old task groups
         # Need to schedule daily
@@ -59,63 +56,13 @@ class TaskManager(EventDispatcher):
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
     
-    def get_task_data(self) -> dict[str, list[dict[str, Any]]]:
-        """Returns a dictionary of Tasks from the Task file."""
-        try:
-            with open(self.task_file_path, "r") as f:
-                data = json.load(f)
-            return data
-        
-        except Exception as e:
-            logger.error(f"Error getting Task data: {e}")
-            return {}
-    
-    @log_time("is_valid_task_data")
-    def validate_task_data(self) -> bool:
-        """
-        Validates that the data is a valid task data structure.
-        Returns True if valid, False otherwise.
-        """
-        data = self.get_task_data()
-
-        if not isinstance(data, dict):
-            return False
-        
-        for date_key, tasks_data in data.items():
-            # Check date_key isstring
-            if not isinstance(date_key, str):
-                logger.error(f"Error validating TaskData, date_key != str: {type(date_key)=}")
-                return False
-            
-            # Check tasks_data is list
-            if not isinstance(tasks_data, list):
-                logger.error(f"Error validating TaskData, tasks_data != list: {type(tasks_data)=}")
-                return False
-            
-            # Check Tasks are dicts
-            for task_data in tasks_data:
-                if not isinstance(task_data, dict):
-                    logger.error(f"Error validating TaskData, task_data != dict: {type(task_data)=}")
-                    return False
-        
-        return True
-    
-    def _reset_task_file(self) -> None:
-        """Saves empty JSON to file."""
-        try:
-            with open(self.task_file_path, "w") as f:
-                json.dump({}, f, indent=2)
-        
-        except Exception as e:
-            logger.error(f"Error resetting Task file: {e}")
-    
     @log_time("remove_old_task_groups")
     def remove_old_task_groups(self) -> None:
         """
         Removes TaskGroups that are older than TASK_HISTORY_DAYS.
         """
         try:
-            data = self.get_task_data()
+            data = self.expiry_manager.get_task_data()
             if not data:
                 return
             
@@ -137,8 +84,7 @@ class TaskManager(EventDispatcher):
             
             # Save if needed
             if old_groups_removed:
-                with open(self.task_file_path, "w") as f:
-                    json.dump(data, f, indent=2)
+                self.expiry_manager.save_task_file(data)
                 logger.debug(f"Removed {len(keys_to_remove)} old TaskGroups")
         
         except Exception as e:
@@ -151,7 +97,7 @@ class TaskManager(EventDispatcher):
         Returns a list of sorted TaskGroup objects with sorted Tasks, earliest first.
         """
         try:
-            data = self.get_task_data()
+            data = self.expiry_manager.get_task_data()
             
             # Get earliest date to include
             earliest_date = datetime.now().date() - timedelta(days=TaskManager.TASK_HISTORY_DAYS)
@@ -175,7 +121,7 @@ class TaskManager(EventDispatcher):
             if task_date >= earliest_date:
                 # Sort by effective time
                 tasks = [Task.to_class(task_data) for task_data in tasks_data]
-                sorted_tasks = sorted(tasks, key=lambda x: x.timestamp + timedelta(seconds=x.snooze_time))
+                sorted_tasks = sorted(tasks, key=lambda x: x.timestamp)
                 task_groups.append(TaskGroup(date_str=date_key, tasks=sorted_tasks))
         
         return task_groups
@@ -223,13 +169,12 @@ class TaskManager(EventDispatcher):
         Saves the Task groups to the file.
         """
         try:
-            # Convert TaskGroups to the expected dictionary format
+            # Format TaskGroups
             tasks_json = {}
             for task_group in self.task_groups:
                 tasks_json[task_group.date_str] = [task.to_json() for task in task_group.tasks]
             
-            with open(self.task_file_path, "w") as f:
-                json.dump(tasks_json, f, indent=2)
+            self.expiry_manager.save_task_file(tasks_json)
             time.sleep(0.1)
         
         except Exception as e:
@@ -255,12 +200,12 @@ class TaskManager(EventDispatcher):
         date_key = task.get_date_key()
         for i, task_group in enumerate(self.task_groups):
             if task_group.date_str == date_key:
-                # Find the task by ID instead of object reference
+                # Find Task by ID
                 for j, group_task in enumerate(task_group.tasks):
                     if group_task.task_id == task.task_id:
                         task_group.tasks.pop(j)
                         
-                        # If this was the last task in the group, remove the entire group
+                        # If last Task in group, remove it
                         if not task_group.tasks:
                             self.task_groups.pop(i)
                         
@@ -434,8 +379,9 @@ class TaskManager(EventDispatcher):
             if task_group.date_str == target_date_key:
                 # Check for match
                 for task in task_group.tasks:
-                    effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
-                    if effective_time.time().hour == target_time.hour and effective_time.time().minute == target_time.minute:
+                    hour = task.timestamp.time().hour
+                    minute = task.timestamp.time().minute
+                    if hour == target_time.hour and minute == target_time.minute:
                         return task
                 break
         
@@ -457,8 +403,10 @@ class TaskManager(EventDispatcher):
                 for task in task_group.tasks:
                     if task == self.task_to_edit:
                         continue
-                    effective_time = task.timestamp + timedelta(seconds=task.snooze_time)
-                    if effective_time.time().hour == target_time.hour and effective_time.time().minute == target_time.minute:
+
+                    hour = task.timestamp.time().hour
+                    minute = task.timestamp.time().minute
+                    if hour == target_time.hour and minute == target_time.minute:
                         return True
                 break
         

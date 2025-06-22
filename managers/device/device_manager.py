@@ -2,7 +2,6 @@ import os
 import sys
 import time
 
-from datetime import timedelta
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
@@ -68,7 +67,7 @@ class DeviceManager:
         - Format: id | timestamp + snooze_time
         """
         id = task.task_id[:8]
-        task_time = task.timestamp + timedelta(seconds=task.snooze_time)
+        task_time = task.timestamp
         message = task.message
         return f"{id[:6]} | {task_time} | {message[:8]}"
 
