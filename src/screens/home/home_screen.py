@@ -11,6 +11,7 @@ from src.screens.home.home_widgets import TaskNavigator
 from src.settings import SPACE
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
+from src.utils.misc import is_widget_visible
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -171,17 +172,22 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         return None
 
     def scroll_to_task(self, task: "Task") -> None:
-        """Scrolls down till the Task is fully visible."""
+        """
+        Scrolls to make the Task visible if it's not already fully visible in the viewport.
+        Also highlights the task briefly.
+        """
         task_widget = self._get_task_widget(task)
         if not task_widget:
             logger.warning(f"Task widget not found to scroll to for Task {DM.get_task_id_log(task.task_id)}")
             return
         
-        self.scroll_container.scroll_view.scroll_to(task_widget, animate=True)
-
+        # Scroll if not visible
+        if not is_widget_visible(task_widget, self.scroll_container.scroll_view):
+            self.scroll_container.scroll_view.scroll_to(task_widget, animate=True)
+        
+        # Highlight
         Clock.schedule_once(lambda dt: self._highlight_task(task_widget), 0.3)
         Clock.schedule_once(lambda dt: self._unhighlight_task(task_widget), 2.5)
-        logger.debug(f"Scrolled to Task {DM.get_task_id_log(task.task_id)}")
     
     def _highlight_task(self, task_widget: "TaskInfoLabel", *args) -> None:
         """
