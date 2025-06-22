@@ -30,8 +30,9 @@ backups/
 *.db-shm
 *.db-wal
 
-# Task file
+# Files
 src/assets/task_file.json
+src/assets/images/bgtask_screenshot.png
 
 # Other
 playground.py
