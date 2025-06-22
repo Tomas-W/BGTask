@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from src.app_managers.app_expiry_manager import AppExpiryManager
     from src.app_managers.app_communication_manager import AppCommunicationManager
 
+
 class TaskManager(EventDispatcher):
     """
     Manages Tasks and their storage using JSON.
@@ -37,8 +38,13 @@ class TaskManager(EventDispatcher):
 
         # Task file
         self.task_file_path: str = DM.PATH.TASK_FILE
-        if not DM.validate_file(self.task_file_path):
+        if not self.validate_task_data():
+            self._reset_task_file()
             return
+        
+        # Remove old task groups
+        # Need to schedule daily
+        self.remove_old_task_groups()
 
         # Task groups
         self.task_groups: list[TaskGroup] = self.get_task_groups()
@@ -53,7 +59,7 @@ class TaskManager(EventDispatcher):
         
         Clock.schedule_interval(self.expiry_manager.check_task_expiry, 1)
     
-    def _get_task_data(self) -> dict[str, list[dict[str, Any]]]:
+    def get_task_data(self) -> dict[str, list[dict[str, Any]]]:
         """Returns a dictionary of Tasks from the Task file."""
         try:
             with open(self.task_file_path, "r") as f:
@@ -63,6 +69,80 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error getting Task data: {e}")
             return {}
+    
+    @log_time("is_valid_task_data")
+    def validate_task_data(self) -> bool:
+        """
+        Validates that the data is a valid task data structure.
+        Returns True if valid, False otherwise.
+        """
+        data = self.get_task_data()
+
+        if not isinstance(data, dict):
+            return False
+        
+        for date_key, tasks_data in data.items():
+            # Check date_key isstring
+            if not isinstance(date_key, str):
+                logger.error(f"Error validating TaskData, date_key != str: {type(date_key)=}")
+                return False
+            
+            # Check tasks_data is list
+            if not isinstance(tasks_data, list):
+                logger.error(f"Error validating TaskData, tasks_data != list: {type(tasks_data)=}")
+                return False
+            
+            # Check Tasks are dicts
+            for task_data in tasks_data:
+                if not isinstance(task_data, dict):
+                    logger.error(f"Error validating TaskData, task_data != dict: {type(task_data)=}")
+                    return False
+        
+        return True
+    
+    def _reset_task_file(self) -> None:
+        """Saves empty JSON to file."""
+        try:
+            with open(self.task_file_path, "w") as f:
+                json.dump({}, f, indent=2)
+        
+        except Exception as e:
+            logger.error(f"Error resetting Task file: {e}")
+    
+    @log_time("remove_old_task_groups")
+    def remove_old_task_groups(self) -> None:
+        """
+        Removes TaskGroups that are older than TASK_HISTORY_DAYS.
+        """
+        try:
+            data = self.get_task_data()
+            if not data:
+                return
+            
+            # Get earliest date to keep
+            earliest_date = datetime.now().date() - timedelta(days=TaskManager.TASK_HISTORY_DAYS)
+            earliest_date_str = earliest_date.isoformat()
+
+            # Remove old TaskGroups
+            old_groups_removed = False
+            keys_to_remove = []
+            for date_key in data.keys():
+                if date_key < earliest_date_str:
+                    keys_to_remove.append(date_key)
+                    old_groups_removed = True
+            
+            # Remove old keys
+            for key in keys_to_remove:
+                del data[key]
+            
+            # Save if needed
+            if old_groups_removed:
+                with open(self.task_file_path, "w") as f:
+                    json.dump(data, f, indent=2)
+                logger.debug(f"Removed {len(keys_to_remove)} old TaskGroups")
+        
+        except Exception as e:
+            logger.error(f"Error removing old TaskGroups: {e}")
     
     @log_time("get_task_groups")
     def get_task_groups(self) -> list[TaskGroup]:
@@ -85,18 +165,6 @@ class TaskManager(EventDispatcher):
         except Exception as e:
             logger.error(f"Error loading Task groups: {e}")
             return []
-    
-    def get_task_data(self) -> dict[str, list[dict[str, Any]]]:
-        """Returns a dictionary of Tasks from the Task file."""
-        try:
-            with open(self.task_file_path, "r") as f:
-                data = json.load(f)
-                # Check is valid json
-            return data
-        
-        except Exception as e:
-            logger.error(f"Error getting Task data: {e}")
-            return {}
     
     def _extract_task_data(self, data: dict[str, list[dict[str, Any]]], earliest_date: datetime) -> list[Task]:
         """Extracts the Task data from the Task file."""
