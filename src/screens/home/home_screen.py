@@ -1,6 +1,10 @@
 from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
+from kivy.graphics import Color, Rectangle
+from kivy.uix.widget import Widget
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
 
 from src.screens.base.base_screen import BaseScreen
 from src.screens.home.home_screen_utils import HomeScreenUtils
@@ -10,7 +14,7 @@ from managers.device.device_manager import DM
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
 from src.utils.misc import is_widget_visible
-from src.settings import SIZE, SPACE
+from src.settings import COL, SIZE
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -20,12 +24,56 @@ if TYPE_CHECKING:
     from managers.tasks.task import Task
 
 
+class SwipeBar(Widget):
+    MAX_WIDTH_HINT = 0.016
+
+    """
+    Shows SwipeBar when swiping horizontally.
+    Bar is red when no previous/next TaskGroup, transparent otherwise.
+    Side of the SwipeBar is determined by the swipe direction.
+    """
+    def __init__(self, task_manager: "TaskManager", is_left: bool = True, **kwargs):
+        super().__init__(
+            size_hint=(None, 1),
+            width=0, 
+            **kwargs
+        )
+        self.task_manager: "TaskManager" = task_manager
+        self.is_left: bool = is_left
+        self.COL: tuple[float, float, float, float] = COL.SWIPE_BAR
+        
+        with self.canvas:
+            self.color = Color(*self.COL)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+        
+        self.bind(pos=self._update_rect, size=self._update_rect)
+    
+    def _update_rect(self, *args):
+        """
+        Updates the SwipeBar's position and size.
+        Only shows the bar when there is no previous/next TaskGroup.
+        """
+        if self.is_left:
+            self.rect.pos = self.pos
+            # Red if no previous group, transparent otherwise
+            has_prev = (self.task_manager.task_group_index > 0)
+            self.color.rgba = (*self.COL[:3], 0.0 if has_prev else self.COL[3])
+        else:
+            self.rect.pos = (self.parent.width - self.width, self.pos[1])
+            # Red if no next group, transparent otherwise
+            has_next = (self.task_manager.task_group_index < len(self.task_manager.task_groups) - 1)
+            self.color.rgba = (*self.COL[:3], 0.0 if has_next else self.COL[3])
+        
+        self.rect.size = self.size
+
+
 class HomeScreen(BaseScreen, HomeScreenUtils):
     """
     HomeScreen is the main screen for the app that:
     - Has a TopBar with options
     - Has a navigation bar for selecting dates
     - Displays a list of Tasks for the selected date
+    - Has swipe bars to indicate if there is a previous or next TaskGroup
     """
     def __init__(self, app: "TaskApp", **kwargs):
         super().__init__(**kwargs)
@@ -39,6 +87,12 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.selected_task: "Task" | None = None
         self.selected_label: "TaskInfoLabel" | None = None
 
+        # Swiping
+        self._touch_start_x: float = 0
+        self._touch_start_y: float = 0
+        self._swipe_threshold: float = SIZE.SWIPE_THRESHOLD
+        self._vertical_threshold: float = SIZE.SWIPE_THRESHOLD * 0.7
+
         # TopBar
         top_left_callback = self.navigate_to_wallpaper_screen
         top_bar_callback = self.navigate_to_new_task_screen
@@ -47,25 +101,34 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
 
+        # Containers
+        self.main_content = BoxLayout(orientation='vertical', size_hint=(1, 1))
+        self.swipe_container = RelativeLayout(size_hint=(1, 1))
+
         # TaskNavigator
         self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group,
-                                            task_manager=self.task_manager)
-        self.layout.add_widget(self.task_navigator, index=1)
+                                          task_manager=self.task_manager)
+        self.main_content.add_widget(self.task_navigator)
 
-        # Edit padding top
-        self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_S]
-        
+        # Move ScrollContainer: BaseScreen.layout -> main_content
+        self.layout.remove_widget(self.scroll_container)
+        self.main_content.add_widget(self.scroll_container)
+
+        # Main content first
+        self.swipe_container.add_widget(self.main_content)
+        # Feedback bars last
+        self.left_swipe_bar = SwipeBar(self.task_manager, is_left=True)
+        self.right_swipe_bar = SwipeBar(self.task_manager, is_left=False)
+        self.swipe_container.add_widget(self.left_swipe_bar)
+        self.swipe_container.add_widget(self.right_swipe_bar)
+        # Add swipe container
+        self.layout.add_widget(self.swipe_container)
+
         # Edit and delete buttons
         self.create_floating_action_buttons()
 
         # Build Screen
         self._init_home_screen()
-
-        # Swiping
-        self._touch_start_x: float = 0
-        self._touch_start_y: float = 0
-        self._swipe_threshold: float = SIZE.SWIPE_THRESHOLD
-        self._vertical_threshold: float = SIZE.SWIPE_THRESHOLD * 0.8
 
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
@@ -208,25 +271,63 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             task_widget.set_selected(False)
 
     def on_touch_down(self, touch):
-        """Sets the touch start coordinates for swipe gestures."""
+        """Reset feedback bars and store touch position."""
         if self.collide_point(*touch.pos):
             self._touch_start_x = touch.x
             self._touch_start_y = touch.y
+            # Reset bars
+            self.left_swipe_bar.width = 0
+            self.right_swipe_bar.width = 0
+            touch.ud["was_swiped"] = False  # was_swiped blocks Task selection
         return super().on_touch_down(touch)
     
+    def on_touch_move(self, touch):
+        """
+        Handles touch movement:
+        - If horizontal movement - show swipe bar
+        - If vertical movement - let scroll view handle it
+        """
+        if self.collide_point(*touch.pos):
+            # Calculate movement
+            swipe_distance_x = abs(touch.x - self._touch_start_x)
+            swipe_distance_y = abs(touch.y - self._touch_start_y)
+            
+            # If horizontal movement - show SwipeBar
+            if swipe_distance_x > swipe_distance_y:
+                touch.ud["was_swiped"] = True  # was_swiped blocks Task selection
+                max_width = self.width * SwipeBar.MAX_WIDTH_HINT
+                
+                if (touch.x - self._touch_start_x) > 0:
+                    # Swiping right - show left bar
+                    width = min(swipe_distance_x / 8, max_width)
+                    self.left_swipe_bar.width = width
+                    self.right_swipe_bar.width = 0
+                else:
+                    # Swiping left - show right bar
+                    width = min(swipe_distance_x / 8, max_width)
+                    self.right_swipe_bar.width = width
+                    self.left_swipe_bar.width = 0
+                return True
+            else:
+                # Vertical movement - let scroll view handle it
+                self.left_swipe_bar.width = 0
+                self.right_swipe_bar.width = 0
+                return self.scroll_container.on_touch_move(touch)
+
     def on_touch_up(self, touch):
-        """
-        If swipe_x > swipe_threshold and swipe_y < vertical_threshold,
-        go to previous or next TaskGroup.
-        """
+        """Resets swipe bars and handles swipe."""
         if self.collide_point(*touch.pos):
             # Calculate movement
             swipe_distance_x = touch.x - self._touch_start_x
             swipe_distance_y = abs(touch.y - self._touch_start_y)
             
+            # Reset bars
+            self.left_swipe_bar.width = 0
+            self.right_swipe_bar.width = 0
+            
             # Trigger if conditions met
             if (abs(swipe_distance_x) > self._swipe_threshold and 
-                swipe_distance_y < self._vertical_threshold):
+                swipe_distance_y < abs(swipe_distance_x) * 0.7):
                 
                 if swipe_distance_x > 0:
                     # Swipe right

@@ -44,6 +44,7 @@ class TaskManager(EventDispatcher):
         # Task groups
         self.task_groups: list[TaskGroup] = self.get_task_groups()
         self.current_task_group: TaskGroup | None = self.get_current_task_group()
+        self.task_group_index: int
 
         # New/Edit Task attributes
         self.selected_date: datetime | None = None
@@ -97,21 +98,25 @@ class TaskManager(EventDispatcher):
         # No TaskGroups
         if not self.task_groups:
             self._set_welcome_task_group()
+            self.task_group_index = 0
             return self.task_groups[0]
 
         # Get nearest future TaskGroup
         if task is None:
-            for task_group in self.task_groups:
+            for i, task_group in enumerate(self.task_groups):
                 if task_group.date_str >= datetime.now().date().isoformat():
+                    self.task_group_index = i
                     return task_group
             # No upcoming TaskGroups
             self._set_welcome_task_group()
+            self.task_group_index = 0
             return self.task_groups[0]
             
         # Get Task's TaskGroup
         date_key = task.get_date_key()
-        for task_group in self.task_groups:
+        for i, task_group in enumerate(self.task_groups):
             if task_group.date_str >= date_key and task_group.tasks:
+                self.task_group_index = i
                 return task_group
         
         logger.critical(f"No TaskGroup found for date: {date_key}")
@@ -299,33 +304,54 @@ class TaskManager(EventDispatcher):
         logger.critical("Refreshing Task groups")
         self.task_groups = self.get_task_groups()
     
-    def go_to_prev_task_group(self) -> None:
+    def get_prev_task_group(self) -> TaskGroup | None:
         """
         Gets the previous TaskGroup.
         """
         for i, task_group in enumerate(self.task_groups):
             if task_group.date_str == self.current_task_group.date_str:
                 if i > 0:
-                    self.update_home_after_changes(self.task_groups[i - 1].date_str)
-                return
+                    return self.task_groups[i - 1]
+        return None
     
-    def go_to_next_task_group(self) -> TaskGroup | None:
+    def go_to_prev_task_group(self) -> None:
+        """
+        Gets the previous TaskGroup.
+        """
+        prev_task_group = self.get_prev_task_group()
+        if prev_task_group is None:
+            return
+        
+        self.update_home_after_changes(prev_task_group.date_str)
+    
+    def get_next_task_group(self) -> TaskGroup | None:
         """
         Gets the next TaskGroup.
         """
         for task_group in self.task_groups:
             if task_group.date_str > self.current_task_group.date_str:
-                self.update_home_after_changes(task_group.date_str)
-                return
+                return task_group
+        return None
+    
+    def go_to_next_task_group(self) -> TaskGroup | None:
+        """
+        Gets the next TaskGroup.
+        """
+        next_task_group = self.get_next_task_group()
+        if next_task_group is None:
+            return
+        
+        self.update_home_after_changes(next_task_group.date_str)
     
     def update_home_after_changes(self, date_key: str) -> None:
         """
         Updates the current TaskGroup and refreshes the HomeScreen to display the correct TaskGroup.
         """
         found = False
-        for group in self.task_groups:
-            if group.date_str == date_key:
-                self.current_task_group = group
+        for i, task_group in enumerate(self.task_groups):
+            if task_group.date_str == date_key:
+                self.current_task_group = task_group
+                self.task_group_index = i
                 found = True
                 break
         

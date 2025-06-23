@@ -1,6 +1,3 @@
-import time
-
-from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from kivy.animation import Animation
@@ -8,12 +5,10 @@ from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 
-from src.screens.home.home_widgets import TaskGroupWidget, TaskNavigator
+from src.screens.home.home_widgets import TaskGroupWidget
 
-from managers.tasks.task import Task, TaskGroup
 from managers.device.device_manager import DM
-
-from src.utils.wrappers import disable_gc, log_time
+from src.utils.wrappers import disable_gc
 from src.utils.logger import logger
 from src.settings import COL, FONT, SIZE, SPACE
 
@@ -21,7 +16,8 @@ if TYPE_CHECKING:
     from main import TaskApp
     from src.app_managers.navigation_manager import NavigationManager
     from src.app_managers.app_task_manager import TaskManager
-    from src.screens.home.home_widgets import TaskInfoLabel
+    from managers.tasks.task import Task
+    from src.screens.home.home_widgets import TaskInfoLabel, TaskNavigator
 
 
 class HomeScreenUtils:
@@ -32,6 +28,7 @@ class HomeScreenUtils:
         self.app: "TaskApp"
         self.navigation_manager: "NavigationManager"
         self.task_manager: "TaskManager"
+        self.task_navigator: "TaskNavigator"
     
 # ########## REFRESHING ########## #
     def _init_home_screen(self, *args) -> None:
@@ -57,22 +54,17 @@ class HomeScreenUtils:
         If no TaskGroup is set, it will get the nearest future TaskGroup or welcome TaskGroup.
         """
         self.deselect_task()
-        
-        # Update TaskNavigator
-        self.layout.remove_widget(self.task_navigator)
-        self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group, task_manager=self.task_manager)
-        self.layout.add_widget(self.task_navigator, index=1)
-        
+        # Update Navigator
+        self.task_navigator.update_task_group(self.task_manager.current_task_group)
         # Update TaskGroupWidget
         self.scroll_container.container.clear_widgets()
         task_group_widget = TaskGroupWidget(task_group=self.task_manager.current_task_group)
         self.scroll_container.container.add_widget(task_group_widget)
-
         # Refresh WallpaperScreen
         self.app.get_screen(DM.SCREEN.WALLPAPER).refresh_wallpaper_screen()
         
 # ########## SELECTING ########## #
-    def select_task(self, task: Task, label: "TaskInfoLabel" = None) -> None:
+    def select_task(self, task: "Task", label: "TaskInfoLabel" = None) -> None:
         """Selects a Task and shows the floating action buttons."""
         # Deselect previous task if any
         if self.selected_label:

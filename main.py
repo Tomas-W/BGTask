@@ -54,7 +54,6 @@ if platform != "android":
 # TODO: Trigger vibrate when App in foreground?
 
 # PopupManager
-# TODO: Add snooze B and restructure popup
 
 
 # BaseScreen
@@ -71,7 +70,6 @@ if platform != "android":
 
 # SelectDateScreen
 # TODO: Optimize layout / widgets
-# TODO: Wider input field for better selecting
 
 
 # SelectAlarmScreen
@@ -85,7 +83,6 @@ if platform != "android":
 # General
 # TODO: Non confim buttons must be custom buttons, regular color is active, active color is custom confirm active
 # TODO: When AudioManager is initialized without audio player, prevent audio functionality
-# TODO: Button feedback
 # TODO: Look at caching
 
 # Service

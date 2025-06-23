@@ -11,8 +11,6 @@ from src.widgets.buttons import SettingsButton
 from managers.tasks.task import TaskGroup
 from managers.device.device_manager import DM
 
-from src.utils.timer import TIMER
-from src.utils.wrappers import log_time
 from src.utils.logger import logger
 from src.settings import SPACE, SIZE, COL, FONT, STATE
 
@@ -295,6 +293,22 @@ class TaskNavigator(BoxLayout):
         
         return week_days
 
+    def update_task_group(self, task_group: "TaskGroup") -> None:
+        """Updates the TaskNavigator with a new TaskGroup without rebuilding the widget."""
+        self.task_group = task_group
+        
+        # Update date label and day labels
+        selected_date = datetime.strptime(self.task_group.date_str, DM.DATE.DATE_KEY).date()
+        # Find the start of the week (Monday)
+        days_since_monday = selected_date.isoweekday() - 1
+        week_start = selected_date - timedelta(days=days_since_monday)
+        self.current_week_start = week_start
+        
+        # Update displays
+        self.date_label.text = self._get_date_display(week_start)
+        self._update_date_label_color(week_start)
+        self._setup_day_labels_for_week(week_start)
+
 
 class TaskGroupWidget(BoxLayout):
     """
@@ -460,11 +474,15 @@ class TaskInfoLabel(Label):
             else:
                 self.bg_color.rgba = COL.TASK_ACTIVE
     
-    def on_touch_down(self, touch) -> None:
-        """Handles the touch down event."""
+    def on_touch_up(self, touch) -> None:
+        """Handles the touch up event."""
+        # Don't handle if swiping
+        if touch.ud.get("was_swiped", False):
+            return False
+
         # If not clickable (WallpaperScreen), do not allow selection
         if not self.collide_point(*touch.pos) or not self.task_id or not self.clickable:
-            return super().on_touch_down(touch)
+            return super().on_touch_up(touch)
         
         home_screen = self._find_home_screen()
         if not home_screen:

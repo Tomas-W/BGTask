@@ -22,6 +22,7 @@ class Colors:
 
     ERROR = (1, 0.35, 0.35, 0.7)
     SNOOZE = (1, 0.35, 0.35, 1.0)
+    SWIPE_BAR = (1, 0.35, 0.35, 0.5)
 
     CANCEL_BUTTON = (0.7, 0.7, 0.7, 1.0)
 
@@ -78,7 +79,7 @@ class Sizes:
     CALENDAR_HEADER_HEIGHT = dp(50)
     CALENDAR_HEIGHT = dp(200)
 
-    SWIPE_THRESHOLD = dp(60)
+    SWIPE_THRESHOLD = dp(70)
 
 
 class Spacing:
