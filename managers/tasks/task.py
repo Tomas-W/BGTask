@@ -91,7 +91,7 @@ class Task:
         seconds = self.snooze_time % 60
         
         # Build the string, only including non-zero parts
-        # Only uses d/h or h/m or m/s
+        # Only uses d/h or h/m or m/s or s
         parts = []
         if days > 0:
             parts.append(f"{days}d")
@@ -107,6 +107,9 @@ class Task:
             parts.append(f"{minutes}m")
             if seconds > 0:
                 parts.append(f"{seconds}s")
+        
+        elif seconds > 0:
+            parts.append(f"{seconds}s")
         
         return "".join(parts)
     
