@@ -6,7 +6,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 
-from src.widgets.fields import InputField
 from src.settings import COL, FONT, SIZE, SPACE, STYLE
 
 
@@ -128,7 +127,7 @@ class DateTimeLabel(ButtonBehavior, Label):
                     radius=[STYLE.RADIUS_S]
                 )
 
-        # Update text appearance
+        # Update text style
         self.color = COL.TEXT_GREY
         self.set_bold(self._is_selected)
         self.bind(pos=self._update_graphics, size=self._update_graphics)
@@ -164,18 +163,14 @@ class TimeInputField(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(
             orientation="horizontal",
-            size_hint=(1, None),
+            size_hint=(0.45, None),
             height=SIZE.HEADER_HEIGHT * 2,
-            padding=[SPACE.SPACE_S, 0],
             **kwargs
         )
         
         self.border_width = STYLE.BORDER_WIDTH
-
-        # Bind to parent to adjust its width
-        self.bind(parent=self._on_parent)
         
-        # Create background and border
+        # Background and border
         with self.canvas.before:
             Color(*COL.FIELD_INPUT)
             self.bg_rect = RoundedRectangle(
@@ -202,7 +197,7 @@ class TimeInputField(BoxLayout):
             size_hint=(0.2, 1),
             multiline=False,
             font_size=FONT.HEADER,
-            background_color=COL.OPAQUE,  # Transparent background
+            background_color=COL.OPAQUE,
             foreground_color=COL.TEXT,
             padding=[FONT.HEADER/3],
             halign="right",
@@ -225,7 +220,7 @@ class TimeInputField(BoxLayout):
             size_hint=(0.2, 1),
             multiline=False,
             font_size=FONT.HEADER,
-            background_color=COL.OPAQUE,  # Transparent background
+            background_color=COL.OPAQUE,
             foreground_color=COL.TEXT,
             padding=[FONT.HEADER/3],
             halign="left",
@@ -234,17 +229,13 @@ class TimeInputField(BoxLayout):
         )
         self.minutes_input.bind(text=self._limit_minutes_input)
         
-        # Add widgets directly to this container
         self.add_widget(self.hours_input)
         self.add_widget(self.colon_label)
         self.add_widget(self.minutes_input)
 
-    def _on_parent(self, instance, value):
+    def _on_width(self, instance, value):
         """Adjust parent's width when TimeInputField is added to it"""
-        if value:  # If we have a parent
-            # Set parent's size_hint_x to 1 to allow child control
-            value.size_hint_x = 0.4
-            # Set parent's width to match our desired width
+        if value:
             value.width = self.width
 
     def _limit_hours_input(self, instance, value):
