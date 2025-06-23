@@ -40,10 +40,7 @@ class NewTaskScreen(BaseScreen):
 
         # TopBar title
         self.top_bar.bar_title.set_text("New Task")
-
-        self.scroll_container.container.spacing = SPACE.SPACE_L
-        self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_XL]
-
+        
         # Date picker partition
         self.date_picker_partition = Partition()
         # Date picker button
