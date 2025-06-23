@@ -20,7 +20,7 @@ class Timer:
         times = self.logs[name]
         times[1] = time.time()
         self.logs[name] = times
-        logger.timing(f"Loading {name} took: {self.get_time(name)}")
+        logger.timing(self.get_time(name))
     
     def get_time(self, name: str):
         if name not in self.logs:
