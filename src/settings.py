@@ -78,6 +78,8 @@ class Sizes:
     CALENDAR_HEADER_HEIGHT = dp(50)
     CALENDAR_HEIGHT = dp(200)
 
+    SWIPE_THRESHOLD = dp(60)
+
 
 class Spacing:
     SPACE_XS = dp(5)

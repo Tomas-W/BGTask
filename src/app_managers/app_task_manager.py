@@ -116,7 +116,7 @@ class TaskManager(EventDispatcher):
         
         logger.critical(f"No TaskGroup found for date: {date_key}")
         return None
-
+    
     def _set_welcome_task_group(self) -> None:
         """Sets the welcome TaskGroup in the TaskManager."""
         first_task = Task(
@@ -298,6 +298,25 @@ class TaskManager(EventDispatcher):
         """
         logger.critical("Refreshing Task groups")
         self.task_groups = self.get_task_groups()
+    
+    def go_to_prev_task_group(self) -> None:
+        """
+        Gets the previous TaskGroup.
+        """
+        for i, task_group in enumerate(self.task_groups):
+            if task_group.date_str == self.current_task_group.date_str:
+                if i > 0:
+                    self.update_home_after_changes(self.task_groups[i - 1].date_str)
+                return
+    
+    def go_to_next_task_group(self) -> TaskGroup | None:
+        """
+        Gets the next TaskGroup.
+        """
+        for task_group in self.task_groups:
+            if task_group.date_str > self.current_task_group.date_str:
+                self.update_home_after_changes(task_group.date_str)
+                return
     
     def update_home_after_changes(self, date_key: str) -> None:
         """

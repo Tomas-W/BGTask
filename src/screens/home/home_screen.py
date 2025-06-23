@@ -4,21 +4,19 @@ from kivy.clock import Clock
 
 from src.screens.base.base_screen import BaseScreen
 from src.screens.home.home_screen_utils import HomeScreenUtils
+from src.screens.home.home_widgets import TaskNavigator
 
 from managers.device.device_manager import DM
-
-from src.screens.home.home_widgets import TaskNavigator
-from src.settings import SPACE
 from src.utils.wrappers import android_only
 from src.utils.logger import logger
 from src.utils.misc import is_widget_visible
+from src.settings import SIZE, SPACE
 
 if TYPE_CHECKING:
     from main import TaskApp
-    from src.screens.home.home_widgets import TaskInfoLabel
     from src.app_managers.navigation_manager import NavigationManager
     from src.app_managers.app_task_manager import TaskManager
-    from src.screens.home.home_widgets import TaskGroupWidget
+    from src.screens.home.home_widgets import TaskGroupWidget, TaskInfoLabel
     from managers.tasks.task import Task
 
 
@@ -62,6 +60,12 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # Build Screen
         self._init_home_screen()
+
+        # Swiping
+        self._touch_start_x: float = 0
+        self._touch_start_y: float = 0
+        self._swipe_threshold: float = SIZE.SWIPE_THRESHOLD
+        self._vertical_threshold: float = SIZE.SWIPE_THRESHOLD * 0.8
 
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
@@ -202,3 +206,34 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         """
         if task_widget is not None:
             task_widget.set_selected(False)
+
+    def on_touch_down(self, touch):
+        """Sets the touch start coordinates for swipe gestures."""
+        if self.collide_point(*touch.pos):
+            self._touch_start_x = touch.x
+            self._touch_start_y = touch.y
+        return super().on_touch_down(touch)
+    
+    def on_touch_up(self, touch):
+        """
+        If swipe_x > swipe_threshold and swipe_y < vertical_threshold,
+        go to previous or next TaskGroup.
+        """
+        if self.collide_point(*touch.pos):
+            # Calculate movement
+            swipe_distance_x = touch.x - self._touch_start_x
+            swipe_distance_y = abs(touch.y - self._touch_start_y)
+            
+            # Trigger if conditions met
+            if (abs(swipe_distance_x) > self._swipe_threshold and 
+                swipe_distance_y < self._vertical_threshold):
+                
+                if swipe_distance_x > 0:
+                    # Swipe right
+                    self.task_manager.go_to_prev_task_group()
+                else:
+                    # Swipe left
+                    self.task_manager.go_to_next_task_group()
+                return True
+        
+        return super().on_touch_up(touch)
