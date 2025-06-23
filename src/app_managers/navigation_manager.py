@@ -88,7 +88,7 @@ class NavigationManager:
         if screen_name:
             for i, screen in enumerate(self.history):
                 if screen == screen_name:
-                    self.history = self.history[:i]
+                    self.history = self.history[:i+1]
                     break
         else:
             self.history = []
