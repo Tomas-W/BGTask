@@ -94,15 +94,22 @@ class TaskManager(EventDispatcher):
         """
         Gets the current TaskGroup, the TaskGroup of the given Task or the welcome TaskGroup.
         """
+        # No TaskGroups
         if not self.task_groups:
             self._set_welcome_task_group()
             return self.task_groups[0]
 
+        # Get nearest future TaskGroup
         if task is None:
-            date_key = datetime.now().date().isoformat()
-        else:
-            date_key = task.get_date_key()
-        
+            for task_group in self.task_groups:
+                if task_group.date_str >= datetime.now().date().isoformat():
+                    return task_group
+            # No upcoming TaskGroups
+            self._set_welcome_task_group()
+            return self.task_groups[0]
+            
+        # Get Task's TaskGroup
+        date_key = task.get_date_key()
         for task_group in self.task_groups:
             if task_group.date_str >= date_key and task_group.tasks:
                 return task_group
