@@ -7,15 +7,15 @@ from src.screens.base.base_screen import BaseScreen
 from .select_date_utils import SelectDateUtils
 from .select_date_widgets import TimeInputField
 
-from src.widgets.buttons import ConfirmButton, CancelButton
-from src.widgets.containers import CustomButtonRow, Partition, CustomRow
+from src.widgets.buttons import ConfirmButton, CancelButton, SettingsButton
+from src.widgets.containers import CustomButtonRow, Partition, CustomRow, CustomSettingsButtonRow
 from src.widgets.labels import PartitionHeader
 
 from managers.popups.popup_manager import POPUP
 
 from managers.device.device_manager import DM
 from src.utils.logger import logger
-from src.settings import SPACE, STATE
+from src.settings import SPACE, STATE, COL
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -37,29 +37,35 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         # TopBar title
         self.top_bar.bar_title.set_text("Select Date")
 
+        self.scroll_container.container.spacing = SPACE.SPACE_XL
+
         # Select month partition
         self.select_month_partition = Partition()
         # Select month row
-        self.select_month_row = CustomButtonRow()
+        self.select_month_row = CustomSettingsButtonRow()
         # Previous month button
-        self.prev_month_button = ConfirmButton(
+        self.prev_month_button = SettingsButton(
             text="<",
             width=0.6,
             symbol=True,
             color_state=STATE.ACTIVE,
+            color=COL.TEXT,
+            bg_color=COL.TASK_SELECTED,
         )
-        self.prev_month_button.bind(on_release=self.go_to_prev_month)
+        self.prev_month_button.bind(on_press=self.go_to_prev_month)
         # Select month label
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
         # Next month button
-        self.next_month_button = ConfirmButton(
+        self.next_month_button = SettingsButton(
             text=">",
             width=0.6,
             symbol=True,
             color_state=STATE.ACTIVE,
+            color=COL.TEXT,
+            bg_color=COL.TASK_SELECTED,
         )
-        self.next_month_button.bind(on_release=self.go_to_next_month)
+        self.next_month_button.bind(on_press=self.go_to_next_month)
         # Apply month row
         self.select_month_row.add_widget(self.prev_month_button)
         self.select_month_row.add_widget(self.month_label)
