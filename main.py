@@ -1,5 +1,6 @@
 from src.utils.timer import TIMER
 TIMER.start("start")
+TIMER.start("start_home_screen")
 
 from src.utils.logger import logger
 logger.timing(f"Starting main.py")
@@ -15,19 +16,15 @@ TIMER.stop("start_kivy")
 logger.timing(f"Loading Kivy took: {TIMER.get_time('start_kivy')}")
 
 from managers.device.device_manager import DM
-from src.utils.wrappers import log_time
+from src.utils.wrappers import android_only, log_time
 
+Window.clearcolor = (0.93, 0.93, 0.93, 1.0)
 
 if platform != "android":
     Window.size = (360, 736)
     Window.dpi = 100
     Window.left = -386
     Window.top = 316
-
-# from typing import TYPE_CHECKING
-
-# if TYPE_CHECKING:
-#     from managers.tasks.task import Task
 
 # import gc
 # # Add GC logging
@@ -94,6 +91,11 @@ TIMER.start("start_app")
 class TaskApp(App, EventDispatcher):
     """
     TaskApp is the main class that is used to run the App.
+    - Loads HomeScreen
+    - Hides loading screen
+    - Loads rest of the App
+    - Starts service if needed
+    - Logs loading times
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)        
@@ -114,7 +116,7 @@ class TaskApp(App, EventDispatcher):
         self.expiry_manager._connect_task_manager(self.task_manager)
         
         self._init_home_screen()
-        
+        logger.info("Returning screen manager")
         return self.screen_manager
     
     def get_screen(self, screen_name):
@@ -124,32 +126,33 @@ class TaskApp(App, EventDispatcher):
         """
         Loads rest of the App.
         """
-        Clock.schedule_once(self._load_app, 0.4)
+        Clock.schedule_once(self.get_screen(DM.SCREEN.HOME)._construct_home_screen, 0)
+        Clock.schedule_once(self._load_app, 0.3)
     
     def _load_app(self, *args):
         """
         Called when HomeScreen is finished loading.
         """
-        self._init_audio_manager()
+        logger.info("Loading rest of the App")
 
-        self._init_communication_manager()
-        self.expiry_manager._connect_communication_manager(self.communication_manager)
-        self.task_manager._connect_communication_manager(self.communication_manager)
-
-        self._init_popup_manager()
-
-        self._init_wallpaper_screen()
-
-        self._init_new_task_screen()
-        self._init_settings_screen()
-
-        self._init_select_date_screen()
-        self._init_select_alarm_screen()
-        self._init_saved_alarm_screen()
-
-        self._init_service_permissions()
-
-        self._log_loading_times()
+        content = {
+            self._init_audio_manager: 0.05,
+            self._init_communication_manager: 0.26,
+            self._init_popup_manager: 0.1,
+            self._init_wallpaper_screen: 0.05,
+            self._init_new_task_screen: 0.05,
+            self._init_settings_screen: 0.05,
+            self._init_select_date_screen: 0.15,
+            self._init_select_alarm_screen: 0.05,
+            self._init_saved_alarm_screen: 0.05,
+            self._init_service_permissions: 0.05,
+            self.check_need_to_start_service: 0.1,
+            self._log_loading_times: 0,
+        }
+        time = 0
+        for func, delay in content.items():
+            Clock.schedule_once(func, time)
+            time += delay
     
     ###############################################
     ################### EVENTS ####################
@@ -169,7 +172,8 @@ class TaskApp(App, EventDispatcher):
         Called after HomeScreen's pre_enter.
         """
         super().on_start()
-        print("ON START ON START ON START ON START ON START ON START")
+        logger.info("App is starting")
+        Clock.schedule_once(self.load_app, 0.1)
 
     def on_resume(self):
         """
@@ -198,11 +202,26 @@ class TaskApp(App, EventDispatcher):
     ###############################################
     ################### MISC ######################
     @log_time("ServicePermissions")
-    def _init_service_permissions(self):
+    def _init_service_permissions(self, *args):
         from src.app_managers.permission_manager import PM
         PM.validate_permission(PM.POST_NOTIFICATIONS)
         PM.validate_permission(PM.REQUEST_SCHEDULE_EXACT_ALARM)
         PM.validate_permission(PM.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+    
+    @log_time("check_need_to_start_service")
+    @android_only
+    def check_need_to_start_service(self, *args) -> None:
+        """
+        Checks if the service needs to be started.
+        """
+        # Start if not running
+        from src.utils.background_service import is_service_running
+        if not is_service_running():
+            from src.utils.background_service import start_background_service
+            start_background_service()
+            logger.debug("Service started")
+        else:
+            logger.debug("Service already running")
     
     def _log_loading_times(self, *args) -> None:
         """Logs all loading times from the TIMER."""
@@ -216,13 +235,13 @@ class TaskApp(App, EventDispatcher):
     ###############################################
     ################### MANAGERS ##################
     @log_time("ScreenManager")
-    def _init_screen_manager(self):
+    def _init_screen_manager(self, *args):
         from kivy.uix.screenmanager import ScreenManager, SlideTransition
         self.screen_manager = ScreenManager(transition=SlideTransition())
         DM.LOADED.SCREEN_MANAGER = True
     
     @log_time("NavigationManager")
-    def _init_navigation_manager(self):
+    def _init_navigation_manager(self, *args):
         from src.app_managers.navigation_manager import NavigationManager
         self.navigation_manager = NavigationManager(
             app=self,
@@ -231,31 +250,33 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.NAVIGATION_MANAGER = True
     
     @log_time("ExpiryManager")
-    def _init_expiry_manager(self):
+    def _init_expiry_manager(self, *args):
         from src.app_managers.app_expiry_manager import AppExpiryManager
         self.expiry_manager = AppExpiryManager(app=self)
         DM.LOADED.EXPIRY_MANAGER = True
     
     @log_time("TaskManager")
-    def _init_task_manager(self):
+    def _init_task_manager(self, *args):
         from src.app_managers.app_task_manager import TaskManager
         self.task_manager = TaskManager(app=self)
         DM.LOADED.TASK_MANAGER = True
     
     @log_time("CommunicationManager")
-    def _init_communication_manager(self):
+    def _init_communication_manager(self, *args):
         from src.app_managers.app_communication_manager import AppCommunicationManager
         self.communication_manager = AppCommunicationManager(app=self)
+        self.expiry_manager._connect_communication_manager(self.communication_manager)
+        self.task_manager._connect_communication_manager(self.communication_manager)
         DM.LOADED.COMMUNICATION_MANAGER = True
     
     @log_time("PopupManager")
-    def _init_popup_manager(self):
+    def _init_popup_manager(self, *args):
         from managers.popups.popup_manager import _init_popup_manager
         _init_popup_manager(app=self)
         DM.LOADED.POPUP_MANAGER = True
     
     @log_time("AudioManager")
-    def _init_audio_manager(self):
+    def _init_audio_manager(self, *args):
         from src.app_managers.app_audio_manager import AppAudioManager
         self.audio_manager = AppAudioManager(app=self)
         DM.LOADED.AUDIO_MANAGER = True
@@ -263,7 +284,7 @@ class TaskApp(App, EventDispatcher):
     ###############################################
     ################### SCREENS ###################
     @log_time("HomeScreen")
-    def _init_home_screen(self):
+    def _init_home_screen(self, *args):
         from src.screens.home.home_screen import HomeScreen
         self.screens = {
             DM.SCREEN.HOME: HomeScreen(name=DM.SCREEN.HOME,
@@ -273,7 +294,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.HOME_SCREEN = True
 
     @log_time("WallpaperScreen")
-    def _init_wallpaper_screen(self):
+    def _init_wallpaper_screen(self, *args):
         from src.screens.wallpaper.wallpaper_screen import WallpaperScreen
         self.screens[DM.SCREEN.WALLPAPER] = WallpaperScreen(name=DM.SCREEN.WALLPAPER,
                                                           app=self)
@@ -281,7 +302,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.WALLPAPER_SCREEN = True
 
     @log_time("NewTaskScreen")
-    def _init_new_task_screen(self):
+    def _init_new_task_screen(self, *args):
         from src.screens.new_task.new_task_screen import NewTaskScreen
         self.screens[DM.SCREEN.NEW_TASK] = NewTaskScreen(name=DM.SCREEN.NEW_TASK,
                                                       app=self)
@@ -289,7 +310,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.NEW_TASK_SCREEN = True
     
     @log_time("SettingsScreen")
-    def _init_settings_screen(self):
+    def _init_settings_screen(self, *args):
         from src.screens.settings.settings_screen import SettingsScreen
         self.screens[DM.SCREEN.SETTINGS] = SettingsScreen(name=DM.SCREEN.SETTINGS,
                                                       app=self)
@@ -297,7 +318,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.SETTINGS_SCREEN = True
 
     @log_time("SelectDateScreen")
-    def _init_select_date_screen(self):
+    def _init_select_date_screen(self, *args):
         from src.screens.select_date.select_date_screen import SelectDateScreen
         self.screens[DM.SCREEN.SELECT_DATE] = SelectDateScreen(name=DM.SCREEN.SELECT_DATE,
                                                             app=self)
@@ -305,7 +326,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.SELECT_DATE_SCREEN = True
     
     @log_time("SelectAlarmScreen")
-    def _init_select_alarm_screen(self):
+    def _init_select_alarm_screen(self, *args):
         from src.screens.select_alarm.select_alarm_screen import SelectAlarmScreen
         self.screens[DM.SCREEN.SELECT_ALARM] = SelectAlarmScreen(name=DM.SCREEN.SELECT_ALARM,
                                                             app=self)
@@ -313,7 +334,7 @@ class TaskApp(App, EventDispatcher):
         DM.LOADED.SELECT_ALARM_SCREEN = True
     
     @log_time("SavedAlarmScreen")
-    def _init_saved_alarm_screen(self):
+    def _init_saved_alarm_screen(self, *args):
         from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
         self.screens[DM.SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=DM.SCREEN.SAVED_ALARMS,
                                                             app=self)

@@ -1,20 +1,18 @@
 from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
-from kivy.graphics import Color, Rectangle
-from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
 
 from src.screens.base.base_screen import BaseScreen
 from src.screens.home.home_screen_utils import HomeScreenUtils
-from src.screens.home.home_widgets import TaskNavigator
+from src.screens.home.home_widgets import TaskNavigator, SwipeBar
 
 from managers.device.device_manager import DM
-from src.utils.wrappers import android_only
+from src.utils.timer import TIMER
 from src.utils.logger import logger
 from src.utils.misc import is_widget_visible
-from src.settings import COL, SIZE
+from src.settings import SIZE
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -22,49 +20,6 @@ if TYPE_CHECKING:
     from src.app_managers.app_task_manager import TaskManager
     from src.screens.home.home_widgets import TaskGroupWidget, TaskInfoLabel
     from managers.tasks.task import Task
-
-
-class SwipeBar(Widget):
-    MAX_WIDTH_HINT = 0.016
-
-    """
-    Shows SwipeBar when swiping horizontally.
-    Bar is red when no previous/next TaskGroup, transparent otherwise.
-    Side of the SwipeBar is determined by the swipe direction.
-    """
-    def __init__(self, task_manager: "TaskManager", is_left: bool = True, **kwargs):
-        super().__init__(
-            size_hint=(None, 1),
-            width=0, 
-            **kwargs
-        )
-        self.task_manager: "TaskManager" = task_manager
-        self.is_left: bool = is_left
-        self.COL: tuple[float, float, float, float] = COL.SWIPE_BAR
-        
-        with self.canvas:
-            self.color = Color(*self.COL)
-            self.rect = Rectangle(pos=self.pos, size=self.size)
-        
-        self.bind(pos=self._update_rect, size=self._update_rect)
-    
-    def _update_rect(self, *args):
-        """
-        Updates the SwipeBar's position and size.
-        Only shows the bar when there is no previous/next TaskGroup.
-        """
-        if self.is_left:
-            self.rect.pos = self.pos
-            # Red if no previous group, transparent otherwise
-            has_prev = (self.task_manager.task_group_index > 0)
-            self.color.rgba = (*self.COL[:3], 0.0 if has_prev else self.COL[3])
-        else:
-            self.rect.pos = (self.parent.width - self.width, self.pos[1])
-            # Red if no next group, transparent otherwise
-            has_next = (self.task_manager.task_group_index < len(self.task_manager.task_groups) - 1)
-            self.color.rgba = (*self.COL[:3], 0.0 if has_next else self.COL[3])
-        
-        self.rect.size = self.size
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
@@ -80,9 +35,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.app: "TaskApp" = app
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.task_manager: "TaskManager" = app.task_manager
-
-        self._home_screen_finished: bool = False
-
+        
         # Task selection
         self.selected_task: "Task" | None = None
         self.selected_label: "TaskInfoLabel" | None = None
@@ -100,8 +53,20 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                                    top_bar_callback=top_bar_callback)
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
-
-        # Containers
+    
+    def _construct_home_screen(self, *args) -> None:
+        """
+        Constructs the HomeScreen.
+        """
+        Clock.schedule_once(self._load_navigator, 0)
+        Clock.schedule_once(self._load_swipe_container, 0)
+        Clock.schedule_once(self._init_home_screen, 0)
+        Clock.schedule_once(self._load_floating_action_buttons, 0)
+    
+    def _load_navigator(self, *args) -> None:
+        """
+        Loads the TaskNavigator.
+        """
         self.main_content = BoxLayout(orientation='vertical', size_hint=(1, 1))
         self.swipe_container = RelativeLayout(size_hint=(1, 1))
 
@@ -110,6 +75,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
                                           task_manager=self.task_manager)
         self.main_content.add_widget(self.task_navigator)
 
+    def _load_swipe_container(self, *args) -> None:
+        """
+        Loads the swipe container.
+        """
         # Move ScrollContainer: BaseScreen.layout -> main_content
         self.layout.remove_widget(self.scroll_container)
         self.main_content.add_widget(self.scroll_container)
@@ -124,51 +93,26 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         # Add swipe container
         self.layout.add_widget(self.swipe_container)
 
+    def _load_floating_action_buttons(self, *args) -> None:
+        """
+        Loads the floating action buttons.
+        """
         # Edit and delete buttons
         self.create_floating_action_buttons()
 
-        # Build Screen
-        self._init_home_screen()
-
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
-
+        logger.info("HomeScreen on_pre_enter")
+    
     def on_enter(self) -> None:
         super().on_enter()
-
-        if not self._home_screen_finished:
-            self._hide_loading_screen()
-            Clock.schedule_once(self.app.load_app, 0.3)
-            Clock.schedule_once(self.check_need_to_start_service, 1.0)
-            self._home_screen_finished = True
+        logger.info("HomeScreen on_enter")
+        TIMER.stop("start_home_screen")
     
     def on_leave(self) -> None:
         super().on_leave()
         
         self._deselect_task()
-    
-    @android_only
-    def _hide_loading_screen(self) -> None:
-        """
-        Hides the loading screen if on Android.
-        """
-        from android import loadingscreen  # type: ignore
-        loadingscreen.hide_loading_screen()
-    
-    def check_need_to_start_service(self, dt: float) -> None:
-        """
-        Checks if the service needs to be started.
-        """
-        # Only start service if not already running
-        from kivy.utils import platform
-        if platform == "android":
-            from src.utils.background_service import is_service_running
-            if not is_service_running():
-                from src.utils.background_service import start_background_service
-                start_background_service()
-                logger.debug("Service started")
-            else:
-                logger.debug("Service already running")
     
     def _deselect_task(self) -> None:
         """

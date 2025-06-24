@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.uix.widget import Widget
 
 from src.screens.select_date.select_date_widgets import DateTimeLabel
 from src.widgets.buttons import SettingsButton
@@ -308,6 +309,49 @@ class TaskNavigator(BoxLayout):
         self.date_label.text = self._get_date_display(week_start)
         self._update_date_label_color(week_start)
         self._setup_day_labels_for_week(week_start)
+
+
+class SwipeBar(Widget):
+    MAX_WIDTH_HINT = 0.016
+
+    """
+    Shows SwipeBar when swiping horizontally.
+    Bar is red when no previous/next TaskGroup, transparent otherwise.
+    Side of the SwipeBar is determined by the swipe direction.
+    """
+    def __init__(self, task_manager: "TaskManager", is_left: bool = True, **kwargs):
+        super().__init__(
+            size_hint=(None, 1),
+            width=0, 
+            **kwargs
+        )
+        self.task_manager: "TaskManager" = task_manager
+        self.is_left: bool = is_left
+        self.COL: tuple[float, float, float, float] = COL.SWIPE_BAR
+        
+        with self.canvas:
+            self.color = Color(*self.COL)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+        
+        self.bind(pos=self._update_rect, size=self._update_rect)
+    
+    def _update_rect(self, *args):
+        """
+        Updates the SwipeBar's position and size.
+        Only shows the bar when there is no previous/next TaskGroup.
+        """
+        if self.is_left:
+            self.rect.pos = self.pos
+            # Red if no previous group, transparent otherwise
+            has_prev = (self.task_manager.task_group_index > 0)
+            self.color.rgba = (*self.COL[:3], 0.0 if has_prev else self.COL[3])
+        else:
+            self.rect.pos = (self.parent.width - self.width, self.pos[1])
+            # Red if no next group, transparent otherwise
+            has_next = (self.task_manager.task_group_index < len(self.task_manager.task_groups) - 1)
+            self.color.rgba = (*self.COL[:3], 0.0 if has_next else self.COL[3])
+        
+        self.rect.size = self.size
 
 
 class TaskGroupWidget(BoxLayout):

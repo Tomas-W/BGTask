@@ -45,7 +45,7 @@ class HomeScreenUtils:
         self.scroll_container.container.clear_widgets()
         task_group_widget = TaskGroupWidget(task_group=task_group)
         self.scroll_container.container.add_widget(task_group_widget)
-        
+    
     @disable_gc
     def refresh_home_screen(self, *args) -> None:
         """
