@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
+import time
 from typing import TYPE_CHECKING
 
+from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -431,6 +433,9 @@ class TaskGroupWidget(BoxLayout):
 
 
 class TaskInfoLabel(Label):
+
+    HOLD_TIME = 0.2
+
     """
     A TaskInfoLabel is a label for displaying task info.
     Contains formatted time, snooze time and message.
@@ -454,6 +459,10 @@ class TaskInfoLabel(Label):
         self.is_first_task: bool = is_first_task  # For padding
         self.is_last_task: bool = is_last_task    # For padding
         self.clickable: bool = clickable          # For WallpaperScreen
+        # Hold detection
+        self.selected_at: float = 0.0
+        self._hold_triggered: bool = False
+        self._hold_event = None
 
         self.bind(width=self._update_text_size)
         self.bind(texture_size=self._update_height)
@@ -518,21 +527,51 @@ class TaskInfoLabel(Label):
             else:
                 self.bg_color.rgba = COL.TASK_ACTIVE
     
+    def on_touch_down(self, touch) -> None:
+        """
+        If a Task is already selected, deselect it.
+        If a Task is not selected, schedule selecting with hold detection.
+        """
+        if self.selected:
+            home_screen = self._find_home_screen()
+            home_screen.deselect_task()
+        else:
+            self.selected_at = touch.time_start
+            self._hold_triggered = False
+            self._hold_event = Clock.schedule_once(lambda dt: self._select_task(), TaskInfoLabel.HOLD_TIME)
+        
+        return super().on_touch_down(touch)
+    
     def on_touch_up(self, touch) -> None:
-        """Handles the touch up event."""
+        """
+        If swiping, do nothing.
+        If hold was already triggered, do nothing.
+        Otherwise, cancel the scheduled hold event.
+        """
         # Don't handle if swiping
         if touch.ud.get("was_swiped", False):
             return False
-
-        # If not clickable (WallpaperScreen), do not allow selection
-        if not self.collide_point(*touch.pos) or not self.task_id or not self.clickable:
-            return super().on_touch_up(touch)
+        
+        # If hold was already triggered, do nothing
+        if self._hold_triggered:
+            return True
+        
+        # Released early - cancel scheduled event
+        if self._hold_event:
+            self._hold_event.cancel()
+            self._hold_event = None
+        
+        return super().on_touch_up(touch)
+    
+    def _select_task(self, *args) -> None:
+        """Selects a Task if hold time is reached."""
+        # Clear reference
+        self._hold_event = None
+        
+        # Mark hold as triggered
+        self._hold_triggered = True
         
         home_screen = self._find_home_screen()
-        if not home_screen:
-            logger.error("Could not find HomeScreen for Task selection")
-            return False
-            
         task_manager = home_screen.task_manager
         task_to_select = self.task
 
@@ -553,6 +592,8 @@ class TaskInfoLabel(Label):
             if hasattr(current, "name") and current.name == DM.SCREEN.HOME:
                 return current
             current = current.parent
+        
+        logger.error("Could not find HomeScreen for Task selection")
         return None
 
 
