@@ -144,7 +144,7 @@ class TaskApp(App, EventDispatcher):
             self._init_settings_screen: 0.05,
             self._init_select_date_screen: 0.15,
             self._init_select_alarm_screen: 0.05,
-            self._init_saved_alarm_screen: 0.05,
+            # self._init_saved_alarm_screen: 0.05,
             self._init_service_permissions: 0.05,
             self.check_need_to_start_service: 0.1,
             self._log_loading_times: 0,
@@ -333,13 +333,13 @@ class TaskApp(App, EventDispatcher):
         self.screen_manager.add_widget(self.screens[DM.SCREEN.SELECT_ALARM])
         DM.LOADED.SELECT_ALARM_SCREEN = True
     
-    @log_time("SavedAlarmScreen")
-    def _init_saved_alarm_screen(self, *args):
-        from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
-        self.screens[DM.SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=DM.SCREEN.SAVED_ALARMS,
-                                                            app=self)
-        self.screen_manager.add_widget(self.screens[DM.SCREEN.SAVED_ALARMS])
-        DM.LOADED.SAVED_ALARMS_SCREEN = True
+    # @log_time("SavedAlarmScreen")
+    # def _init_saved_alarm_screen(self, *args):
+    #     from src.screens.saved_alarm.saved_alarm_screen import SavedAlarmScreen
+    #     self.screens[DM.SCREEN.SAVED_ALARMS] = SavedAlarmScreen(name=DM.SCREEN.SAVED_ALARMS,
+    #                                                         app=self)
+    #     self.screen_manager.add_widget(self.screens[DM.SCREEN.SAVED_ALARMS])
+    #     DM.LOADED.SAVED_ALARMS_SCREEN = True
 
 
 if __name__ == "__main__":

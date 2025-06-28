@@ -6,6 +6,7 @@ from managers.popups.task_popup import TaskPopup
 from managers.popups.confirmation_popup import ConfirmationPopup
 from managers.popups.custom_popup import CustomPopup
 from managers.popups.text_input_popup import TextInputPopup
+from managers.popups.selection_popup import SelectionPopup
 
 from managers.device.device_manager import DM
 from src.utils.logger import logger
@@ -35,6 +36,7 @@ class PopupManager:
         self.confirmation_popup: ConfirmationPopup = ConfirmationPopup()
         self.custom_popup: CustomPopup = CustomPopup()
         self.input_popup: TextInputPopup = TextInputPopup()
+        self.selection_popup: SelectionPopup = SelectionPopup()
     
     def show_task_popup(self, task: "Task") -> None:
         """
@@ -123,6 +125,21 @@ class PopupManager:
         self.input_popup.update_callbacks(on_confirm, on_cancel)
         self.input_popup.show_animation()
         logger.trace(f"Displaying TextInputPopup: {header}")
+    
+    def show_selection_popup(self, header: str, options_list: list, current_alarm: str,
+                             on_confirm: Callable, on_cancel: Callable) -> None:
+        """
+        Show a SelectionPopup with a:
+        - Header [aligned center]
+        - Scrollable list of SettingsButton options
+        - ConfirmButton and CancelButton.
+        """
+        self.selection_popup.header.text = header
+        self.selection_popup.current_alarm = current_alarm
+        self.selection_popup.populate_selection_buttons(options_list, current_alarm)
+        self.selection_popup.update_callbacks(on_confirm, on_cancel)
+        self.selection_popup.show_animation()
+        logger.trace(f"Displaying SelectionPopup: {header}")
     
     def _cancel_task(self, task_id: str) -> None:
         """Calls CANCEL on ExpiryManager."""

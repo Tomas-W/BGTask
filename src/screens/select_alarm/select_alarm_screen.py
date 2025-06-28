@@ -48,7 +48,7 @@ class SelectAlarmScreen(BaseScreen):
         self.saved_alarms_partition = Partition()
         # Saved alarms button
         self.saved_alarms_button = SettingsButton(text="Saved Alarms", width=1, color_state=STATE.ACTIVE)
-        self.saved_alarms_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(DM.SCREEN.SAVED_ALARMS))
+        self.saved_alarms_button.bind(on_release=self.show_saved_alarms_popup)
         self.saved_alarms_partition.add_widget(self.saved_alarms_button)
         # Add to scroll container
         self.scroll_container.container.add_widget(self.saved_alarms_partition)
@@ -68,7 +68,6 @@ class SelectAlarmScreen(BaseScreen):
         
         # Playback partition
         self.playback_partition = BorderedPartition()
-        # self.playback_partition.padding = [0, 0, 0, SPACE.SPACE_S]
         # Alarm display box
         self.selected_alarm = CustomSettingsField(text="No alarm selected", width=1, color_state=STATE.INACTIVE)
         self.selected_alarm.remove_bottom_radius()
@@ -130,7 +129,7 @@ class SelectAlarmScreen(BaseScreen):
         self.button_row.add_widget(self.cancel_button)
         # Save button
         self.save_button = ConfirmButton(text="Select", width=2)
-        self.save_button.bind(on_release=self.select_alarm)
+        self.save_button.bind(on_release=self.save_alarm_settings)
         self.button_row.add_widget(self.save_button)
         self.confirmation_partition.add_widget(self.button_row)
         # Add to scroll container
@@ -138,6 +137,26 @@ class SelectAlarmScreen(BaseScreen):
 
         # Initialize screen state
         self._screen_state = ScreenState.IDLE
+    
+    def show_saved_alarms_popup(self, instance=None) -> None:
+        """Show a popup with the saved alarms"""
+        POPUP.show_selection_popup(
+            header="Select alarm",
+            current_alarm=self.audio_manager.selected_alarm_name,
+            on_confirm=lambda alarm_name: self._select_alarm(alarm_name),
+            on_cancel=None,
+            options_list=list(self.audio_manager.alarms.keys())
+        )
+    
+    def _select_alarm(self, alarm_name) -> None:
+        """Select the alarm and return to NewTaskScreen"""
+        if self.audio_manager.select_alarm_audio(alarm_name):
+            logger.info(f"Selected alarm: {alarm_name}")
+            self.update_selected_alarm_text()
+            self.update_playback_partition_states()
+            self.update_button_states()
+        else:
+            logger.info(f"Could not select alarm: {alarm_name}")
 
     def start_recording_alarm(self, instance) -> None:
         """Start recording an alarm"""
@@ -293,8 +312,8 @@ class SelectAlarmScreen(BaseScreen):
         
         self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
     
-    def select_alarm(self, instance) -> None:
-        """Select the alarm and return to NewTaskScreen"""
+    def save_alarm_settings(self, instance) -> None:
+        """Save the alarm settings and return to NewTaskScreen"""
         self.unschedule_audio_check()
         self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TASK)
     
@@ -346,7 +365,7 @@ class SelectAlarmScreen(BaseScreen):
         self.audio_manager.selected_alarm_path = self.select_alarm_settings["alarm_path"]
         self.audio_manager.selected_vibrate = self.select_alarm_settings["vibrate"]
         self.audio_manager.selected_keep_alarming = self.select_alarm_settings["keep_alarming"]
-    
+
     def on_enter(self) -> None:
         """Called when the screen is entered"""
         super().on_enter()
