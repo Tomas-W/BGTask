@@ -31,7 +31,7 @@ class MainContainer(BoxLayout):
             orientation="vertical",
             size_hint_y=None,
             spacing=SPACE.SPACE_L,
-            padding=[SPACE.SCREEN_PADDING_X, SPACE.SPACE_XL],
+            padding=[SPACE.SCREEN_PADDING_X, SPACE.SPACE_L],
             **kwargs
         )
         self.bind(minimum_height=self.setter("height"))
