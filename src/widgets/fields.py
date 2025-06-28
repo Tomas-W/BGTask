@@ -1,6 +1,9 @@
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
+from kivy.core.window import Window
 
 from src.widgets.labels import ButtonFieldLabel, SettingsFieldLabel
 
@@ -18,8 +21,11 @@ class TextField(BoxLayout):
     - Has a hint text
     - Has an error message
     - Supports n_lines to determine height and multiline behavior
+    - Can be made scrollable by wrapping its input in a ScrollView.
     """
-    def __init__(self, hint_text="", n_lines=1, **kwargs):
+    def __init__(self, hint_text="", n_lines=1, scrollable=False, **kwargs):
+        self._is_scrollable = scrollable
+        
         # Calculate total height based on number of lines and padding
         font_size = FONT.DEFAULT
         if n_lines == 1:
@@ -59,12 +65,13 @@ class TextField(BoxLayout):
             
             self.bind(pos=self._update, size=self._update)
         
-        # Calculate height
+        # Non-scrollable: TextInput's height is fixed.
+        # Scrollable: TextInput's height grows with the content.
         text_input_height = total_height - (2 * SPACE.SPACE_M)
         
         self.text_input = TextInput(
             hint_text=hint_text,
-            size_hint=(1, None),
+            size_hint_y=None if scrollable else 1,
             height=text_input_height,
             multiline=n_lines > 1,
             font_size=FONT.DEFAULT,
@@ -72,10 +79,67 @@ class TextField(BoxLayout):
             foreground_color=COL.TEXT,
             padding=[SPACE.FIELD_PADDING_X, 0],
         )
+
+        if not scrollable:
+            self.add_widget(self.text_input)
+        
+        else:	
+            self.text_input.size_hint_y = None
+            scroll_view = ScrollView(
+                do_scroll_x=False,
+                do_scroll_y=True,
+                effect_cls="ScrollEffect"
+            )
+
+            def update_text_input_height(*args):
+                self.text_input.height = max(scroll_view.height, self.text_input.minimum_height)
+            
+            scroll_view.bind(height=update_text_input_height)
+            self.text_input.bind(minimum_height=update_text_input_height)
+
+            def scroll_to_bottom(*args):
+                def do_scroll(*args):
+                    if self.text_input.focus:
+                        scroll_view.scroll_y = 0
+                Clock.schedule_once(do_scroll)
+            
+            # Make view follow cursor when typing
+            self.text_input.bind(text=scroll_to_bottom)
+            
+            scroll_view.add_widget(self.text_input)
+            self.add_widget(scroll_view)
         
         self.text_input.bind(text=self._on_text_change)        
-        self.add_widget(self.text_input)
     
+    def on_mouse_pos(self, *args):
+        """Handle mouse enter/leave to control parent scrolling"""
+        if not self._is_scrollable:
+            return
+            
+        mouse_pos = Window.mouse_pos
+        if self.collide_point(*mouse_pos):
+            self._disable_parent_scroll()
+        else:
+            self._enable_parent_scroll()
+    
+    def _disable_parent_scroll(self):
+        """Walk up the widget tree to find and disable parent ScrollViews"""
+        parent = self.parent
+        while parent:
+            if hasattr(parent, 'do_scroll_y'):
+                parent.do_scroll_y = False
+                break
+            parent = parent.parent
+    
+    def _enable_parent_scroll(self):
+        """Walk up the widget tree to find and re-enable parent ScrollViews"""
+        parent = self.parent
+        while parent:
+            if hasattr(parent, 'do_scroll_y'):
+                parent.do_scroll_y = True
+                break
+            parent = parent.parent
+
     def _on_text_change(self, instance, value):
         """Remove error border when user starts typing"""
         if value.strip():

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from kivy.core.window import Window
+
 from src.screens.base.base_screen import BaseScreen
 from src.widgets.containers import Partition, CustomButtonRow
 from src.widgets.buttons import ConfirmButton, CancelButton
@@ -8,7 +10,7 @@ from src.widgets.fields import TextField, ButtonField
 
 from managers.device.device_manager import DM
 
-from src.settings import STATE, TEXT, SPACE
+from src.settings import STATE, TEXT
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -55,9 +57,12 @@ class NewTaskScreen(BaseScreen):
 
         # Task input partition
         self.task_input_partition = Partition()
-        # Task input
-        self.task_input_field = TextField(hint_text="Enter your task here",
-                                          n_lines=7)
+        # Task input (scrollable)
+        self.task_input_field = TextField(
+            hint_text="Enter your task here",
+            n_lines=7,
+            scrollable=True
+        )
         self.task_input_partition.add_widget(self.task_input_field)
         # Add to Scroll container
         self.scroll_container.container.add_widget(self.task_input_partition)
@@ -95,6 +100,9 @@ class NewTaskScreen(BaseScreen):
         
         # Set save_button state based on user inputs
         self.task_input_field.text_input.bind(text=self.validate_form)
+        
+        # Bind mouse position tracking for scroll control
+        Window.bind(mouse_pos=self.task_input_field.on_mouse_pos)
     
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
@@ -128,6 +136,7 @@ class NewTaskScreen(BaseScreen):
         self.audio_manager.selected_alarm_path = None
         self.audio_manager.selected_vibrate = False
         self.audio_manager.selected_keep_alarming = False
+        self.task_input_field.set_text("")        
 
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
