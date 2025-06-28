@@ -43,7 +43,7 @@ class HomeScreenUtils:
             return
 
         self.scroll_container.container.clear_widgets()
-        task_group_widget = TaskGroupWidget(task_group=task_group)
+        task_group_widget = TaskGroupWidget(app=self.app, task_group=task_group)
         self.scroll_container.container.add_widget(task_group_widget)
     
     @disable_gc
@@ -58,7 +58,7 @@ class HomeScreenUtils:
         self.task_navigator.update_task_group(self.task_manager.current_task_group)
         # Update TaskGroupWidget
         self.scroll_container.container.clear_widgets()
-        task_group_widget = TaskGroupWidget(task_group=self.task_manager.current_task_group)
+        task_group_widget = TaskGroupWidget(app=self.app, task_group=self.task_manager.current_task_group)
         self.scroll_container.container.add_widget(task_group_widget)
         # Refresh WallpaperScreen
         self.app.get_screen(DM.SCREEN.WALLPAPER).refresh_wallpaper_screen()

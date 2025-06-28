@@ -44,7 +44,8 @@ class WallpaperScreen(BaseScreen):
         self.scroll_container.container.padding = [SPACE.SCREEN_PADDING_X, SPACE.SPACE_L]
 
         # TaskGroupWidget - make sure it is not clickable
-        self.task_group = TaskGroupWidget(self.task_manager.current_task_group,
+        self.task_group = TaskGroupWidget(app=self.app,
+                                          task_group=self.task_manager.current_task_group,
                                           clickable=False)
         self.scroll_container.container.add_widget(self.task_group)
 
@@ -71,7 +72,8 @@ class WallpaperScreen(BaseScreen):
         self.scroll_container.container.remove_widget(self.task_group)
         
         # Create new TaskGroupWidget - make sure it is not clickable
-        self.task_group = TaskGroupWidget(self.task_manager.current_task_group,
+        self.task_group = TaskGroupWidget(app=self.app,
+                                          task_group=self.task_manager.current_task_group,
                                           clickable=False)
         self.scroll_container.container.add_widget(self.task_group)
     
