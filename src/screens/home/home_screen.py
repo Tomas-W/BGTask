@@ -1,14 +1,12 @@
 from typing import TYPE_CHECKING
 
 from kivy.clock import Clock
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.relativelayout import RelativeLayout
 
 from src.screens.base.base_screen import BaseScreen
 from src.screens.home.home_screen_utils import HomeScreenUtils
-from src.screens.home.home_widgets import TaskNavigator, SwipeBar
 
 from managers.device.device_manager import DM
+
 from src.utils.timer import TIMER
 from src.utils.logger import logger
 from src.utils.misc import is_widget_visible
@@ -23,6 +21,9 @@ if TYPE_CHECKING:
 
 
 class HomeScreen(BaseScreen, HomeScreenUtils):
+
+    MAX_WIDTH_HINT = 0.016
+
     """
     HomeScreen is the main screen for the app that:
     - Has a TopBar with options
@@ -48,57 +49,46 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
 
         # TopBar
         top_left_callback = self.navigate_to_wallpaper_screen
-        top_bar_callback = self.navigate_to_new_task_screen
+        top_bar_callback = self.show_new_assistance_popup
         self.top_bar.make_home_bar(top_left_callback=top_left_callback,
                                    top_bar_callback=top_bar_callback)
         # TopBarExpanded
         self.top_bar_expanded.make_home_bar(top_left_callback=top_left_callback)
     
-    def _construct_home_screen(self, *args) -> None:
+    def show_new_assistance_popup(self, instance) -> None:
         """
-        Constructs the HomeScreen.
+        Shows the NewAssistancePopup.
+        """
+        if not DM.LOADED.POPUP_MANAGER:
+            logger.error("PopupManager not ready - cannot show popup")
+            return
+        
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_selection_popup(
+            header="Select assistance",
+            current_selection=None,
+            on_confirm=self._select_assistance,
+            on_cancel=None,
+            options_list=[DM.SCREEN.NEW_TASK, DM.SCREEN.MAP]
+        )
+    
+    def _select_assistance(self, assistance: str) -> None:
+        """
+        Selects the assistance.
+        """
+        if assistance == DM.SCREEN.NEW_TASK:
+            self.navigate_to_new_task_screen()
+        elif assistance == DM.SCREEN.MAP:
+            self.navigate_to_map_screen()
+    
+    def _init_content(self, *args) -> None:
+        """
+        Initializes the content of the screen.
         """
         Clock.schedule_once(self._load_navigator, 0)
         Clock.schedule_once(self._load_swipe_container, 0)
         Clock.schedule_once(self._init_home_screen, 0)
         Clock.schedule_once(self._load_floating_action_buttons, 0)
-    
-    def _load_navigator(self, *args) -> None:
-        """
-        Loads the TaskNavigator.
-        """
-        self.main_content = BoxLayout(orientation='vertical', size_hint=(1, 1))
-        self.swipe_container = RelativeLayout(size_hint=(1, 1))
-
-        # TaskNavigator
-        self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group,
-                                          task_manager=self.task_manager)
-        self.main_content.add_widget(self.task_navigator)
-
-    def _load_swipe_container(self, *args) -> None:
-        """
-        Loads the swipe container.
-        """
-        # Move ScrollContainer: BaseScreen.layout -> main_content
-        self.layout.remove_widget(self.scroll_container)
-        self.main_content.add_widget(self.scroll_container)
-
-        # Main content first
-        self.swipe_container.add_widget(self.main_content)
-        # Feedback bars last
-        self.left_swipe_bar = SwipeBar(self.task_manager, is_left=True)
-        self.right_swipe_bar = SwipeBar(self.task_manager, is_left=False)
-        self.swipe_container.add_widget(self.left_swipe_bar)
-        self.swipe_container.add_widget(self.right_swipe_bar)
-        # Add swipe container
-        self.layout.add_widget(self.swipe_container)
-
-    def _load_floating_action_buttons(self, *args) -> None:
-        """
-        Loads the floating action buttons.
-        """
-        # Edit and delete buttons
-        self.create_floating_action_buttons()
 
     def on_pre_enter(self) -> None:
         super().on_pre_enter()
@@ -112,19 +102,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
     def on_leave(self) -> None:
         super().on_leave()
         
-        self._deselect_task()
-    
-    def _deselect_task(self) -> None:
-        """
-        Deselects any selected Task and hides the floating buttons.
-        """
-        if self.selected_task:
-            if self.selected_label:
-                self.selected_label.set_selected(False)
-            
-            self.selected_task = None
-            self.selected_label = None
-            self.hide_floating_buttons()
+        self.deselect_task()
     
     def navigate_to_new_task_screen(self, *args) -> None:
         """
@@ -136,10 +114,10 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             logger.error("NewTaskScreen not ready - cannot navigate to it")
             return
         
-        self._deselect_task()
+        self.deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.NEW_TASK)
     
-    def navigate_to_wallpaper_screen(self, instance) -> None:
+    def navigate_to_wallpaper_screen(self, *args) -> None:
         """
         Navigates to the WallpaperScreen.
         If the edit/delete icons are visible, toggle them off first.
@@ -149,8 +127,23 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             logger.error("WallpaperScreen not ready - cannot navigate to it")
             return
         
-        self._deselect_task()
+        self.deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)
+    
+    def navigate_to_map_screen(self, *args) -> None:
+        """
+        Navigates to the MapScreen.
+        """
+        if not DM.LOADED.MAP_SCREEN:
+            logger.error("MapScreen not ready - cannot navigate to it")
+            return
+        
+        if not DM.INITIALIZED.MAP_SCREEN:
+            map_screen = self.app.screens.get(DM.SCREEN.MAP)
+            map_screen._init_map_content()
+                
+        self.deselect_task()
+        self.navigation_manager.navigate_to(DM.SCREEN.MAP)
     
     def scroll_to_pos_on_date(self, pos: float, date: str) -> None:
         """
@@ -239,7 +232,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             # If horizontal movement - show SwipeBar
             if swipe_distance_x > swipe_distance_y:
                 touch.ud["was_swiped"] = True  # was_swiped blocks Task selection
-                max_width = self.width * SwipeBar.MAX_WIDTH_HINT
+                max_width = self.width * HomeScreen.MAX_WIDTH_HINT
                 
                 if (touch.x - self._touch_start_x) > 0:
                     # Swiping right - show left bar

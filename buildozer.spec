@@ -32,14 +32,19 @@ requirements =
     jnius,
     plyer,
     loguru,
-    android
+    android,
+    openssl,
+    requests,
+    urllib3,
+    certifi,
+    kivy_garden.mapview
 
 # Android specific configurations
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.allow_backup = 0
-android.arch = arm64-v8a, x86_64
+android.archs = arm64-v8a, x86_64
 
 # Display settings
 orientation = portrait
@@ -75,7 +80,11 @@ android.permissions =
     SCHEDULE_EXACT_ALARM,
     USE_EXACT_ALARM,
     BROADCAST_PACKAGE_REMOVED,
-    BROADCAST_STICKY
+    BROADCAST_STICKY,
+    INTERNET,
+    ACCESS_NETWORK_STATE,
+    ACCESS_FINE_LOCATION,
+    ACCESS_COARSE_LOCATION
 
 # Service configuration
 services = BGTaskService:service/main.py:foreground:sticky:ongoing:persistent:boot_completed
@@ -93,9 +102,13 @@ android.optimize_python = True
 android.precompile_python = True
 
 # Dependencies
-android.gradle_dependencies = androidx.core:core:1.6.0
+android.gradle_dependencies = 
+    androidx.core:core:1.6.0,
+    androidx.appcompat:appcompat:1.3.0
 android.enable_androidx = True
 
-# Add this to your buildozer.spec
+# Network security for HTTPS tile requests
+android.add_meta_data = android.webkit.WebView.EnableSafeBrowsing=false
+
 android.add_services = 
     service/service_communication_manager.py:android.broadcast.BroadcastReceiver

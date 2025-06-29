@@ -26,10 +26,14 @@ class PermissionManager:
             self.POST_NOTIFICATIONS = Permission.POST_NOTIFICATIONS
             self.RECORD_AUDIO = Permission.RECORD_AUDIO
             self.SET_WALLPAPER = Permission.SET_WALLPAPER
+            self.ACCESS_FINE_LOCATION = Permission.ACCESS_FINE_LOCATION
+            self.ACCESS_COARSE_LOCATION = Permission.ACCESS_COARSE_LOCATION
         else:
             self.POST_NOTIFICATIONS = "POST_NOTIFICATIONS"
             self.RECORD_AUDIO = "RECORD_AUDIO"
-            self.SET_WALLPAPER = "SET_WALLPAPER"	
+            self.SET_WALLPAPER = "SET_WALLPAPER"
+            self.ACCESS_FINE_LOCATION = "ACCESS_FINE_LOCATION"
+            self.ACCESS_COARSE_LOCATION = "ACCESS_COARSE_LOCATION"
 
         # Special case permissions, individual methods
         self.REQUEST_SCHEDULE_EXACT_ALARM: str = "REQUEST_SCHEDULE_EXACT_ALARM"

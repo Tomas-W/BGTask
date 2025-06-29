@@ -315,8 +315,6 @@ class TaskNavigator(BoxLayout):
 
 
 class SwipeBar(Widget):
-    MAX_WIDTH_HINT = 0.016
-
     """
     Shows SwipeBar when swiping horizontally.
     Bar is red when no previous/next TaskGroup, transparent otherwise.

@@ -5,7 +5,7 @@ import time
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions, Settings, Loaded, Screens, Trigger,
+    Dirs, Paths, Dates, Extensions, Settings, Loaded, Initialized, Screens, Trigger,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
     NotificationType, Actions, ActionTargets
 )
@@ -37,6 +37,7 @@ class DeviceManager:
             self.EXT: Final[Extensions] = Extensions()
             self.SCREEN: Final[Screens] = Screens()
             self.LOADED: Final[Loaded] = Loaded()
+            self.INITIALIZED: Final[Initialized] = Initialized()
             self.SETTINGS: Final[Settings] = Settings()
             self.TRIGGER: Final[Trigger] = Trigger()
     	
@@ -93,6 +94,7 @@ class DeviceManager:
             except OSError as e:
                 logger.error(f"OSError: {e}")
                 return False
+        return True
 
     def validate_file(self, path: str, max_attempts: int = 3) -> bool:
         """

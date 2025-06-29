@@ -4,8 +4,9 @@ from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
 
-from src.screens.home.home_widgets import TaskGroupWidget
+from src.screens.home.home_widgets import TaskGroupWidget, TaskNavigator, SwipeBar
 
 from managers.device.device_manager import DM
 from src.utils.wrappers import disable_gc
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
     from src.app_managers.navigation_manager import NavigationManager
     from src.app_managers.app_task_manager import TaskManager
     from managers.tasks.task import Task
-    from src.screens.home.home_widgets import TaskInfoLabel, TaskNavigator
+    from src.screens.home.home_widgets import TaskInfoLabel
 
 
 class HomeScreenUtils:
@@ -28,9 +29,46 @@ class HomeScreenUtils:
         self.app: "TaskApp"
         self.navigation_manager: "NavigationManager"
         self.task_manager: "TaskManager"
-        self.task_navigator: "TaskNavigator"
+        self.task_navigator: TaskNavigator
+
+    # ########## LOADING UI ########## #
+    def _load_navigator(self, *args) -> None:
+        """
+        Loads the TaskNavigator.
+        """
+        self.main_content = BoxLayout(orientation='vertical', size_hint=(1, 1))
+        self.swipe_container = RelativeLayout(size_hint=(1, 1))
+
+        # TaskNavigator
+        self.task_navigator = TaskNavigator(task_group=self.task_manager.current_task_group,
+                                          task_manager=self.task_manager)
+        self.main_content.add_widget(self.task_navigator)
+
+    def _load_swipe_container(self, *args) -> None:
+        """
+        Loads the swipe container.
+        """
+        # Move ScrollContainer: BaseScreen.layout -> main_content
+        self.layout.remove_widget(self.scroll_container)
+        self.main_content.add_widget(self.scroll_container)
+
+        # Main content first
+        self.swipe_container.add_widget(self.main_content)
+        # Feedback bars last
+        self.left_swipe_bar = SwipeBar(self.task_manager, is_left=True)
+        self.right_swipe_bar = SwipeBar(self.task_manager, is_left=False)
+        self.swipe_container.add_widget(self.left_swipe_bar)
+        self.swipe_container.add_widget(self.right_swipe_bar)
+        # Add swipe container
+        self.layout.add_widget(self.swipe_container)
+
+    def _load_floating_action_buttons(self, *args) -> None:
+        """
+        Loads the floating action buttons.
+        """
+        # Edit and delete buttons
+        self.create_floating_action_buttons()
     
-# ########## REFRESHING ########## #
     def _init_home_screen(self, *args) -> None:
         """
         Displays the current TaskGroup or else creates and displays the welcome TaskGroup.

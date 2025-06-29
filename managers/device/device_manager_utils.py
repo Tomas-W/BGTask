@@ -210,6 +210,7 @@ class Screens:
         self.SELECT_ALARM = "SELECT_ALARM"
         self.SAVED_ALARMS = "SAVED_ALARMS"
         self.SETTINGS = "SETTINGS"
+        self.MAP = "MAP_SCREEN"
 
 
 class Trigger:
@@ -219,7 +220,7 @@ class Trigger:
     def __init__(self):
         self.OFF = "off"
         self.ONCE = "once"
-        self.CONTINUOUS = "continuous"
+        self.CONTINUOUSLY = "continuously"
 
 
 class Loaded:
@@ -234,6 +235,7 @@ class Loaded:
         self.SELECT_ALARM_SCREEN = False
         self.SAVED_ALARMS_SCREEN = False
         self.SETTINGS_SCREEN = False
+        self.MAP_SCREEN = False
 
         self.SCREEN_MANAGER = False
         self.NAVIGATION_MANAGER = False
@@ -249,3 +251,18 @@ class Loaded:
         self.CUSTOM_POPUP = False
         self.INPUT_POPUP = False
         self.SELECTION_POPUP = False
+
+
+class Initialized:
+    """
+    Contains constants that show whether the Screen's UI is initialized.
+    """
+    def __init__(self):
+        self.HOME_SCREEN = False
+        self.WALLPAPER_SCREEN = False
+        self.NEW_TASK_SCREEN = False
+        self.SELECT_DATE_SCREEN = False
+        self.SELECT_ALARM_SCREEN = False
+        self.SAVED_ALARMS_SCREEN = False
+        self.SETTINGS_SCREEN = False
+        self.MAP_SCREEN = False
