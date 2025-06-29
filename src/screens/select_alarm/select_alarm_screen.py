@@ -277,7 +277,7 @@ class SelectAlarmScreen(BaseScreen):
             current_selection=self.audio_manager.selected_sound,
             on_confirm=self._set_sound_mode,
             on_cancel=None,
-            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUS]
+            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUSLY]
         )
     
     def _set_sound_mode(self, sound_mode: str) -> None:
@@ -292,7 +292,7 @@ class SelectAlarmScreen(BaseScreen):
             current_selection=self.audio_manager.selected_vibrate,
             on_confirm=self._set_vibration_mode,
             on_cancel=None,
-            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUS]
+            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUSLY]
         )
     
     def _set_vibration_mode(self, vibrate_mode: str) -> None:
