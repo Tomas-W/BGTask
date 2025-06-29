@@ -21,6 +21,9 @@ profiler/data/
 src/assets/task_file.json
 src/assets/images/bgtask_screenshot.png
 
+# Cache
+cache/
+
 # Backups
 backups/
 
