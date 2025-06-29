@@ -212,6 +212,16 @@ class Screens:
         self.SETTINGS = "SETTINGS"
 
 
+class Trigger:
+    """
+    Contains constants for trigger sound and vibration for the App.
+    """
+    def __init__(self):
+        self.OFF = "off"
+        self.ONCE = "once"
+        self.CONTINUOUS = "continuous"
+
+
 class Loaded:
     """
     Contains constants that show whether App components are loaded or not.

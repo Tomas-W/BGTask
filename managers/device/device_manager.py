@@ -5,7 +5,7 @@ import time
 from typing import Final, TYPE_CHECKING
 
 from managers.device.device_manager_utils import (
-    Dirs, Paths, Dates, Extensions, Settings, Loaded, Screens,
+    Dirs, Paths, Dates, Extensions, Settings, Loaded, Screens, Trigger,
     NotificationChannels, NotificationPriority, NotificationImportance, PendingIntents,
     NotificationType, Actions, ActionTargets
 )
@@ -38,6 +38,7 @@ class DeviceManager:
             self.SCREEN: Final[Screens] = Screens()
             self.LOADED: Final[Loaded] = Loaded()
             self.SETTINGS: Final[Settings] = Settings()
+            self.TRIGGER: Final[Trigger] = Trigger()
     	
             # Communication
             self.ACTION: Final[Actions] = Actions()
