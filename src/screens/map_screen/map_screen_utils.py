@@ -52,7 +52,9 @@ class MapScreenUtils:
             zoom=10, lat=40.7128, lon=-74.0060,
             size_hint=(1, 1), pos=(0, 0),
             map_source=source,
-            double_tap_zoom=True, pause_on_action=True, snap_to_zoom=True
+            double_tap_zoom=True,
+            pause_on_action=False,  # True gives loading errors
+            snap_to_zoom=True
         )
         self.mapview.bind(on_touch_down=self._on_map_touch_down,
                           on_touch_up=self._on_map_touch_up)
