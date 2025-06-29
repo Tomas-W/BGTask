@@ -79,7 +79,7 @@ class AudioManager:
                 return False
             
             # Continuous alarm
-            if play_alarm and sound == DM.TRIGGER.CONTINUOUS:
+            if play_alarm and sound == DM.TRIGGER.CONTINUOUSLY:
                 self._alarm_thread = threading.Thread(target=self._alarm_loop)
                 self._alarm_thread.daemon = True
                 self._alarm_thread.start()
@@ -90,7 +90,7 @@ class AudioManager:
                 logger.trace("Started one-time alarm playback")
             
             # Continuous vibrate
-            if vibrate == DM.TRIGGER.CONTINUOUS:
+            if vibrate == DM.TRIGGER.CONTINUOUSLY:
                 self._vibrate_thread = threading.Thread(target=self._vibrate_loop)
                 self._vibrate_thread.daemon = True
                 self._vibrate_thread.start()
@@ -110,7 +110,7 @@ class AudioManager:
             logger.error(f"Error running alarm loop: incorrect audio path: {self.task.alarm_name} for Task: {self.task.task_id}")
             return
 
-        while not self._alarm_stop_event.is_set() and self.task and self.task.sound == DM.TRIGGER.CONTINUOUS:
+        while not self._alarm_stop_event.is_set() and self.task and self.task.sound == DM.TRIGGER.CONTINUOUSLY:
             try:
                 if not self.audio_player.is_playing():
                     if not self.audio_player.play(path):
@@ -127,7 +127,7 @@ class AudioManager:
 
     def _vibrate_loop(self) -> None:
         """Vibrates continuously on a background thread."""
-        while not self._vibrate_stop_event.is_set() and self.task and self.task.vibrate == DM.TRIGGER.CONTINUOUS:
+        while not self._vibrate_stop_event.is_set() and self.task and self.task.vibrate == DM.TRIGGER.CONTINUOUSLY:
             try:
                 self.audio_player.vibrate()
                 if self._vibrate_stop_event.wait(self.THREAD_WAIT_TIMEOUT):
