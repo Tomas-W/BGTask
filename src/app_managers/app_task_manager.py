@@ -135,13 +135,13 @@ class TaskManager(EventDispatcher):
         self.save_task_groups()
     
     def add_task(self, message: str, timestamp: datetime,
-                 alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+                 alarm_name: str, sound: str, vibrate: str) -> None:
         """
         Adds Task to task_groups, saves the Task to file,
          dispatches an event to update the Task display and scroll to the Task.
         """
         task = Task(message=message, timestamp=timestamp,
-                    alarm_name=alarm_name, vibrate=vibrate, keep_alarming=keep_alarming,
+                    alarm_name=alarm_name, sound=sound, vibrate=vibrate,
                     snooze_time=0)
         
         # Round timestamp
@@ -162,7 +162,7 @@ class TaskManager(EventDispatcher):
         logger.debug(f"Added Task: {DM.get_task_log(task)}")
 
     def update_task(self, task_id: str, message: str, timestamp: datetime,
-                    alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+                    alarm_name: str, sound: str, vibrate: str) -> None:
         """
         Updates existing Task by its ID.
         Updates task_groups, saves the Task to file,
@@ -173,7 +173,7 @@ class TaskManager(EventDispatcher):
             logger.error(f"Error updating Task, {DM.get_task_id_log(task_id)} not found")
             return
         
-        self._edit_task_in_groups(task, message, timestamp, alarm_name, vibrate, keep_alarming)
+        self._edit_task_in_groups(task, message, timestamp, alarm_name, sound, vibrate)
         self.save_task_groups()
         
         # Refresh ExpiryManager
@@ -215,7 +215,7 @@ class TaskManager(EventDispatcher):
         logger.debug(f"Deleted Task: {DM.get_task_log(task)}")
     
     def _edit_task_in_groups(self, task: Task, message: str, timestamp: datetime,
-                            alarm_name: str, vibrate: bool, keep_alarming: bool) -> None:
+                            alarm_name: str, sound: str, vibrate: str) -> None:
         """
         Directly edits a Task's attributes in the TaskGroups.
         Only moves the Task between groups if the date has changed.
@@ -226,8 +226,8 @@ class TaskManager(EventDispatcher):
         task.timestamp = timestamp
         task.message = message
         task.alarm_name = alarm_name
+        task.sound = sound
         task.vibrate = vibrate
-        task.keep_alarming = keep_alarming
         task.snooze_time = 0
 
         # Update expired state using rounded timestamps

@@ -9,13 +9,13 @@ from managers.device.device_manager import DM
 class Task:
     """Represents a Task"""
     def __init__(self, task_id=None, message="", timestamp=None, alarm_name=None,
-                 vibrate=False, keep_alarming=False, expired=False, snooze_time=False):
+                 sound="off", vibrate="off", expired=False, snooze_time=False):
         self.task_id = task_id if task_id else str(uuid.uuid4())
         self.message = message
         self.timestamp = timestamp if timestamp else datetime.now()
         self.alarm_name = alarm_name
+        self.sound = sound
         self.vibrate = vibrate
-        self.keep_alarming = keep_alarming
         self.expired = expired
         self.snooze_time = snooze_time
 
@@ -27,8 +27,8 @@ class Task:
             "timestamp": timestamp,
             "message": self.message,
             "alarm_name": self.alarm_name,
+            "sound": self.sound,
             "vibrate": self.vibrate,
-            "keep_alarming": self.keep_alarming,
             "expired": self.expired,
             "snooze_time": self.snooze_time
         }
@@ -36,14 +36,13 @@ class Task:
     @classmethod
     def to_class(cls, data: dict) -> "Task":
         """Convert dictionary to Task object."""
-        keep_alarming = data.get("keep_alarming", False)
         return Task(
             task_id=data["task_id"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
             message=data["message"],
             alarm_name=data["alarm_name"],
+            sound=data["sound"],
             vibrate=data["vibrate"],
-            keep_alarming=keep_alarming,
             expired=data["expired"],
             snooze_time=data["snooze_time"]
         )
@@ -55,8 +54,8 @@ class Task:
             "timestamp": self.timestamp.isoformat(),
             "message": self.message,
             "alarm_name": self.alarm_name,
+            "sound": self.sound,
             "vibrate": self.vibrate,
-            "keep_alarming": self.keep_alarming,
             "expired": self.expired,
             "snooze_time": self.snooze_time
         }

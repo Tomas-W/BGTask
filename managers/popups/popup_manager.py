@@ -138,7 +138,7 @@ class PopupManager:
         self.input_popup.show_animation()
         logger.trace(f"Displaying TextInputPopup: {header}")
     
-    def show_selection_popup(self, header: str, options_list: list, current_alarm: str,
+    def show_selection_popup(self, header: str, options_list: list, current_selection: str,
                              on_confirm: Callable, on_cancel: Callable) -> None:
         """
         Show a SelectionPopup with a:
@@ -150,8 +150,8 @@ class PopupManager:
             self.selection_popup._init_content()
         
         self.selection_popup.header.text = header
-        self.selection_popup.current_alarm = current_alarm
-        self.selection_popup.populate_selection_buttons(options_list, current_alarm)
+        # self.selection_popup.current_selection = current_selection
+        self.selection_popup.populate_selection_buttons(options_list, current_selection)
         self.selection_popup.update_callbacks(on_confirm, on_cancel)
         self.selection_popup.show_animation()
         logger.trace(f"Displaying SelectionPopup: {header}")

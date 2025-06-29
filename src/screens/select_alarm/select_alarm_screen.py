@@ -5,7 +5,7 @@ from src.screens.base.base_screen import BaseScreen
 from src.screens.select_alarm.select_alarm_utils import ScreenState, BUTTON_STATES
 
 from src.widgets.containers import (Partition, BorderedPartition, CustomButtonRow,
-                                    CustomIconButtonRow, CustomSettingsButtonRow)
+                                    CustomIconButtonRow)
 from src.widgets.buttons import (ConfirmButton, SettingsButton,
                                 CancelButton, IconButton, CustomSettingsButton)
 from src.widgets.fields import CustomSettingsField
@@ -37,8 +37,8 @@ class SelectAlarmScreen(BaseScreen):
         self.select_alarm_settings: dict[str, Any] = {
             "alarm_name": None,
             "alarm_path": None,
-            "vibrate": False,
-            "keep_alarming": False,
+            "vibrate": DM.TRIGGER.OFF,
+            "sound": DM.TRIGGER.OFF,
         }
 
         # TopBar title
@@ -99,25 +99,18 @@ class SelectAlarmScreen(BaseScreen):
         self.playback_partition.add_widget(self.deselect_alarm_button)
         self.scroll_container.container.add_widget(self.playback_partition)
 
-        # Vibrating partition
-        self.vibration_partition = Partition()
-        # Vibrating button
-        self.vibration_button = SettingsButton(text="Vibrate off", width=1, color_state=STATE.INACTIVE)
-        self.vibration_button.bind(on_release=self.toggle_vibration)
-        self.vibration_partition.add_widget(self.vibration_button)
-        # Keep alarming row
-        self.keep_alarming_row = CustomSettingsButtonRow()
-        self.vibration_partition.add_widget(self.keep_alarming_row)
-        # Alarm once button
-        self.alarm_once_button = SettingsButton(text="Trigger once", width=2, color_state=STATE.ACTIVE)
-        self.alarm_once_button.bind(on_release=self.toggle_keep_alarming)
-        self.keep_alarming_row.add_widget(self.alarm_once_button)
-        # Alarm continuously button
-        self.alarm_continuously_button = SettingsButton(text="Trigger continuously", width=2, color_state=STATE.INACTIVE)
-        self.alarm_continuously_button.bind(on_release=self.toggle_keep_alarming)
-        self.keep_alarming_row.add_widget(self.alarm_continuously_button)
+        # Settings partition
+        self.settings_partition = Partition()
+        # Vibration button
+        self.vibration_button = SettingsButton(text="Vibrate: off", width=1, color_state=STATE.INACTIVE)
+        self.vibration_button.bind(on_release=self.show_vibration_popup)
+        self.settings_partition.add_widget(self.vibration_button)
+        # Sound button
+        self.sound_button = SettingsButton(text="Sound: off", width=1, color_state=STATE.INACTIVE)
+        self.sound_button.bind(on_release=self.show_sound_popup)
+        self.settings_partition.add_widget(self.sound_button)
         # Add to scroll container
-        self.scroll_container.container.add_widget(self.vibration_partition)
+        self.scroll_container.container.add_widget(self.settings_partition)
 
         # Confirmation partition
         self.confirmation_partition = Partition()
@@ -142,7 +135,7 @@ class SelectAlarmScreen(BaseScreen):
         """Show a popup with the saved alarms"""
         POPUP.show_selection_popup(
             header="Select alarm",
-            current_alarm=self.audio_manager.selected_alarm_name,
+            current_selection=self.audio_manager.selected_alarm_name,
             on_confirm=lambda alarm_name: self._select_alarm(alarm_name),
             on_cancel=None,
             options_list=list(self.audio_manager.alarms.keys())
@@ -277,28 +270,35 @@ class SelectAlarmScreen(BaseScreen):
         """Handle alarm deletion"""
         self.audio_manager.delete_alarm(self.audio_manager.selected_alarm_name)
     
-    def load_task_vibrate_state(self) -> None:
-        """Load the vibrate state of the task to edit"""
-        self.set_button_state(
-            self.vibration_button, 
-            active=self.audio_manager.selected_vibrate, 
-            enabled=True,
-            text="Vibrate on" if self.audio_manager.selected_vibrate else "Vibrate off"
-        )
-
-    def toggle_vibration(self, instance) -> None:
-        """Toggle vibration on the selected alarm"""
-        self.audio_manager.selected_vibrate = not self.audio_manager.selected_vibrate
-        self.set_button_state(
-            self.vibration_button,
-            active=self.audio_manager.selected_vibrate,
-            text="Vibrate on" if self.audio_manager.selected_vibrate else "Vibrate off"
+    def show_sound_popup(self, instance) -> None:
+        """Show a popup to select sound mode"""
+        POPUP.show_selection_popup(
+            header="Select sound",
+            current_selection=self.audio_manager.selected_sound,
+            on_confirm=self._set_sound_mode,
+            on_cancel=None,
+            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUS]
         )
     
-    def toggle_keep_alarming(self, instance) -> None:
-        """Toggle keep alarming on the selected alarm"""
-        self.audio_manager.selected_keep_alarming = not self.audio_manager.selected_keep_alarming
-        self.update_keep_alarming_states()
+    def _set_sound_mode(self, sound_mode: str) -> None:
+        """Set sound mode for the selected alarm"""
+        self.audio_manager.selected_sound = sound_mode
+        self.update_sound_button_text()
+    
+    def show_vibration_popup(self, instance) -> None:
+        """Show a popup to select vibration mode"""
+        POPUP.show_selection_popup(
+            header="Select vibration",
+            current_selection=self.audio_manager.selected_vibrate,
+            on_confirm=self._set_vibration_mode,
+            on_cancel=None,
+            options_list=[DM.TRIGGER.OFF, DM.TRIGGER.ONCE, DM.TRIGGER.CONTINUOUS]
+        )
+    
+    def _set_vibration_mode(self, vibrate_mode: str) -> None:
+        """Set vibration mode for the selected alarm"""
+        self.audio_manager.selected_vibrate = vibrate_mode
+        self.update_vibration_button_text()
 
     def cancel_select_alarm(self, instance) -> None:
         """
@@ -343,7 +343,7 @@ class SelectAlarmScreen(BaseScreen):
     def _set_select_alarm_settings(self) -> None:
         """
         Saves the selected alarm settings if coming from NewTaskScreen.
-        Saves: alarm name, alarm path, vibrate, keep alarming.
+        Saves: alarm name, alarm path, vibrate, sound.
         Allows proper handeling of canceling when changes are made.
         """
         prev_screen = self.app.navigation_manager.history[-2]
@@ -355,16 +355,16 @@ class SelectAlarmScreen(BaseScreen):
         return {
             "alarm_name": self.audio_manager.selected_alarm_name,
             "alarm_path": self.audio_manager.selected_alarm_path,
+            "sound": self.audio_manager.selected_sound,
             "vibrate": self.audio_manager.selected_vibrate,
-            "keep_alarming": self.audio_manager.selected_keep_alarming,
         }
     
     def _restore_select_alarm_state(self) -> None:
         """Restore the selected alarm settings"""
         self.audio_manager.selected_alarm_name = self.select_alarm_settings["alarm_name"]
         self.audio_manager.selected_alarm_path = self.select_alarm_settings["alarm_path"]
+        self.audio_manager.selected_sound = self.select_alarm_settings["sound"]
         self.audio_manager.selected_vibrate = self.select_alarm_settings["vibrate"]
-        self.audio_manager.selected_keep_alarming = self.select_alarm_settings["keep_alarming"]
 
     def on_enter(self) -> None:
         """Called when the screen is entered"""
@@ -404,17 +404,32 @@ class SelectAlarmScreen(BaseScreen):
         else:
             self.selected_alarm.set_text(self.audio_manager.selected_alarm_name)
     
-    def update_keep_alarming_states(self) -> None:
-        """Update the keep_alarming states"""
+    def update_vibration_button_text(self) -> None:
+        """Update the vibration button text based on current setting"""
+        vibrate_mode = self.audio_manager.selected_vibrate
+        self.vibration_button.set_text(f"Vibrate: {vibrate_mode}")
+        
+        # Update button state
+        is_active = vibrate_mode != DM.TRIGGER.OFF
         self.set_button_state(
-            self.alarm_once_button,
-            active=not self.audio_manager.selected_keep_alarming,
-            enabled=self.audio_manager.selected_keep_alarming
+            self.vibration_button,
+            active=is_active,
+            enabled=True,
+            text=f"Vibrate: {vibrate_mode}"
         )
+
+    def update_sound_button_text(self) -> None:
+        """Update the sound button text based on current setting"""
+        sound_mode = self.audio_manager.selected_sound
+        self.sound_button.set_text(f"Sound: {sound_mode}")
+        
+        # Update button state
+        is_active = sound_mode != DM.TRIGGER.OFF
         self.set_button_state(
-            self.alarm_continuously_button,
-            active=self.audio_manager.selected_keep_alarming,
-            enabled=not self.audio_manager.selected_keep_alarming
+            self.sound_button,
+            active=is_active,
+            enabled=True,
+            text=f"Sound: {sound_mode}"
         )
     
     def update_button_states(self) -> None:
@@ -435,9 +450,9 @@ class SelectAlarmScreen(BaseScreen):
         """Update all UI elements based on current ScreenState"""
         self.update_playback_partition_states()
         self.update_selected_alarm_text()
-        self.update_keep_alarming_states()
+        self.update_vibration_button_text()
+        self.update_sound_button_text()
         self.update_button_states()
-        self.load_task_vibrate_state()
 
     def unschedule_audio_check(self):
         """Unschedule the audio finished check."""

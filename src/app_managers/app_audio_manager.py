@@ -27,8 +27,8 @@ class AppAudioManager(AudioManager):
         self.load_alarms()  # Loads alarms and recordings into self.alarms
         self.selected_alarm_name: str | None = None
         self.selected_alarm_path: str | None = None
-        self.selected_vibrate: bool = False
-        self.selected_keep_alarming: bool = False
+        self.selected_sound: str = DM.TRIGGER.OFF
+        self.selected_vibrate: str = DM.TRIGGER.OFF
         # Triggering alarm
         self.alarm_is_triggered: bool = False
         self.current_alarm_path: str | None = None

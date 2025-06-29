@@ -95,7 +95,7 @@ class SelectionPopup(BasePopup):
         self.button_row.add_widget(self.confirm_button)
         # Bind
         self.bind(width=self._update_text_size)
-        
+
         DM.LOADED.SELECTION_POPUP = True
     
     def _get_content_height(self, num_buttons: int) -> float:
@@ -107,7 +107,7 @@ class SelectionPopup(BasePopup):
         spacing_heights = (num_buttons - 1) * self.button_spacing if num_buttons > 1 else 0
         return button_heights + spacing_heights
     
-    def populate_selection_buttons(self, options_list: list[str], current_alarm: str) -> None:
+    def populate_selection_buttons(self, options_list: list[str], current_selection: str) -> None:
         """
         Add selection buttons to the scroll view.
         If alarm already selected:
@@ -126,10 +126,15 @@ class SelectionPopup(BasePopup):
             button = SettingsButton(
                 text=option,
                 width=1,
-                color_state=STATE.INACTIVE if option != current_alarm else STATE.ACTIVE
+                color_state=STATE.INACTIVE if option != current_selection else STATE.ACTIVE
             )
             button.bind(on_press=lambda btn, opt=option: self._on_button_press(btn, opt))
             self.buttons_container.add_widget(button)
+            
+            # Set selected
+            if option == current_selection:
+                self.selected_button = button
+                self.selected_value = option
         
         # Update container height
         total_content_height = self._get_content_height(len(options_list))
@@ -143,7 +148,7 @@ class SelectionPopup(BasePopup):
         def go_to_scroll_position(dt: float) -> None:
             self.scroll_view.scroll_y = self.scroll_position
         
-        has_selected_button = current_alarm in options_list
+        has_selected_button = current_selection in options_list
         # Reset to top when no selected button
         # Otherwise stay at old position
         if not has_selected_button:

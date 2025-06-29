@@ -71,31 +71,32 @@ class AudioManager:
             alarm_path = self.get_audio_path(self.task.alarm_name)
             play_alarm = self.task.alarm_name
             vibrate = self.task.vibrate
-            keep_alarming = self.task.keep_alarming
+            sound = self.task.sound
+            # keep_alarming = self.task.keep_alarming
 
             if not play_alarm and not vibrate:
                 logger.trace("No alarm or vibrate set, not triggering alarm")
                 return False
             
             # Continuous alarm
-            if play_alarm and keep_alarming:
+            if play_alarm and sound == DM.TRIGGER.CONTINUOUS:
                 self._alarm_thread = threading.Thread(target=self._alarm_loop)
                 self._alarm_thread.daemon = True
                 self._alarm_thread.start()
                 logger.trace("Started continuous alarm playback")
             # One-time alarm
-            elif alarm_path:
+            elif play_alarm and sound == DM.TRIGGER.ONCE:
                 self.audio_player.play(alarm_path)
                 logger.trace("Started one-time alarm playback")
             
             # Continuous vibrate
-            if vibrate and keep_alarming:
+            if vibrate == DM.TRIGGER.CONTINUOUS:
                 self._vibrate_thread = threading.Thread(target=self._vibrate_loop)
                 self._vibrate_thread.daemon = True
                 self._vibrate_thread.start()
                 logger.trace("Started continuous vibrate")
             # One-time vibrate
-            elif vibrate:
+            elif vibrate == DM.TRIGGER.ONCE:
                 self.audio_player.vibrate()
                 logger.trace("Started one-time vibrate")
 
@@ -109,7 +110,7 @@ class AudioManager:
             logger.error(f"Error running alarm loop: incorrect audio path: {self.task.alarm_name} for Task: {self.task.task_id}")
             return
 
-        while not self._alarm_stop_event.is_set() and self.task and self.task.keep_alarming:
+        while not self._alarm_stop_event.is_set() and self.task and self.task.sound == DM.TRIGGER.CONTINUOUS:
             try:
                 if not self.audio_player.is_playing():
                     if not self.audio_player.play(path):
@@ -126,7 +127,7 @@ class AudioManager:
 
     def _vibrate_loop(self) -> None:
         """Vibrates continuously on a background thread."""
-        while not self._vibrate_stop_event.is_set() and self.task and self.task.vibrate and self.task.keep_alarming:
+        while not self._vibrate_stop_event.is_set() and self.task and self.task.vibrate == DM.TRIGGER.CONTINUOUS:
             try:
                 self.audio_player.vibrate()
                 if self._vibrate_stop_event.wait(self.THREAD_WAIT_TIMEOUT):
