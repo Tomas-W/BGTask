@@ -156,9 +156,9 @@ class ServiceNotificationManager:
         # Get icon resource
         icon_recource = self._get_icon_resource()
         if icon_recource is None:
-            logger.error("No valid icon found, cannot show notification")
+            logger.error("No valid icon found, cannot show foreground notification")
             return
-
+        
         # Create base notification
         builder = self._create_notification_builder(
             DM.CHANNEL.FOREGROUND,
@@ -167,23 +167,20 @@ class ServiceNotificationManager:
             icon_recource,
             DM.PRIORITY.LOW
         )
+
+        # Make builder foreground
+        builder = self._make_builder_foreground(builder)
         if builder is None:
             return
-
-        # Set foreground-specific properties
-        builder.setOngoing(True)        # Make persistent
-        builder.setAutoCancel(False)    # Prevent auto-cancellation
-        builder.setOnlyAlertOnce(True)  # Prevent re-alerting
 
         # Get current task for intent and buttons
         task = self.expiry_manager.current_task
         task_id = task.task_id if task else None
 
         # Add click to open app
-        if task_id:
-            app_intent = self.create_app_open_intent(task_id=task_id)
-            if app_intent:
-                builder.setContentIntent(app_intent)
+        app_intent = self.create_app_open_intent(task_id=task_id)
+        if app_intent:
+            builder.setContentIntent(app_intent)
 
         # Add action buttons if requested
         if with_buttons and task_id:
@@ -193,7 +190,8 @@ class ServiceNotificationManager:
         try:
             notification = builder.build()
             self.service.startForeground(1, notification)
-            logger.debug(f"Showed foreground notification for Task: {DM.get_task_log(task)}")
+            task_log = DM.get_task_log(task) if task else "No tasks to monitor"
+            logger.debug(f"Showed foreground notification for Task: {task_log}")
         
         except Exception as e:
             logger.error(f"Error showing foreground notification: {e}")
@@ -210,6 +208,26 @@ class ServiceNotificationManager:
         
         except Exception as e:
             logger.error(f"Error creating notification builder: {e}")
+            return None
+    
+    def _make_builder_foreground(self, builder: Any) -> None:
+        """
+        Makes the builder a foreground notification by:
+        - Making it persistent
+        - Preventing auto-cancellation
+        - Preventing re-alerting
+        """
+        if builder is None:
+            return None
+        
+        try:
+            builder.setOngoing(True)
+            builder.setAutoCancel(False)
+            builder.setOnlyAlertOnce(True)
+            return builder
+        
+        except Exception as e:
+            logger.error(f"Error making builder foreground: {e}")
             return None
 
     def _add_notification_buttons(self, builder: Any, task_id: str) -> None:
