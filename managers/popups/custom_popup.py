@@ -4,11 +4,14 @@ from kivy.uix.label import Label
 
 from managers.popups.base_popup import BasePopup
 
-from src.settings import COL, FONT, SPACE, STATE
+from managers.device.device_manager import DM
+
 from src.widgets.buttons import ConfirmButton, CancelButton
 from src.widgets.containers import CustomButtonRow
 from src.widgets.fields import CustomSettingsField
 from src.widgets.misc import Spacer
+
+from src.settings import COL, FONT, SPACE, STATE
 
 
 class CustomPopup(BasePopup):
@@ -21,7 +24,12 @@ class CustomPopup(BasePopup):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
+        self.loaded = False
+    
+    def _init_content(self):
+        """
+        Initialize the content of the CustomPopup.
+        """
         # Header
         self.header = Label(
             text="",
@@ -63,16 +71,17 @@ class CustomPopup(BasePopup):
 
         # Button row
         self.button_row = CustomButtonRow()
+        self.content_layout.add_widget(self.button_row)
         # Cancel button
         self.cancel_button = CancelButton(text="Cancel", width=2)
         self.button_row.add_widget(self.cancel_button)
         # Confirm button
         self.confirm_button = ConfirmButton(text="Confirm", width=2)
         self.button_row.add_widget(self.confirm_button)
-        # Add to layout
-        self.content_layout.add_widget(self.button_row)
-
+        # Bind
         self.bind(width=self._update_text_size)
+        
+        DM.LOADED.CUSTOM_POPUP = True
     
     def update_callbacks(self, on_confirm: Callable, on_cancel: Callable) -> None:
         """Un- and re-bind callbacks"""

@@ -42,6 +42,9 @@ class PopupManager:
         """
         Sets up popup callbacks and shows the TaskPopup.
         """
+        if not DM.LOADED.TASK_POPUP:
+            self.task_popup._init_content()
+                
         # Update callbacks
         self.task_popup.update_callbacks(
             snooze_a=lambda: self._snooze_a_task(task.task_id),
@@ -89,6 +92,9 @@ class PopupManager:
         - Info field
         - ConfirmButton and CancelButton.
         """
+        if not DM.LOADED.CONFIRMATION_POPUP:
+            self.confirmation_popup._init_content()
+        
         self.confirmation_popup.header.text = header
         self.confirmation_popup.update_field_text(field_text)
         self.confirmation_popup.update_callbacks(on_confirm, on_cancel)
@@ -104,6 +110,9 @@ class PopupManager:
         - Extra info [aligned left]
         - ConfirmButton and CancelButton.
         """
+        if not DM.LOADED.CUSTOM_POPUP:
+            self.custom_popup._init_content()
+        
         self.custom_popup.header.text = header
         self.custom_popup.update_field_text(field_text)
         self.custom_popup.extra_info.text = extra_info
@@ -120,6 +129,9 @@ class PopupManager:
         - Input field
         - ConfirmButton and CancelButton.
         """
+        if not DM.LOADED.INPUT_POPUP:
+            self.input_popup._init_content()
+        
         self.input_popup.header.text = header
         self.input_popup.input_field.text = input_text
         self.input_popup.update_callbacks(on_confirm, on_cancel)
@@ -134,6 +146,9 @@ class PopupManager:
         - Scrollable list of SettingsButton options
         - ConfirmButton and CancelButton.
         """
+        if not DM.LOADED.SELECTION_POPUP:
+            self.selection_popup._init_content()
+        
         self.selection_popup.header.text = header
         self.selection_popup.current_alarm = current_alarm
         self.selection_popup.populate_selection_buttons(options_list, current_alarm)

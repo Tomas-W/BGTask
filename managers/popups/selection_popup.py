@@ -7,6 +7,7 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 
 from managers.popups.base_popup import BasePopup
+from managers.device.device_manager import DM
 
 from src.widgets.buttons import ConfirmButton, CancelButton, SettingsButton
 from src.widgets.containers import CustomButtonRow
@@ -27,7 +28,11 @@ class SelectionPopup(BasePopup):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
+    
+    def _init_content(self):
+        """
+        Initialize the content of the SelectionPopup.
+        """
         # Selection
         self.selected_button = None
         self.selected_value = None
@@ -81,16 +86,17 @@ class SelectionPopup(BasePopup):
         
         # Button row
         self.button_row = CustomButtonRow()
+        self.content_layout.add_widget(self.button_row)
         # Cancel button
         self.cancel_button = CancelButton(text="Cancel", width=2)
         self.button_row.add_widget(self.cancel_button)
         # Confirm button
         self.confirm_button = ConfirmButton(text="Confirm", width=2)
         self.button_row.add_widget(self.confirm_button)
-        # Add to layout
-        self.content_layout.add_widget(self.button_row)
-
+        # Bind
         self.bind(width=self._update_text_size)
+        
+        DM.LOADED.SELECTION_POPUP = True
     
     def _get_content_height(self, num_buttons: int) -> float:
         """Calculate height of content based on number of buttons and spacing."""

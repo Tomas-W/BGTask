@@ -4,6 +4,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.effects.scroll import ScrollEffect
 
+from managers.device.device_manager import DM
 from managers.popups.base_popup import BasePopup
 from managers.popups.popup_widgets import TaskPopupHeader, TaskPopupLabel, TaskPopupContainer
 
@@ -23,6 +24,11 @@ class TaskPopup(BasePopup):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+    
+    def _init_content(self):
+        """
+        Initialize the content of the TaskPopup.
+        """
         self.min_message_height = SIZE.TASK_POPUP_HEIGHT
         # Header
         self.header = TaskPopupHeader(text="Task Expired!")
@@ -93,10 +99,10 @@ class TaskPopup(BasePopup):
         # Cancel
         self.cancel_button = CancelButton(text="Cancel", width=1)
         self.cancel_row.add_widget(self.cancel_button)
-        # Add to layout
-        
-
+        # Bind
         self.bind(width=self._update_text_size)
+        
+        DM.LOADED.TASK_POPUP = True
     
     def _update_scroll_height(self, instance, size):
         """Update the height of both container and ScrollView based on label height"""

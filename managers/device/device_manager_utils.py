@@ -233,3 +233,9 @@ class Loaded:
         self.COMMUNICATION_MANAGER = False
         self.PREFERENCE_MANAGER = False
         self.POPUP_MANAGER = False
+
+        self.TASK_POPUP = False
+        self.CONFIRMATION_POPUP = False
+        self.CUSTOM_POPUP = False
+        self.INPUT_POPUP = False
+        self.SELECTION_POPUP = False
