@@ -26,5 +26,14 @@ logger.level("INFO", color="<fg 255,165,0>")           # orange
 logger.level("WARNING", color="<fg 235,235,0>")        # brighter yellow
 
 # Suppress
+kivy_logger = logging.getLogger("kivy")
+kivy_logger.setLevel(logging.WARNING)
+
 pil_logger = logging.getLogger("PIL")
 pil_logger.setLevel(logging.WARNING)
+
+urllib_logger = logging.getLogger("urllib3")
+urllib_logger.setLevel(logging.WARNING)
+
+requests_logger = logging.getLogger("requests")
+requests_logger.setLevel(logging.WARNING)
