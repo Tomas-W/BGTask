@@ -157,6 +157,7 @@ class TaskApp(App, EventDispatcher):
     ###############################################
     ################### EVENTS ####################
     def on_stop(self):
+        self.get_screen(DM.SCREEN.MAP).gps_manager._stop_looper()
         super().on_stop()
         logger.debug("App is stopping")
         # from profiler.profiler import profiler

@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import os
 import glob
 
@@ -7,6 +9,7 @@ from kivy.uix.floatlayout import FloatLayout
 from src.widgets.containers import CustomButtonRow
 from src.widgets.buttons import CancelButton, ConfirmButton
 
+
 from managers.device.device_manager import DM
 from src.app_managers.permission_manager import PM
 
@@ -14,6 +17,9 @@ from src.utils.wrappers import log_time
 from src.utils.logger import logger
 from src.settings import STATE, SPACE
 
+
+if TYPE_CHECKING:
+    from managers.gps.gps_manager import GPSManager
 
 class MapScreenUtils:
 
@@ -25,6 +31,7 @@ class MapScreenUtils:
     @log_time("MapScreenUtils._init_content")
     def _init_map_content(self):
         """Initialises the screens UI."""
+        self.gps_manager: "GPSManager"
         # Replace scroll container with FloatLayout
         # Allows for full-screen map
         self.body = FloatLayout(size_hint=(1, 1))
@@ -48,18 +55,29 @@ class MapScreenUtils:
             attribution="© OpenStreetMap contributors"
         )
 
+        # Start with default coordinates
         self.mapview = MapView(
-            zoom=10, lat=40.7128, lon=-74.0060,
+            zoom=17, 
+            lat=self.gps_manager.DEFAULT_LAT, 
+            lon=self.gps_manager.DEFAULT_LON,
             size_hint=(1, 1), pos=(0, 0),
             map_source=source,
             double_tap_zoom=True,
-            pause_on_action=False,  # True gives loading errors
+            pause_on_action=True,
             snap_to_zoom=True
         )
         self.mapview.bind(on_touch_down=self._on_map_touch_down,
                           on_touch_up=self._on_map_touch_up)
 
         self.body.add_widget(self.mapview)
+
+        # Get location once and center map
+        self.gps_manager.get_current_location(self.center_on_location)
+    
+    def center_on_location(self, lat, lon):
+        """Centers the map on the given location."""
+        logger.debug(f"Centering map on location: {lat}, {lon}")
+        self.mapview.center_on(lat, lon)
 
     def _create_bottom_buttons(self):
         """Adds the cancel and select buttons."""
@@ -97,8 +115,9 @@ class MapScreenUtils:
     
     def reset_marker_state(self):
         """Removes the current marker and resets the selected location."""
+        self._cancel_pending_marker()
         self.remove_current_marker()
-        self.reset_location()
+        self.reset_marker_location()
 
     def remove_current_marker(self):
         """Removes the current marker from the map."""
@@ -106,12 +125,12 @@ class MapScreenUtils:
             self.mapview.remove_marker(self.current_marker)
             self.current_marker = None
     
-    def save_location(self, lat: float, lon: float):
+    def save_marker_location(self, lat: float, lon: float):
         """Saves the selected location coordinates."""
         self.selected_lat = lat
         self.selected_lon = lon
     
-    def reset_location(self):
+    def reset_marker_location(self):
         """Resets the selected location coordinates."""
         self.selected_lat = None
         self.selected_lon = None

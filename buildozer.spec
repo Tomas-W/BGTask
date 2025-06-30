@@ -16,6 +16,7 @@ source.exclude_exts =
     md
 source.exclude_dirs = 
     bin,
+    cache,
     .venv,
     __pycache__,
     .buildozer,
