@@ -109,6 +109,11 @@ class Actions:
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
         self.BOOT_ACTION: Final[str] = "android.intent.action"
         self.BOOT_COMPLETED: Final[str] = "BOOT_COMPLETED"
+        # GPS
+        self.GET_LOCATION_ONCE: Final[str] = "GET_LOCATION_ONCE"
+        self.START_LOCATION_MONITORING: Final[str] = "START_LOCATION_MONITORING"
+        self.STOP_LOCATION_MONITORING: Final[str] = "STOP_LOCATION_MONITORING"
+        self.LOCATION_RESPONSE: Final[str] = "LOCATION_RESPONSE"
         # Both
         self.SNOOZE_A: Final[str] = "SNOOZE_A"
         self.SNOOZE_B: Final[str] = "SNOOZE_B"
@@ -196,6 +201,9 @@ class Settings:
         self.ALARM_NAME_MAX_LENGTH: int = 20
         # Both
         self.HEARTBEAT_SEDCONDS: int = 120
+        # GPS
+        self.DEFAULT_LAT: float = 51.543368
+        self.DEFAULT_LON: float = 3.603933
 
 
 class Screens:

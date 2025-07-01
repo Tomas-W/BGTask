@@ -7,6 +7,7 @@ from service.service_audio_manager import ServiceAudioManager
 from service.service_expiry_manager import ServiceExpiryManager
 from service.service_notification_manager import ServiceNotificationManager
 from service.service_communication_manager import ServiceCommunicationManager
+from service.service_gps_manager import ServiceGpsManager
 from managers.tasks.task import Task
 
 from service.service_utils import get_service_timestamp
@@ -44,12 +45,14 @@ class ServiceManager:
         self.expiry_manager: ServiceExpiryManager = ServiceExpiryManager(self.audio_manager)
         self.notification_manager: ServiceNotificationManager = ServiceNotificationManager(PythonService.mService,
                                                                                            self.expiry_manager)
+        self.gps_manager: ServiceGpsManager = ServiceGpsManager(service_manager=self)
 
         self.communication_manager = ServiceCommunicationManager(
             service_manager=self,
             audio_manager=self.audio_manager,
             expiry_manager=self.expiry_manager,
-            notification_manager=self.notification_manager
+            notification_manager=self.notification_manager,
+            gps_manager=self.gps_manager
         )
         
         # Loop variables
@@ -233,11 +236,41 @@ class ServiceManager:
         if self.expiry_manager.current_task:
             time_label = get_service_timestamp(self.expiry_manager.current_task)
             message = self.expiry_manager.current_task.message
+            
+            # Add GPS distance if monitoring is active
+            if self.gps_manager._monitoring_active:
+                distance = self.gps_manager.get_distance_to_target()
+                if distance is not None:
+                    # Convert to km if over 1000m
+                    if distance >= 1000:
+                        distance_str = f"{distance / 1000:.1f} km"
+                    else:
+                        distance_str = f"{distance:.0f} m"
+                    
+                    # Append distance to message
+                    if message:
+                        message = f"{message} • Distance: {distance_str}"
+                    else:
+                        message = f"Distance: {distance_str}"
+            
             with_buttons = True
         
         else:
             time_label = "No tasks to monitor"
             message = ""
+            
+            # Add GPS distance if monitoring is active (even without tasks)
+            if self.gps_manager._monitoring_active:
+                distance = self.gps_manager.get_distance_to_target()
+                if distance is not None:
+                    # Convert to km if over 1000m
+                    if distance >= 1000:
+                        distance_str = f"{distance / 1000:.1f} km"
+                    else:
+                        distance_str = f"{distance:.0f} m"
+                    
+                    message = f"Distance: {distance_str}"
+            
             with_buttons = False
             
         self.notification_manager.ensure_foreground_notification(
@@ -251,6 +284,23 @@ class ServiceManager:
         if self.expiry_manager.current_task:
             time_label = get_service_timestamp(self.expiry_manager.current_task)
             message = self.expiry_manager.current_task.message
+            
+            # Add GPS distance if monitoring is active
+            if self.gps_manager._monitoring_active:
+                distance = self.gps_manager.get_distance_to_target()
+                if distance is not None:
+                    # Convert to km if over 1000m
+                    if distance >= 1000:
+                        distance_str = f"{distance / 1000:.1f} km"
+                    else:
+                        distance_str = f"{distance:.0f} m"
+                    
+                    # Append distance to message
+                    if message:
+                        message = f"{message} • Distance: {distance_str}"
+                    else:
+                        message = f"Distance: {distance_str}"
+            
             self.notification_manager.show_foreground_notification(
                 time_label,
                 message,
@@ -258,9 +308,24 @@ class ServiceManager:
             )
         
         else:
+            time_label = "No tasks to monitor"
+            message = ""
+            
+            # Add GPS distance if monitoring is active (even without tasks)
+            if self.gps_manager._monitoring_active:
+                distance = self.gps_manager.get_distance_to_target()
+                if distance is not None:
+                    # Convert to km if over 1000m
+                    if distance >= 1000:
+                        distance_str = f"{distance / 1000:.1f} km"
+                    else:
+                        distance_str = f"{distance:.0f} m"
+                    
+                    message = f"Distance: {distance_str}"
+            
             self.notification_manager.show_foreground_notification(
-                "No tasks to monitor",
-                "",
+                time_label,
+                message,
                 with_buttons=False
             )
 

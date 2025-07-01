@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from service.service_audio_manager import ServiceAudioManager
     from service.service_expiry_manager import ServiceExpiryManager
     from service.service_notification_manager import ServiceNotificationManager
+    from service.service_gps_manager import ServiceGpsManager
 
 
 class ServiceCommunicationManager:
@@ -33,12 +34,14 @@ class ServiceCommunicationManager:
                  service_manager: "ServiceManager",
                  audio_manager: "ServiceAudioManager",
                  expiry_manager: "ServiceExpiryManager",
-                 notification_manager: "ServiceNotificationManager"):
+                 notification_manager: "ServiceNotificationManager",
+                 gps_manager: "ServiceGpsManager"):
         
         self.service_manager: "ServiceManager" = service_manager
         self.audio_manager: "ServiceAudioManager" = audio_manager
         self.expiry_manager: "ServiceExpiryManager" = expiry_manager
         self.notification_manager: "ServiceNotificationManager" = notification_manager
+        self.gps_manager: "ServiceGpsManager" = gps_manager
 
         self.context: Any | None = None
         self.package_name: str | None = None
@@ -53,6 +56,9 @@ class ServiceCommunicationManager:
             DM.ACTION.UPDATE_TASKS,
             DM.ACTION.STOP_ALARM,
             DM.ACTION.REMOVE_TASK_NOTIFICATIONS,
+            DM.ACTION.GET_LOCATION_ONCE,
+            DM.ACTION.START_LOCATION_MONITORING,
+            DM.ACTION.STOP_LOCATION_MONITORING,
         ]
         self.boot_actions: list[str] = [
             DM.ACTION.BOOT_COMPLETED,
@@ -160,7 +166,7 @@ class ServiceCommunicationManager:
 
         # Check App actions
         if self._is_app_action(pure_action):
-            self._handle_app_action(pure_action)
+            self._handle_app_action(pure_action, intent)
             return Service.START_STICKY
         
         logger.error(f"Error handling action: {pure_action}")
@@ -196,7 +202,7 @@ class ServiceCommunicationManager:
         
         return Service.START_STICKY
 
-    def _handle_app_action(self, pure_action: str) -> int:
+    def _handle_app_action(self, pure_action: str, intent: Any) -> int:
         """
         Handles app actions (update tasks, stop alarm).
         - Processes app communication actions
@@ -213,6 +219,16 @@ class ServiceCommunicationManager:
         # Remove task notifications
         elif pure_action.endswith(DM.ACTION.REMOVE_TASK_NOTIFICATIONS):
             self._remove_task_notifications_action()
+        
+        # GPS actions
+        elif pure_action.endswith(DM.ACTION.GET_LOCATION_ONCE):
+            self._get_location_once_action()
+        
+        elif pure_action.endswith(DM.ACTION.START_LOCATION_MONITORING):
+            self._start_location_monitoring_action(intent)
+        
+        elif pure_action.endswith(DM.ACTION.STOP_LOCATION_MONITORING):
+            self._stop_location_monitoring_action()
 
         return Service.START_STICKY
 
@@ -311,6 +327,83 @@ class ServiceCommunicationManager:
         """Removes all task notifications."""
         logger.trace("Handling remove task notifications action")
         self.notification_manager.cancel_all_notifications()
+    
+    def _get_location_once_action(self) -> None:
+        """Handles request for one-time location from app."""
+        try:
+            logger.info("Service: Processing location request from app")
+            location = self.gps_manager.get_location_once()
+            
+            if location:
+                lat, lon = location
+                self._send_location_response(True, lat, lon)
+                logger.info(f"Service: Sent location response: {lat}, {lon}")
+            else:
+                self._send_location_response(False)
+                logger.warning("Service: Could not get location, sent failure response")
+        except Exception as e:
+            logger.error(f"Service: Error handling location request: {e}")
+            self._send_location_response(False)
+    
+    def _start_location_monitoring_action(self, intent: Any) -> None:
+        """Handles request to start location monitoring."""
+        try:
+            # Extract target coordinates from intent
+            target_lat_str = intent.getStringExtra("target_lat")
+            target_lon_str = intent.getStringExtra("target_lon")
+            alert_distance_str = intent.getStringExtra("alert_distance")
+            
+            if not target_lat_str or not target_lon_str:
+                logger.error("Service: Missing target coordinates for location monitoring")
+                return
+            
+            target_lat = float(target_lat_str)
+            target_lon = float(target_lon_str)
+            alert_distance = float(alert_distance_str) if alert_distance_str else None
+            
+            logger.info(f"Service: Starting location monitoring for {target_lat}, {target_lon}")
+            success = self.gps_manager.start_location_monitoring(target_lat, target_lon, alert_distance)
+            
+            if success:
+                logger.info("Service: Location monitoring started successfully")
+            else:
+                logger.error("Service: Failed to start location monitoring")
+                
+        except Exception as e:
+            logger.error(f"Service: Error starting location monitoring: {e}")
+    
+    def _stop_location_monitoring_action(self) -> None:
+        """Handles request to stop location monitoring."""
+        try:
+            logger.info("Service: Stopping location monitoring")
+            self.gps_manager.stop_location_monitoring()
+        except Exception as e:
+            logger.error(f"Service: Error stopping location monitoring: {e}")
+    
+    def _send_location_response(self, success: bool, lat: float = None, lon: float = None) -> None:
+        """Sends location response back to app."""
+        try:
+            if not self.context:
+                logger.error("Service: No context available for location response")
+                return
+            
+            intent = Intent()
+            intent.setAction(f"{self.package_name}.{DM.ACTION.LOCATION_RESPONSE}")
+            intent.setPackage(self.package_name)
+            intent.putExtra(DM.ACTION_TARGET.TARGET, AndroidString(DM.ACTION_TARGET.APP))
+            
+            if success and lat is not None and lon is not None:
+                intent.putExtra("success", AndroidString("true"))
+                intent.putExtra("latitude", AndroidString(str(lat)))
+                intent.putExtra("longitude", AndroidString(str(lon)))
+            else:
+                intent.putExtra("success", AndroidString("false"))
+            
+            self.context.sendBroadcast(intent)
+            logger.debug(f"Service: Sent location response, success: {success}")
+            
+        except Exception as e:
+            logger.error(f"Service: Error sending location response: {e}")
     
     def _get_pure_action(self, intent: Any) -> str | None:
         """Extracts and returns the pure action from the intent, or None."""

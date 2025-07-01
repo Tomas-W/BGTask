@@ -305,6 +305,31 @@ class SettingsButton(CustomButton):
             self.color_instr.rgba = bg_color
 
 
+class SettingsConfirmButton(SettingsButton):
+    """
+    SettingsConfirmButton is a button that:
+    - Inherits styling and functionality from ConfirmButton
+    - Is 2/3 the height of the ConfirmButton
+    """
+    def __init__(self, width: int, symbol: bool = False, color_state: str = STATE.INACTIVE, **kwargs):  
+        super().__init__(
+            width=width,
+            symbol=symbol,
+            color_state=color_state,
+            **kwargs
+        )
+        self.disabled_color = COL.WHITE
+        self.always_clickable = True
+        self.disabled = False
+    
+    def _init_colors(self):
+        """Override the button colors"""
+        self.color_active = COL.CONFIRM_BUTTON_ACTIVE
+        self.color_inactive = COL.CONFIRM_BUTTON_INACTIVE
+        self.color_error = COL.ERROR
+
+
+
 class CustomSettingsButton(SettingsButton):
     """
     CustomSettingsButton is a button that:

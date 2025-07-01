@@ -1,13 +1,11 @@
-from typing import TYPE_CHECKING
-
 import os
 import glob
 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 
-from src.widgets.containers import CustomButtonRow
-from src.widgets.buttons import CancelButton, ConfirmButton
+from src.widgets.containers import CustomButtonRow, CustomSettingsButtonRow
+from src.widgets.buttons import CancelButton, ConfirmButton, SettingsConfirmButton
 
 
 from managers.device.device_manager import DM
@@ -15,11 +13,8 @@ from src.app_managers.permission_manager import PM
 
 from src.utils.wrappers import log_time
 from src.utils.logger import logger
-from src.settings import STATE, SPACE
+from src.settings import SIZE, STATE, SPACE
 
-
-if TYPE_CHECKING:
-    from managers.gps.gps_manager import GPSManager
 
 class MapScreenUtils:
 
@@ -31,7 +26,6 @@ class MapScreenUtils:
     @log_time("MapScreenUtils._init_content")
     def _init_map_content(self):
         """Initialises the screens UI."""
-        self.gps_manager: "GPSManager"
         # Replace scroll container with FloatLayout
         # Allows for full-screen map
         self.body = FloatLayout(size_hint=(1, 1))
@@ -40,6 +34,7 @@ class MapScreenUtils:
 
         # Build screen UI
         self._create_map_layout()
+        self._create_top_buttons()
         self._create_bottom_buttons()        
         DM.INITIALIZED.MAP_SCREEN = True
 
@@ -58,8 +53,8 @@ class MapScreenUtils:
         # Start with default coordinates
         self.mapview = MapView(
             zoom=17, 
-            lat=self.gps_manager.DEFAULT_LAT, 
-            lon=self.gps_manager.DEFAULT_LON,
+            lat=DM.SETTINGS.DEFAULT_LAT, 
+            lon=DM.SETTINGS.DEFAULT_LON,
             size_hint=(1, 1), pos=(0, 0),
             map_source=source,
             double_tap_zoom=True,
@@ -70,20 +65,49 @@ class MapScreenUtils:
                           on_touch_up=self._on_map_touch_up)
 
         self.body.add_widget(self.mapview)
-
-        # Get location once and center map
-        self.gps_manager.get_current_location(self.center_on_location)
     
     def center_on_location(self, lat, lon):
         """Centers the map on the given location."""
         logger.debug(f"Centering map on location: {lat}, {lon}")
         self.mapview.center_on(lat, lon)
 
+    def _create_top_buttons(self):
+        """Adds the center marker and center location buttons at the top."""
+        btn_bar = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=SIZE.SETTINGS_BUTTON_HEIGHT,
+            padding=[SPACE.SCREEN_PADDING_X, SPACE.SCREEN_PADDING_X],
+            # pos_hint={"x": 0, "top": 1}
+            pos_hint={"x": 0, "top": 0.96}
+        )
+        # Button row
+        row = CustomSettingsButtonRow()
+        btn_bar.add_widget(row)
+        self.body.add_widget(btn_bar)
+        # Center on marker button
+        self.center_marker_button = SettingsConfirmButton(
+            text="Marker", 
+            width=2,
+        )
+        self.center_marker_button.bind(on_release=self._on_center_marker)
+        row.add_widget(self.center_marker_button)
+        self.block_touch.append(self.center_marker_button)
+        # Center on location button
+        self.center_location_button = SettingsConfirmButton(
+            text="Location", 
+            width=2,
+        )
+        self.center_location_button.bind(on_release=self._on_center_location)
+        row.add_widget(self.center_location_button)
+        self.block_touch.append(self.center_location_button)
+    
     def _create_bottom_buttons(self):
         """Adds the cancel and select buttons."""
         btn_bar = BoxLayout(
             orientation="vertical",
-            size_hint=(1, None), height=100,
+            size_hint=(1, None),
+            height=SIZE.BUTTON_HEIGHT,
             padding=[SPACE.SCREEN_PADDING_X, SPACE.SCREEN_PADDING_X],
             pos_hint={"x": 0, "y": 0}
         )
@@ -95,11 +119,13 @@ class MapScreenUtils:
         self.cancel_button = CancelButton(text="Cancel", width=2)
         self.cancel_button.bind(on_release=self._on_cancel)
         row.add_widget(self.cancel_button)
+        self.block_touch.append(self.cancel_button)
         # Select button
         self.select_button = ConfirmButton(text="Select", width=2,
                                            color_state=STATE.INACTIVE)
         self.select_button.bind(on_release=self._on_select)
         row.add_widget(self.select_button)
+        self.block_touch.append(self.select_button)
     
 # ############ Markers ############ #
     def get_marker(self, lat: float, lon: float):
@@ -118,6 +144,10 @@ class MapScreenUtils:
         self._cancel_pending_marker()
         self.remove_current_marker()
         self.reset_marker_location()
+        
+        # Update button states
+        self.select_button.set_inactive_state()
+        self.center_marker_button.set_inactive_state()
 
     def remove_current_marker(self):
         """Removes the current marker from the map."""
@@ -139,7 +169,7 @@ class MapScreenUtils:
     def _request_location_permission(self):
         """Requests location permission if needed."""
         PM.validate_permission(PM.ACCESS_FINE_LOCATION)
-        PM.validate_permission(PM.ACCESS_COARSE_LOCATION)
+        # PM.validate_permission(PM.ACCESS_COARSE_LOCATION)
     
     @log_time("MapScreenUtils.clear_map_cache")
     def clear_map_cache(self):
