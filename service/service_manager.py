@@ -88,7 +88,7 @@ class ServiceManager:
         time.sleep(0.3)
 
         # Initial checks
-        self.flag_service_as_running()
+        self._flag_service_as_running()
         self.check_task_expiry()
         self.update_foreground_notification_info()
 
@@ -147,7 +147,7 @@ class ServiceManager:
         """Cancels the alarm and notifications."""
         logger.trace("Cancelling alarm and notifications")
         self.audio_manager.stop_alarm()
-        self.notification_manager.cancel_all_notifications()
+        self.notification_manager.cancel_task_notifications()
     
     def synchronize_loop_start(self) -> None:
         """
@@ -236,41 +236,10 @@ class ServiceManager:
         if self.expiry_manager.current_task:
             time_label = get_service_timestamp(self.expiry_manager.current_task)
             message = self.expiry_manager.current_task.message
-            
-            # Add GPS distance if monitoring is active
-            if self.gps_manager._monitoring_active:
-                distance = self.gps_manager.get_distance_to_target()
-                if distance is not None:
-                    # Convert to km if over 1000m
-                    if distance >= 1000:
-                        distance_str = f"{distance / 1000:.1f} km"
-                    else:
-                        distance_str = f"{distance:.0f} m"
-                    
-                    # Append distance to message
-                    if message:
-                        message = f"{message} • Distance: {distance_str}"
-                    else:
-                        message = f"Distance: {distance_str}"
-            
             with_buttons = True
-        
         else:
             time_label = "No tasks to monitor"
             message = ""
-            
-            # Add GPS distance if monitoring is active (even without tasks)
-            if self.gps_manager._monitoring_active:
-                distance = self.gps_manager.get_distance_to_target()
-                if distance is not None:
-                    # Convert to km if over 1000m
-                    if distance >= 1000:
-                        distance_str = f"{distance / 1000:.1f} km"
-                    else:
-                        distance_str = f"{distance:.0f} m"
-                    
-                    message = f"Distance: {distance_str}"
-            
             with_buttons = False
             
         self.notification_manager.ensure_foreground_notification(
@@ -284,23 +253,7 @@ class ServiceManager:
         if self.expiry_manager.current_task:
             time_label = get_service_timestamp(self.expiry_manager.current_task)
             message = self.expiry_manager.current_task.message
-            
-            # Add GPS distance if monitoring is active
-            if self.gps_manager._monitoring_active:
-                distance = self.gps_manager.get_distance_to_target()
-                if distance is not None:
-                    # Convert to km if over 1000m
-                    if distance >= 1000:
-                        distance_str = f"{distance / 1000:.1f} km"
-                    else:
-                        distance_str = f"{distance:.0f} m"
-                    
-                    # Append distance to message
-                    if message:
-                        message = f"{message} • Distance: {distance_str}"
-                    else:
-                        message = f"Distance: {distance_str}"
-            
+
             self.notification_manager.show_foreground_notification(
                 time_label,
                 message,
@@ -310,18 +263,6 @@ class ServiceManager:
         else:
             time_label = "No tasks to monitor"
             message = ""
-            
-            # Add GPS distance if monitoring is active (even without tasks)
-            if self.gps_manager._monitoring_active:
-                distance = self.gps_manager.get_distance_to_target()
-                if distance is not None:
-                    # Convert to km if over 1000m
-                    if distance >= 1000:
-                        distance_str = f"{distance / 1000:.1f} km"
-                    else:
-                        distance_str = f"{distance:.0f} m"
-                    
-                    message = f"Distance: {distance_str}"
             
             self.notification_manager.show_foreground_notification(
                 time_label,
@@ -368,7 +309,7 @@ class ServiceManager:
                 {"expired": True}
             )
         
-        self.notification_manager.cancel_all_notifications()
+        self.notification_manager.cancel_task_notifications()
 
         expired_task = self.expiry_manager.handle_task_expired()
         if expired_task:

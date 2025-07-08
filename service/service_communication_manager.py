@@ -51,6 +51,8 @@ class ServiceCommunicationManager:
             DM.ACTION.SNOOZE_A,
             DM.ACTION.SNOOZE_B,
             DM.ACTION.CANCEL,
+            DM.ACTION.CANCEL_GPS,
+            DM.ACTION.SKIP_GPS_TARGET,
         ]
         self.app_actions: list[str] = [
             DM.ACTION.UPDATE_TASKS,
@@ -132,19 +134,18 @@ class ServiceCommunicationManager:
                 return
             
             logger.debug(f"ServiceCommunicationManager received intent with action: {pure_action}")
-            task_id = self._get_task_id(intent, pure_action)
-            self.handle_action(intent,pure_action, task_id)
+            self.handle_action(intent, pure_action)
                 
         except Exception as e:
             logger.error(f"Error in broadcast receiver callback: {e}")
 
-    def handle_action(self, intent: Any, pure_action: str, task_id: str | None = None) -> int:
+    def handle_action(self, intent: Any, pure_action: str) -> int:
         """
         Processes the action through both service and app handlers.
         - Service handler processes service actions (snooze, cancel, etc.)
         - App handler processes app actions (update tasks, stop alarm)
         - Handles restart service action separately
-        All actions require cancelling all notifications.
+        # All actions require cancelling all notifications.
         """
         # Check boot and restart actions
         if pure_action in self.boot_actions:
@@ -152,21 +153,14 @@ class ServiceCommunicationManager:
             logger.debug("ServiceCommunicationManager received boot action")
             return Service.START_STICKY
 
-        # Cancel all notifications for any non-boot action
-        self.notification_manager.cancel_all_notifications()
-
         # Check Service actions
         if self._is_service_action(pure_action):
-            if not task_id:
-                logger.error(f"Error getting task_id from action: {pure_action}")
-                return Service.START_STICKY
-            
-            self._handle_service_action(pure_action, task_id)
+            self._handle_service_action(intent, pure_action)
             return Service.START_STICKY
 
         # Check App actions
         if self._is_app_action(pure_action):
-            self._handle_app_action(pure_action, intent)
+            self._handle_app_action(intent, pure_action)
             return Service.START_STICKY
         
         logger.error(f"Error handling action: {pure_action}")
@@ -185,28 +179,47 @@ class ServiceCommunicationManager:
         from service.main import start_service
         start_service()
 
-    def _handle_service_action(self, pure_action: str, task_id: str) -> int:
+    def _handle_service_action(self, intent: Any, pure_action: str) -> int:
         """
-        Handles service actions (snooze, cancel, etc.) and notification actions.
-        - Processes snooze/cancel actions from notifications
-        - Updates service state and sends actions to App
+        Handles service actions (coming from notifications)
+        - Tasks: snooze, cancel
+        - GPS: cancel, skip target
         """
         logger.debug(f"_handle_service_action: {pure_action}")
+
+        # Cancel GPS
+        if pure_action == DM.ACTION.CANCEL_GPS:
+            self._handle_cancel_gps_action(intent)
+            return Service.START_STICKY
+        # Skip GPS target
+        elif pure_action == DM.ACTION.SKIP_GPS_TARGET:
+            self._handle_skip_gps_target_action(intent)
+            return Service.START_STICKY
+        
+        # Handle task-related actions (these need task_id)
+        task_id = self._get_task_id(intent, pure_action)
+        if not task_id:
+            logger.error(f"Error getting task_id from action: {pure_action}")
+            return Service.START_STICKY
+
+        # Cancel all Task notifications
+        self.notification_manager.cancel_task_notifications()
         # Snooze
         if pure_action == DM.ACTION.SNOOZE_A or pure_action == DM.ACTION.SNOOZE_B:
             self._snooze_action(pure_action, task_id)
-        
+            return Service.START_STICKY
         # Cancel and open app
         elif pure_action == DM.ACTION.CANCEL:
             self._cancel_action(pure_action, task_id)
-        
-        return Service.START_STICKY
-
-    def _handle_app_action(self, pure_action: str, intent: Any) -> int:
+            return Service.START_STICKY
+    
+    def _handle_app_action(self, intent: Any, pure_action: str) -> int:
         """
-        Handles app actions (update tasks, stop alarm).
-        - Processes app communication actions
-        - Updates service state as needed
+        Handles App actions (coming from App)
+        - Tasks: update tasks
+        - Alarm: stop alarm
+        - Notifications: remove task notifications
+        - GPS: get location once, start location monitoring, stop location monitoring
         """
         # Update tasks
         if pure_action.endswith(DM.ACTION.UPDATE_TASKS):
@@ -221,13 +234,13 @@ class ServiceCommunicationManager:
             self._remove_task_notifications_action()
         
         # GPS actions
-        elif pure_action.endswith(DM.ACTION.GET_LOCATION_ONCE):
+        elif pure_action == DM.ACTION.GET_LOCATION_ONCE:
             self._get_location_once_action()
         
-        elif pure_action.endswith(DM.ACTION.START_LOCATION_MONITORING):
+        elif pure_action == DM.ACTION.START_LOCATION_MONITORING:
             self._start_location_monitoring_action(intent)
         
-        elif pure_action.endswith(DM.ACTION.STOP_LOCATION_MONITORING):
+        elif pure_action == DM.ACTION.STOP_LOCATION_MONITORING:
             self._stop_location_monitoring_action()
 
         return Service.START_STICKY
@@ -268,17 +281,20 @@ class ServiceCommunicationManager:
     def _get_task_id(self, intent: Any, action: str | None = None) -> str | None:
         """
         Extracts and returns task_id from the intent extras, or None.
-        Falls back to current task's ID only for service actions that require it.
+        Falls back to current task's ID only for task-related service actions.
         """
         task_id = intent.getStringExtra("task_id")        
         if task_id:
             return task_id
         
-        # Fallback to current Task's ID
-        if action and any(action.endswith(a) for a in self.service_actions):
+        # Fallback to current Task's ID only for task-related actions
+        if action and action in [DM.ACTION.SNOOZE_A, DM.ACTION.SNOOZE_B, DM.ACTION.CANCEL]:
             if self.expiry_manager.current_task:
                 logger.error(f"Error getting task_id from intent - using current task_id: {self.expiry_manager.current_task.task_id}")
                 return self.expiry_manager.current_task.task_id
+            if self.expiry_manager.expired_task:
+                logger.error(f"Error getting task_id from intent - using expired task_id: {self.expiry_manager.expired_task.task_id}")
+                return self.expiry_manager.expired_task.task_id
         
         return None
 
@@ -326,7 +342,7 @@ class ServiceCommunicationManager:
     def _remove_task_notifications_action(self) -> None:
         """Removes all task notifications."""
         logger.trace("Handling remove task notifications action")
-        self.notification_manager.cancel_all_notifications()
+        self.notification_manager.cancel_task_notifications()
     
     def _get_location_once_action(self) -> None:
         """Handles request for one-time location from app."""
@@ -377,6 +393,7 @@ class ServiceCommunicationManager:
         try:
             logger.info("Service: Stopping location monitoring")
             self.gps_manager.stop_location_monitoring()
+            self.audio_manager.audio_player.stop()
         except Exception as e:
             logger.error(f"Service: Error stopping location monitoring: {e}")
     
@@ -413,3 +430,28 @@ class ServiceCommunicationManager:
         
         pure_action = action.split(".")[-1]
         return pure_action
+
+    def _handle_cancel_gps_action(self, intent: Any) -> None:
+        """Handles GPS tracking cancellation."""
+        try:
+            target_id = intent.getStringExtra("target_id")
+            logger.info(f"Handling GPS cancel action for target: {target_id}")
+            self.service_manager.gps_manager.stop_location_monitoring()
+            
+        except Exception as e:
+            logger.error(f"Error handling cancel GPS action: {e}")
+
+    def _handle_skip_gps_target_action(self, intent: Any) -> None:
+        """
+        Handles skipping to next GPS target.
+        Currently not implemented.
+        """
+        try:
+            target_id = intent.getStringExtra("target_id")
+            logger.info(f"Handling skip GPS target action for: {target_id}")
+            
+            # TODO: Implement multi-target logic
+            self.service_manager.gps_manager.stop_location_monitoring()
+            
+        except Exception as e:
+            logger.error(f"Error handling skip GPS target action: {e}")

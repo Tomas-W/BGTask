@@ -15,14 +15,11 @@ if TYPE_CHECKING:
     from src.app_managers.app_communication_manager import AppCommunicationManager
     from kivy.uix.widget import Widget
     from kivy_garden.mapview import Marker
-    from kivy.clock import ClockEvent
 
 
 class MapScreen(BaseScreen, MapScreenUtils):
 
     SCROLL_MOVEMENT_THRESHOLD: int = 10  # pixels
-    DOUBLE_TAP_DELAY: float = 0.30       # seconds
-    CACHE_MAX_FILES: int = 350           # nr files
 
     """
     MapScreen displays a world map and:
@@ -41,9 +38,6 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.current_marker: "Marker | None" = None
         self.selected_lat: float | None = None
         self.selected_lon: float | None = None
-        # Double tap prevention
-        self.last_tap_time: float = 0
-        self._pending_marker_ev: "ClockEvent | None" = None
         
         # Location state
         self.has_user_location: bool = False
@@ -70,9 +64,8 @@ class MapScreen(BaseScreen, MapScreenUtils):
         Checks if the touch is a:
         - Touch outside map -> ignore
         - Mouse wheel events -> zoom
-        - Double tap -> cancel pending marker and zoom
         - Drag / scroll -> scroll
-        - Single tap -> schedule marker
+        - Single tap -> place marker
         """
         # Touch outside map -> ignore
         if not self.mapview.collide_point(*touch.pos):
@@ -87,29 +80,20 @@ class MapScreen(BaseScreen, MapScreenUtils):
         if hasattr(touch, "button") and touch.button in ["scrollup", "scrolldown"]:
             return False
         
-        # Double tap -> cancel pending marker and zoom
-        if touch.is_double_tap:
-            self._cancel_pending_marker()
-            return False
-        
         # Drag / scroll -> scroll
         start = touch.ud.get("start_pos", touch.pos)
         movement = abs(start[0] - touch.pos[0]) + abs(start[1] - touch.pos[1])
         if movement >= MapScreen.SCROLL_MOVEMENT_THRESHOLD:
             return False
         
-        # Single tap -> schedule marker
-        self._cancel_pending_marker()
-        self._pending_marker_ev = Clock.schedule_once(
-            lambda dt, p=touch.pos: self._place_marker(p),
-            MapScreen.DOUBLE_TAP_DELAY,
-        )
-        return True
+        # Single tap -> place marker
+        self._place_marker(touch.pos)
+
+        return True 
     
     def _place_marker(self, pos: tuple[float, float]) -> None:
         """Removes any previous marker and places a new one at the position."""
         # Reset
-        self._pending_marker_ev = None
         self.reset_marker_state()
         # Place marker
         lat, lon = self.mapview.get_latlon_at(*pos)
@@ -123,10 +107,18 @@ class MapScreen(BaseScreen, MapScreenUtils):
     
     def _on_center_marker(self, instance) -> None:
         """Centers the map on the current marker."""
+        if self.current_marker is None:
+            self._show_center_on_marker_popup()
+            return
+        
         self.center_on_marker()
     
     def _on_center_location(self, instance) -> None:
         """Centers the map on the user's location."""
+        if not self._check_gps_availability():
+            self._show_center_on_location_popup()
+            return
+        
         self.center_on_user_location()
     
     def _on_cancel(self, instance) -> None:
@@ -138,6 +130,11 @@ class MapScreen(BaseScreen, MapScreenUtils):
         """Saves the selected coordinates and starts monitoring."""
         if self.selected_lat is None or self.selected_lon is None:
             logger.warning("No location selected")
+            return
+        
+        # Check if GPS is initialized
+        if not self._check_gps_availability():
+            self._show_gps_unavailable_popup()
             return
         
         self.save_marker_location(self.selected_lat, self.selected_lon)
@@ -162,8 +159,7 @@ class MapScreen(BaseScreen, MapScreenUtils):
             self.user_lon = lon
             self.has_user_location = True
             
-            # Update center location button state
-            self.center_location_button.set_active_state()
+            self._activate_center_location_button()
         
         else:
             logger.warning("Map screen: No location available")
@@ -195,11 +191,6 @@ class MapScreen(BaseScreen, MapScreenUtils):
             self.select_button.set_inactive_state()
             self.center_marker_button.set_inactive_state()
         
-        if self.has_user_location:
-            self.center_location_button.set_active_state()
-        else:
-            self.center_location_button.set_inactive_state()
-        
         self.limit_map_cache()
 
     def _on_map_view_change(self, instance, value) -> None:
@@ -207,3 +198,10 @@ class MapScreen(BaseScreen, MapScreenUtils):
         # Force map to update tiles
         if hasattr(self.mapview, "_trigger_update"):
             self.mapview._trigger_update(0)  # Immediate update
+    
+    def _activate_center_location_button(self) -> None:
+        """Activates the center location button."""
+        if hasattr(self, "center_location_button"):
+            self.center_location_button.set_active_state()
+        else:
+            Clock.schedule_once(self._activate_center_location_button, 0.1)

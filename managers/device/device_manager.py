@@ -44,7 +44,7 @@ class DeviceManager:
             # Communication
             self.ACTION: Final[Actions] = Actions()
             self.ACTION_TARGET: Final[ActionTargets] = ActionTargets()
-            self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
+            # self.NOTIFICATION_TYPE: Final[NotificationType] = NotificationType()
     	    
             # Service communication & notifications
             if self.is_android:

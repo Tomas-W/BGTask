@@ -28,6 +28,8 @@ class ServiceNotificationManager:
 
     ANDROID_12: int = 31
 
+    GPS_TRACKING_NOTIFICATION_ID: int = 2000
+
     """Manages all Android notifications for the background service.
     - Foreground notification: Shows current Task status
     - Task notifications: High-priority alerts for expired Tasks
@@ -45,11 +47,17 @@ class ServiceNotificationManager:
         self.expiry_manager: "ServiceExpiryManager" = expiry_manager
         
         self.package_name: str = self.context.getPackageName()
-        self.active_notification_ids: set[int] = set()
-        self.current_notification_id: int | None = None
+        self.task_notification_ids: set[int] = set()
+        self.current_task_notification_id: int | None = None
+
+        # GPS notification tracking
+        self.current_gps_notification_id: int | None = None
+        self.gps_tracking_notification_id: int = ServiceNotificationManager.GPS_TRACKING_NOTIFICATION_ID
+        self.gps_notification_ids: set[int] = set()
         
         self._init_foreground_channel()
         self._init_tasks_channel()
+        self._init_gps_channel()
     
     def _init_foreground_channel(self) -> None:
         """Initializes the foreground channel."""
@@ -83,6 +91,21 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error creating tasks channel: {e}")
     
+    def _init_gps_channel(self) -> None:
+        """Initializes the GPS notification channel."""
+        try:
+            gps_channel = NotificationChannel(
+                DM.CHANNEL.GPS,
+                AndroidString("BGTask Location"),
+                DM.IMPORTANCE.LOW
+            )
+            gps_channel.setDescription(AndroidString("Shows location tracking and alerts"))
+            self.notification_manager.createNotificationChannel(gps_channel)
+            logger.trace("Created GPS channel")
+        
+        except Exception as e:
+            logger.error(f"Error creating GPS channel: {e}")
+    
     def create_action_intent(self, action: str, task_id: str) -> Any | None:
         """Creates a broadcast intent for notification button actions with task_id."""
         intent = Intent()
@@ -113,6 +136,7 @@ class ServiceNotificationManager:
     def _get_request_code(self, action: str, task_id: str) -> int:
         """Returns the request code based on the action and task ID."""
         base_code = 0
+        # Tasks
         if action.endswith(DM.ACTION.SNOOZE_A):
             base_code = DM.INTENT.SNOOZE_A
         elif action.endswith(DM.ACTION.SNOOZE_B):
@@ -122,10 +146,16 @@ class ServiceNotificationManager:
         elif action.endswith(DM.ACTION.STOP_ALARM):
             base_code = DM.INTENT.STOP_ALARM
         
+        # GPS
+        elif action.endswith(DM.ACTION.CANCEL_GPS):
+            base_code = DM.INTENT.CANCEL_GPS
+        elif action.endswith(DM.ACTION.SKIP_GPS_TARGET):
+            base_code = DM.INTENT.SKIP_GPS_TARGET
+        
         # Add task_id hash to make unique
-        task_id_hash = abs(hash(task_id[:4])) % 1000
+        id_hash = abs(hash(task_id[:4])) % 1000
         # Keep within Java int range
-        return base_code + (task_id_hash * 10000)
+        return base_code + (id_hash * 10000)
     
     def create_app_open_intent(self, task_id: str | None = None) -> Any | None:
         """Creates a PendingIntent to open the App's main activity."""
@@ -321,12 +351,12 @@ class ServiceNotificationManager:
         # Show notification
         try:
             # Generate notification ID
-            self.current_notification_id = int(time.time())
+            self.current_task_notification_id = int(time.time())
             notification = builder.build()
             
             # Show and track notification
-            self.notification_manager.notify(self.current_notification_id, notification)
-            self.active_notification_ids.add(self.current_notification_id)
+            self.notification_manager.notify(self.current_task_notification_id, notification)
+            self.task_notification_ids.add(self.current_task_notification_id)
             logger.debug(f"Showed Task notification for Task: {DM.get_task_log(self.expiry_manager.expired_task)}")
 
             # Attempt to wake up screen
@@ -335,37 +365,37 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error showing task notification: {e}")
     
-    def cancel_all_notifications(self) -> None:
+    def cancel_task_notifications(self) -> None:
         """Cancels all active notifications."""
-        if not self.active_notification_ids:
+        if not self.task_notification_ids:
             return
         
         try:
             # Cancel all active notifications
-            for notification_id in self.active_notification_ids:
+            for notification_id in self.task_notification_ids:
                 try:
                     self.notification_manager.cancel(notification_id)
                 except Exception as e:
                     logger.error(f"Error cancelling notification {notification_id}: {e}")
             
             # Clear the active notifications set
-            self.active_notification_ids.clear()
-            self.current_notification_id = None
+            self.task_notification_ids.clear()
+            self.current_task_notification_id = None
             logger.trace(f"Cancelled all notifications")
         
         except Exception as e:
             logger.error(f"Error cancelling all notifications: {e}")
     
-    def cancel_current_notification(self) -> None:
-        """Cancels the current Task notification if it exists."""
-        if self.current_notification_id is not None:
-            try:
-                self.notification_manager.cancel(self.current_notification_id)
-                self.active_notification_ids.discard(self.current_notification_id)
-                self.current_notification_id = None
+    # def cancel_current_notification(self) -> None:
+    #     """Cancels the current Task notification if it exists."""
+    #     if self.current_task_notification_id is not None:
+    #         try:
+    #             self.notification_manager.cancel(self.current_task_notification_id)
+    #             self.task_notification_ids.discard(self.current_task_notification_id)
+    #             self.current_task_notification_id = None
             
-            except Exception as e:
-                logger.error(f"Error cancelling notification: {e}")
+    #         except Exception as e:
+    #             logger.error(f"Error cancelling notification: {e}")
     
     def remove_notification(self) -> None:
         """Removes the foreground notification."""
@@ -396,13 +426,13 @@ class ServiceNotificationManager:
         If that fails, it tries to get the icon from the App's ApplicationInfo.
         If that fails, it returns None.
         """
-        icon_resource = self._get_custom_icon()
+        icon_resource = self._get_task_icon()
         if icon_resource is None:
             icon_resource = self._get_default_icon()
         
         return icon_resource
     
-    def _get_custom_icon(self) -> int | None:
+    def _get_task_icon(self) -> int | None:
         """Returns the notification icon resource ID."""
         try:
             drawable = autoclass(f"{self.package_name}.R$drawable")
@@ -419,3 +449,152 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error getting default notification icon: {e}")
             return None
+
+    def create_gps_action_intent(self, action: str, target_id: str = "current") -> Any | None:
+        """Creates a broadcast intent for GPS notification actions."""
+        intent = Intent()
+        intent.setAction(f"{self.package_name}.{action}")
+        intent.setPackage(self.package_name)
+        
+        # Add target_id for multi-target support
+        intent.putExtra("target_id", AndroidString(target_id))
+        
+        flags = self._get_flags()
+        request_code = self._get_request_code(action, target_id)
+        
+        return PendingIntent.getBroadcast(
+            self.context, 
+            request_code,
+            intent,
+            flags
+        )
+
+    def _add_gps_notification_buttons(self, builder: Any, target_id: str, has_next_target: bool = False) -> None:
+        """Adds GPS-specific action buttons to notification."""
+        actions = [
+            (DM.ACTION.CANCEL_GPS, "Cancel Tracking")
+        ]
+        
+        # Only add skip button if there are multiple targets
+        if has_next_target:
+            actions.append((DM.ACTION.SKIP_GPS_TARGET, "Skip to Next"))
+        
+        for action, label in actions:
+            try:
+                intent = self.create_gps_action_intent(action, target_id)
+                if intent:
+                    builder.addAction(0, AndroidString(label), intent)
+            except Exception as e:
+                logger.error(f"Error adding GPS {label} button: {e}")
+
+    def show_gps_tracking_notification(self, distance: float, target_name: str = "target", 
+                                     target_id: str = "current", has_next_target: bool = False) -> None:
+        """Shows/updates the ongoing GPS tracking notification."""
+        icon_resource = self._get_icon_resource()
+        if icon_resource is None:
+            logger.error("No valid icon found, cannot show GPS tracking notification")
+            return
+
+        # Format distance
+        if distance >= 1000:
+            distance_str = f"{distance / 1000:.1f} km"
+        else:
+            distance_str = f"{distance:.0f} m"
+
+        # Create notification
+        builder = self._create_notification_builder(
+            DM.CHANNEL.GPS,
+            f"Tracking: {target_name}",
+            f"Distance: {distance_str}",
+            icon_resource,
+            DM.PRIORITY.LOW
+        )
+        
+        if builder is None:
+            return
+
+        try:
+            # Make it ongoing but not foreground
+            builder.setOngoing(True)
+            builder.setAutoCancel(False)
+            builder.setOnlyAlertOnce(True)  # Don't alert on updates
+
+            # Add click to open app
+            app_intent = self.create_app_open_intent()
+            if app_intent:
+                builder.setContentIntent(app_intent)
+
+            # Add GPS buttons
+            self._add_gps_notification_buttons(builder, target_id, has_next_target)
+
+            notification = builder.build()
+            self.notification_manager.notify(self.gps_tracking_notification_id, notification)
+            logger.debug(f"Updated GPS tracking notification: {distance_str} to {target_name}")
+
+        except Exception as e:
+            logger.error(f"Error showing GPS tracking notification: {e}")
+
+    def show_gps_alert_notification(self, target_name: str = "target", target_id: str = "current", 
+                                   has_next_target: bool = False) -> None:
+        """Shows a high-priority GPS alert notification when target is reached."""
+        icon_resource = self._get_icon_resource()
+        if icon_resource is None:
+            logger.error("No valid icon found, cannot show GPS alert notification")
+            return
+
+        builder = self._create_notification_builder(
+            DM.CHANNEL.GPS,
+            "Reached distance target!",
+            f"You are near: {target_name}",
+            icon_resource,
+            DM.PRIORITY.HIGH
+        )
+        
+        if builder is None:
+            return
+
+        try:
+            # Make it alerting
+            builder.setAutoCancel(True)
+            builder.setOnlyAlertOnce(False)
+
+            # Add vibration and sound
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL)
+
+            # Add click to open app
+            app_intent = self.create_app_open_intent()
+            if app_intent:
+                builder.setContentIntent(app_intent)
+
+            # Add GPS buttons
+            self._add_gps_notification_buttons(builder, target_id, has_next_target)
+
+            # Generate unique ID for alert
+            self.current_gps_notification_id = int(time.time())
+            notification = builder.build()
+            
+            self.notification_manager.notify(self.current_gps_notification_id, notification)
+            self.gps_notification_ids.add(self.current_gps_notification_id)
+            logger.info(f"Showed GPS alert notification for {target_name}")
+
+            # Wake up screen for important alert
+            self._wake_up_screen()
+
+        except Exception as e:
+            logger.error(f"Error showing GPS alert notification: {e}")
+
+    def cancel_gps_notifications(self) -> None:
+        """Cancels all GPS-related notifications."""
+        try:
+            for notification_id in self.gps_notification_ids:
+                try:
+                    self.notification_manager.cancel(notification_id)
+                except Exception as e:
+                    logger.error(f"Error cancelling notification {notification_id}: {e}")
+            
+            self.gps_notification_ids.clear()
+            self.current_gps_notification_id = None
+            logger.debug("Cancelled all GPS notifications")
+
+        except Exception as e:
+            logger.error(f"Error cancelling GPS notifications: {e}")

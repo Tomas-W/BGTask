@@ -1,34 +1,39 @@
+import os
 import threading
-from datetime import datetime
-from typing import Callable
-from math import radians, sin, cos, sqrt, atan2
 import time
 
-from service.service_utils import LocationListener, Context, LocationManager, PythonActivity, Looper
-from src.utils.logger import logger
+from datetime import datetime
+from math import radians, sin, cos, sqrt, atan2
+from typing import Callable, TYPE_CHECKING
 
-try:
-    from jnius import autoclass  # type: ignore
-    PythonService = autoclass('org.kivy.android.PythonService')
-except ImportError:
-    PythonService = None
+from managers.device.device_manager import DM
+from service.service_utils import LocationListener, Context, LocationManager, Looper
+from src.utils.logger import logger
+from src.utils.wrappers import requires_gps
+
+from jnius import autoclass  # type: ignore
+PythonService = autoclass('org.kivy.android.PythonService')
+
+if TYPE_CHECKING:
+    from service.service_manager import ServiceManager
+    from service.service_audio_manager import ServiceAudioManager
 
 
 class ServiceGpsManager:
     """
-    Complete GPS manager for the service that handles all GPS operations.
-    Includes utility functions and Android GPS functionality.
+    Manages all GPS functionality for the Service that can:
+    - Track current location
+    - Calculate distance between current and target location
+    - Displays distance in foreground notification
+    - Trigger alerts when within alert distance
     """
-    DEFAULT_ALERT_DISTANCE = 1000  # 1km in meters
+    DEFAULT_ALERT_DISTANCE = 300  # 300 meters
+    MIN_MOVEMENT_DISTANCE = 10    # 10 meters
+    GPS_UPDATE_INTERVAL = 5000    # 5 seconds
 
-    # Optimized polling intervals (in milliseconds)
-    STATIONARY_INTERVAL = 300000   # 5 minutes when not moving  
-    MOVING_INTERVAL = 30000        # 30 seconds when moving
-    MIN_MOVEMENT_DISTANCE = 50     # 50 meters to consider "moving"
-
-    def __init__(self, service_manager=None):
-        # Service reference for notifications
-        self.service_manager = service_manager
+    def __init__(self, service_manager: 'ServiceManager'):
+        self.service_manager: 'ServiceManager' = service_manager
+        self.audio_manager: 'ServiceAudioManager' = service_manager.audio_manager
         
         # Location state
         self._current_lat: float | None = None
@@ -48,16 +53,21 @@ class ServiceGpsManager:
         self._looper = None
         self._gps_enabled: bool = False
         self._last_update_time: datetime | None = None
-        
-        # Monitoring state
         self._last_known_location: tuple[float, float] | None = None
-        self._current_interval: int = self.MOVING_INTERVAL
         
-        # Initialize Android components
-        self._initialize_android_gps()
+        # Block multiple location requests
+        self._location_request_active: bool = False
+
+        # Tracking state
+        self.gps_target_name: str | None = "Tanken"
+        self.gps_target_id: str | None = "0"
+        self.gps_alarm_path: str | None = os.path.join(DM.PATH.RECORDINGS, "tanken.wav")
+        self.target_reached: bool = False
         
-    def _initialize_android_gps(self) -> None:
-        """Initialize Android GPS components."""
+        self._initialize_gps()
+        
+    def _initialize_gps(self) -> None:
+        """Get the location manager and start the looper thread."""
         try:
             # Check if service is available
             if not hasattr(PythonService, 'mService') or PythonService.mService is None:
@@ -68,11 +78,15 @@ class ServiceGpsManager:
             self._location_manager = service.getSystemService(Context.LOCATION_SERVICE)
             self._start_looper_thread()
             logger.info("Service GPS manager initialized")
+        
         except Exception as e:
             logger.error(f"Failed to initialize GPS: {e}")
     
-    def _start_looper_thread(self) -> None:
+    def _start_looper_thread(self) -> bool:
         """Starts a thread with a prepared Looper for location updates."""
+        if self._looper:
+            return True  # Already initialized
+        
         def looper_thread():
             Looper.prepare()
             self._looper = Looper.myLooper()
@@ -82,20 +96,339 @@ class ServiceGpsManager:
         self._looper_thread.daemon = True
         self._looper_thread.start()
         
-        # Wait for looper to be ready
-        for _ in range(10):
+        # Wait for looper
+        for _ in range(50):  # 5 seconds total
             if self._looper:
                 logger.info("GPS Looper thread started")
-                break
+                return True
             threading.Event().wait(0.1)
+        
+        logger.error("GPS Looper thread failed to start within timeout")
+        return False
+
+    def get_location_once(self) -> tuple[float, float] | None:
+        """Returns users current location (lat, lon) if available."""
+        # Check if any location request is already active
+        if self._location_request_active:
+            logger.debug("Service: Location request already active, skipping duplicate")
+            return None
+        
+        logger.info("Service: Getting one-time location update")
+
+        if not self._ensure_gps_initialized():
+            return None
+        
+        # Check recent location first
+        current_time = datetime.now()
+        if self._current_lat and self._current_lon and self._last_update_time and (current_time - self._last_update_time).total_seconds() < 60:
+            logger.info(f"Service: Using last known location: {self._current_lat}, {self._current_lon}")
+            return (self._current_lat, self._current_lon)
+        
+        # Set flag to prevent any duplicate requests
+        self._location_request_active = True
+        
+        try:
+            return self._get_fresh_location_without_interfering()
+        finally:
+            self._location_request_active = False
+
+    def _get_fresh_location_without_interfering(self) -> tuple[float, float] | None:
+        """Get fresh location without interfering with existing tracking."""
+        try:
+            result = {"location": None, "received": False}
+            
+            def on_temp_location(lat: float, lon: float):
+                result["location"] = (lat, lon)
+                result["received"] = True
+            
+            temp_listener = LocationListener(on_temp_location, self)
+            self._location_manager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                1000,  # 1 second
+                0,     # No distance
+                temp_listener,
+                self._looper
+            )
+            
+            # Wait for location (30 seconds max)
+            import time
+            for _ in range(300):
+                if result["received"]:
+                    break
+                time.sleep(0.1)
+            
+            self._location_manager.removeUpdates(temp_listener)
+
+            if result["received"]:
+                lat, lon = result["location"]
+                logger.info(f"Service: Got fresh location: {lat}, {lon}")
+                self._update_current_location(lat, lon)
+                return result["location"]
+
+            else:
+                logger.warning("Service: Timeout getting fresh location")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Service: Error getting fresh location: {e}")
+            return None
+
+    def _start_location_service_one_time(self, callback: Callable[[float, float], None]) -> bool:
+        """Start location service for one-time use - same as tracking but for single location."""
+        try:
+            if not self._location_manager:
+                logger.error("Service: Location manager not initialized")
+                return False
+                
+            # Ensure looper is ready
+            if not self._looper:
+                logger.info("Service: Starting looper thread for GPS")
+                if not self._start_looper_thread():
+                    logger.error("Service: Failed to start looper thread")
+                    return False
+                
+                # Wait for looper to initialize
+                for i in range(50):  # Wait up to 5 seconds
+                    if self._looper:
+                        break
+                    time.sleep(0.1)
+                
+                if not self._looper:
+                    logger.error("Service: Looper failed to initialize")
+                    return False
+            
+            def on_location(lat: float, lon: float):
+                with self._location_lock:
+                    self._current_lat = lat
+                    self._current_lon = lon
+                    self._last_update_time = datetime.now()
+                self._location_event.set()
+                callback(lat, lon)
+            
+            self._location_listener = LocationListener(on_location, self)
+            
+            self._location_manager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                self.GPS_UPDATE_INTERVAL,
+                self.MIN_MOVEMENT_DISTANCE,
+                self._location_listener,
+                self._looper
+            )
+            
+            self._gps_enabled = True
+            logger.debug(f"Service: Started GPS for one-time location with interval {self.GPS_UPDATE_INTERVAL}ms")
+            return True
+        
+        except Exception as e:
+            logger.error(f"Service: Error starting location service for one-time: {e}")
+            return False
     
-    # =============== GPS Utility Functions ===============
+    def _pre_acquire_location(self):
+        """Start background location acquisition when GPS is enabled."""
+        # Skip if monitoring active or any location request active
+        if not self._monitoring_active and not self._location_request_active:
+            logger.info("Service: GPS enabled, pre-acquiring location in background...")
+            self._location_request_active = True
+            threading.Thread(target=self._background_location_acquisition, daemon=True).start()
+        else:
+            logger.debug("Service: Skipping background location acquisition (already active)")
+
+    def _background_location_acquisition(self):
+        """Background thread to acquire location when GPS is enabled."""
+        try:
+            location = self._get_fresh_location_without_interfering()
+            if location:
+                logger.info(f"Service: Background location acquired: {location}")
+        except Exception as e:
+            logger.debug(f"Background location acquisition failed: {e}")
+        finally:
+            self._location_request_active = False
+    
+    @requires_gps
+    def start_location_monitoring(self, target_lat: float, target_lon: float, 
+                                alert_distance: float = None) -> bool:
+        """
+        Start monitoring location for distance alerts.
+        Returns True if started successfully, False otherwise.
+        """
+        logger.info(f"Service: Starting location monitoring for target: {target_lat}, {target_lon}")
+        
+        self.target_reached = False
+        self.set_target_location(target_lat, target_lon, alert_distance)
+        self._monitoring_active = True
+        
+        # Start location updates
+        success = self._start_location_service(self._on_location_update)
+        if success:
+            logger.info("Service: Location monitoring started successfully")
+        else:
+            logger.error("Service: Failed to start location monitoring")
+            self._monitoring_active = False
+        
+        return success
+    
+    def stop_location_monitoring(self) -> None:
+        """Stop location monitoring and clean up notifications."""
+        logger.info("Service: Stopping location monitoring")
+        self._monitoring_active = False
+        self._stop_location_service()
+        self._target_lat = None
+        self._target_lon = None
+        self._last_known_location = None
+        
+        # Clean up GPS notifications
+        if self.service_manager:
+            self.service_manager.notification_manager.cancel_gps_notifications()
+    
+    def _on_location_update(self, lat: float, lon: float) -> None:
+        """Handle location updates during monitoring."""
+        if not self._monitoring_active:
+            return
+        
+        self._update_current_location(lat, lon)
+        self._update_notification_with_distance()
+        
+        # Check if within alert distance
+        if self._check_alert_condition() and not self.target_reached:
+            distance = self.get_distance_to_target()
+            logger.info(f"Service: Within alert distance! Distance: {distance:.2f} meters")
+            self._trigger_location_alert()
+            self.audio_manager.audio_player.play(self.gps_alarm_path)
+            self.target_reached = True
+            return
+        
+        # Log current distance
+        distance = self.get_distance_to_target()
+        if distance:
+            logger.debug(f"Service: Distance to target: {distance:.2f} meters")
+        
+        self._last_known_location = (lat, lon)
+    
+    def _trigger_location_alert(self) -> None:
+        """Trigger location alert - notify the user."""
+        logger.info("Service: Location alert triggered!")
+        
+        if self.service_manager:
+            notification_manager = self.service_manager.notification_manager
+            
+            # Show alert notification
+            notification_manager.show_gps_alert_notification(
+                target_name=self.gps_target_name,
+                target_id=self.gps_target_id,
+                has_next_target=False  # Set based on target queue
+            )
+    
+    def _start_location_service(self, callback: Callable[[float, float], None]) -> bool:
+        """Start GPS location service."""
+        try:
+            if not self._location_manager:
+                logger.error("Service: Location manager not initialized")
+                return False
+                
+            # Ensure looper
+            if not self._looper:
+                logger.info("Service: Starting looper thread for GPS")
+                if not self._start_looper_thread():
+                    logger.error("Service: Failed to start looper thread")
+                    return False
+                
+                # Wait for looper
+                for _ in range(50):  # Wait up to 5 seconds
+                    if self._looper:
+                        break
+                    time.sleep(0.1)
+                
+                if not self._looper:
+                    logger.error("Service: Looper failed to initialize")
+                    return False
+            
+            def on_location(lat: float, lon: float):
+                with self._location_lock:
+                    self._current_lat = lat
+                    self._current_lon = lon
+                    self._last_update_time = datetime.now()
+                self._location_event.set()
+                callback(lat, lon)
+            
+            self._location_listener = LocationListener(on_location, self)
+            
+            # Request location updates with fixed interval
+            self._location_manager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                self.GPS_UPDATE_INTERVAL,
+                self.MIN_MOVEMENT_DISTANCE,
+                self._location_listener,
+                self._looper
+            )
+            
+            self._gps_enabled = True
+            logger.debug(f"Service: Started GPS with interval {self.GPS_UPDATE_INTERVAL}ms")
+            return True
+        
+        except Exception as e:
+            logger.error(f"Service: Error starting location service: {e}")
+            return False
+    
+    def _stop_location_service(self) -> None:
+        """Stop GPS location service."""
+        try:
+            if self._location_listener and self._location_manager:
+                self._location_manager.removeUpdates(self._location_listener)
+                self._location_listener = None
+            self._gps_enabled = False
+            logger.debug("Service: Stopped GPS location service")
+        except Exception as e:
+            logger.error(f"Service: Error stopping location service: {e}")
+    
+    def cleanup(self) -> None:
+        """Cleanup when service stops."""
+        logger.info("Service: Cleaning up GPS manager")
+        self.stop_location_monitoring()
+        if self._looper:
+            self._looper.quit()
+            self._looper = None
+
+    def _update_notification_with_distance(self) -> None:
+        """Update notification with current distance to target."""
+        if self.service_manager and self._monitoring_active:
+            distance = self.get_distance_to_target()
+            if distance is not None:
+                notification_manager = self.service_manager.notification_manager
+                notification_manager.show_gps_tracking_notification(
+                    distance=distance,
+                    target_name=self.gps_target_name,
+                    target_id=self.gps_target_id,
+                    has_next_target=False
+                )
+
+    def _ensure_gps_initialized(self) -> bool:
+        """Ensure GPS is initialized, try to initialize if not done yet."""
+        if self._location_manager is not None:
+            return True
+            
+        try:
+            if not hasattr(PythonService, 'mService') or PythonService.mService is None:
+                logger.error("Service GPS: Service context still not available")
+                return False
+                
+            service = PythonService.mService
+            self._location_manager = service.getSystemService(Context.LOCATION_SERVICE)
+            
+            if self._looper is None:
+                self._start_looper_thread()
+                
+            logger.info("Service GPS manager initialized on demand")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize GPS on demand: {e}")
+            return False
     
     def calculate_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """
         Calculate distance between two points in meters using Haversine formula.
         """
-        R = 6371000  # Earth's radius in meters
+        R = 6371000  # Earth's radius
 
         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
         dlat = lat2 - lat1
@@ -116,29 +449,19 @@ class ServiceGpsManager:
         """Set the target location for monitoring."""
         self._target_lat = lat
         self._target_lon = lon
+
         if alert_distance is not None:
             self._alert_distance = alert_distance
         logger.info(f"Target location set: {lat}, {lon} with distance {self._alert_distance}m")
 
-    # def get_target_location(self) -> tuple[float, float, float] | None:
-    #     """Get current target location and alert distance."""
-    #     if self._target_lat is not None and self._target_lon is not None:
-    #         return (self._target_lat, self._target_lon, self._alert_distance)
-    #     return None
-
-    def update_current_location(self, lat: float, lon: float) -> None:
+    def _update_current_location(self, lat: float, lon: float) -> None:
         """Update the current location."""
         self._current_lat = lat
         self._current_lon = lon
+        self._last_update_time = datetime.now()
         logger.info(f"Current location updated: {lat}, {lon}")
 
-    # def get_current_location(self) -> tuple[float, float] | None:
-    #     """Get the current location if available."""
-    #     if self._current_lat is not None and self._current_lon is not None:
-    #         return (self._current_lat, self._current_lon)
-    #     return None
-
-    def check_alert_condition(self) -> bool:
+    def _check_alert_condition(self) -> bool:
         """Check if current location triggers alert condition."""
         if (self._current_lat is None or self._current_lon is None or 
             self._target_lat is None or self._target_lon is None):
@@ -160,240 +483,3 @@ class ServiceGpsManager:
             self._current_lat, self._current_lon,
             self._target_lat, self._target_lon
         )
-    
-    # =============== Android GPS Functions ===============
-    
-    def get_location_once(self) -> tuple[float, float] | None:
-        """
-        Get current location once for the app.
-        Returns (lat, lon) if available, None if GPS not available.
-        """
-        logger.info("Service: Getting one-time location update")
-        
-        # Ensure GPS is initialized
-        if not self._ensure_gps_initialized():
-            logger.warning("Service: GPS not initialized, cannot get location")
-            return None
-        
-        # Try last known location first
-        try:
-            last_location = self._location_manager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            if last_location:
-                lat = last_location.getLatitude()
-                lon = last_location.getLongitude()
-                self.update_current_location(lat, lon)
-                logger.info(f"Service: Returning last known location: {lat}, {lon}")
-                return (lat, lon)
-        except Exception as e:
-            logger.warning(f"Error getting last known location: {e}")
-        
-        # No last known location available
-        logger.warning("Service: No GPS location available")
-        return None
-    
-    def start_location_monitoring(self, target_lat: float, target_lon: float, 
-                                alert_distance: float = None) -> bool:
-        """
-        Start monitoring location for distance alerts.
-        Returns True if started successfully, False otherwise.
-        """
-        logger.info(f"Service: Starting location monitoring for target: {target_lat}, {target_lon}")
-        
-        # Ensure GPS is initialized
-        if not self._ensure_gps_initialized():
-            logger.error("Service: GPS not initialized, cannot start monitoring")
-            return False
-        
-        # Set target location
-        self.set_target_location(target_lat, target_lon, alert_distance)
-        self._monitoring_active = True
-        
-        # Start location updates
-        success = self._start_location_service(self._on_location_update)
-        if success:
-            logger.info("Service: Location monitoring started successfully")
-        else:
-            logger.error("Service: Failed to start location monitoring")
-            self._monitoring_active = False
-        
-        return success
-    
-    def stop_location_monitoring(self) -> None:
-        """Stop location monitoring."""
-        logger.info("Service: Stopping location monitoring")
-        self._monitoring_active = False
-        self._stop_location_service()
-        self._target_lat = None
-        self._target_lon = None
-        self._last_known_location = None
-    
-    def _on_location_update(self, lat: float, lon: float) -> None:
-        """Handle location updates during monitoring."""
-        if not self._monitoring_active:
-            return
-        
-        # Update current location
-        self.update_current_location(lat, lon)
-        
-        # Update notification with distance
-        self._update_notification_with_distance()
-        
-        # Check if within alert distance
-        if self.check_alert_condition():
-            distance = self.get_distance_to_target()
-            logger.info(f"Service: Within alert distance! Distance: {distance:.2f} meters")
-            self._trigger_location_alert()
-            self.stop_location_monitoring()
-            return
-        
-        # Log current distance
-        distance = self.get_distance_to_target()
-        if distance:
-            logger.debug(f"Service: Distance to target: {distance:.2f} meters")
-        
-        # Adjust polling interval based on movement
-        if self._last_known_location:
-            movement = self.calculate_distance(
-                self._last_known_location[0], self._last_known_location[1],
-                lat, lon
-            )
-            
-            new_interval = (self.MOVING_INTERVAL if movement >= self.MIN_MOVEMENT_DISTANCE 
-                          else self.STATIONARY_INTERVAL)
-            
-            if new_interval != self._current_interval:
-                logger.info(f"Service: Adjusting GPS interval to {new_interval} ms")
-                self._current_interval = new_interval
-                self._restart_location_updates()
-        
-        self._last_known_location = (lat, lon)
-    
-    def _trigger_location_alert(self) -> None:
-        """Trigger location alert - notify the user."""
-        logger.info("Service: Location alert triggered!")
-        # TODO: Send notification to user
-        # For now, just a mock signal to notification manager
-        try:
-            # Mock notification - replace with actual notification logic later
-            from service.service_notification_manager import SNM
-            SNM.show_notification(
-                title="Location Alert",
-                message="You have reached your destination!",
-                sticky=False
-            )
-        except Exception as e:
-            logger.error(f"Error sending location alert notification: {e}")
-    
-    def _start_location_service(self, callback: Callable[[float, float], None]) -> bool:
-        """Start GPS location service."""
-        try:
-            # Ensure we have location manager
-            if not self._location_manager:
-                logger.error("Service: Location manager not initialized")
-                return False
-                
-            # Ensure looper is ready - try to start if not available
-            if not self._looper:
-                logger.info("Service: Starting looper thread for GPS")
-                self._start_looper_thread()
-                
-                # Wait a bit for looper to initialize
-                for i in range(50):  # Wait up to 5 seconds
-                    if self._looper:
-                        break
-                    time.sleep(0.1)
-                
-                if not self._looper:
-                    logger.error("Service: Looper failed to initialize")
-                    return False
-            
-            def on_location(lat: float, lon: float):
-                with self._location_lock:
-                    self._current_lat = lat
-                    self._current_lon = lon
-                    self._last_update_time = datetime.now()
-                self._location_event.set()
-                callback(lat, lon)
-            
-            self._location_listener = LocationListener(on_location)
-            
-            # Request location updates
-            self._location_manager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                self._current_interval,  # Time between updates
-                self.MIN_MOVEMENT_DISTANCE,  # Min distance for update
-                self._location_listener,
-                self._looper
-            )
-            
-            self._gps_enabled = True
-            logger.debug(f"Service: Started GPS with interval {self._current_interval}ms")
-            return True
-        
-        except Exception as e:
-            logger.error(f"Service: Error starting location service: {e}")
-            return False
-    
-    def _stop_location_service(self) -> None:
-        """Stop GPS location service."""
-        try:
-            if self._location_listener and self._location_manager:
-                self._location_manager.removeUpdates(self._location_listener)
-                self._location_listener = None
-            self._gps_enabled = False
-            logger.debug("Service: Stopped GPS location service")
-        except Exception as e:
-            logger.error(f"Service: Error stopping location service: {e}")
-    
-    def _restart_location_updates(self) -> None:
-        """Restart location updates with current interval."""
-        self._stop_location_service()
-        self._start_location_service(self._on_location_update)
-    
-    def cleanup(self) -> None:
-        """Cleanup when service stops."""
-        logger.info("Service: Cleaning up GPS manager")
-        self.stop_location_monitoring()
-        if self._looper:
-            self._looper.quit()
-            self._looper = None
-
-    def _update_notification_with_distance(self) -> None:
-        """Update foreground notification with current distance to target."""
-        if self.service_manager and self._monitoring_active:
-            distance = self.get_distance_to_target()
-            if distance is not None:
-                # Convert to km if over 1000m
-                if distance >= 1000:
-                    distance_str = f"{distance / 1000:.1f} km"
-                else:
-                    distance_str = f"{distance:.0f} m"
-                
-                logger.debug(f"Service: Updating notification with distance: {distance_str}")
-                # Update the service manager to refresh notification with distance
-                self.service_manager.update_foreground_notification_info()
-
-    def _ensure_gps_initialized(self) -> bool:
-        """Ensure GPS is initialized, try to initialize if not done yet."""
-        if self._location_manager is not None:
-            return True
-            
-        try:
-            # Try to initialize now
-            if not hasattr(PythonService, 'mService') or PythonService.mService is None:
-                logger.error("Service GPS: Service context still not available")
-                return False
-                
-            service = PythonService.mService
-            self._location_manager = service.getSystemService(Context.LOCATION_SERVICE)
-            
-            # Start looper if not already started
-            if self._looper is None:
-                self._start_looper_thread()
-                
-            logger.info("Service GPS manager initialized on demand")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize GPS on demand: {e}")
-            return False

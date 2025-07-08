@@ -105,21 +105,26 @@ class Actions:
     """
     def __init__(self):
         # Service
-        self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
         self.RESTART_SERVICE: Final[str] = "RESTART_SERVICE"
         self.BOOT_ACTION: Final[str] = "android.intent.action"
         self.BOOT_COMPLETED: Final[str] = "BOOT_COMPLETED"
-        # GPS
-        self.GET_LOCATION_ONCE: Final[str] = "GET_LOCATION_ONCE"
-        self.START_LOCATION_MONITORING: Final[str] = "START_LOCATION_MONITORING"
-        self.STOP_LOCATION_MONITORING: Final[str] = "STOP_LOCATION_MONITORING"
-        self.LOCATION_RESPONSE: Final[str] = "LOCATION_RESPONSE"
-        # Both
+
+        # Tasks - Service
+        self.REMOVE_TASK_NOTIFICATIONS: Final[str] = "REMOVE_TASK_NOTIFICATIONS"
+        # Tasks - Service & App
         self.SNOOZE_A: Final[str] = "SNOOZE_A"
         self.SNOOZE_B: Final[str] = "SNOOZE_B"
         self.CANCEL: Final[str] = "CANCEL"
         self.STOP_ALARM: Final[str] = "STOP_ALARM"
         self.UPDATE_TASKS: Final[str] = "UPDATE_TASKS"
+
+        # GPS - Service & App
+        self.GET_LOCATION_ONCE: Final[str] = "GET_LOCATION_ONCE"
+        self.START_LOCATION_MONITORING: Final[str] = "START_LOCATION_MONITORING"
+        self.STOP_LOCATION_MONITORING: Final[str] = "STOP_LOCATION_MONITORING"
+        self.LOCATION_RESPONSE: Final[str] = "LOCATION_RESPONSE"
+        self.CANCEL_GPS: Final[str] = "CANCEL_GPS"
+        self.SKIP_GPS_TARGET: Final[str] = "SKIP_GPS_TARGET"
 
 
 class ActionTargets:
@@ -141,6 +146,7 @@ class NotificationChannels:
     def __init__(self):
         self.FOREGROUND: str = "foreground_channel"
         self.TASKS: str = "tasks_channel"
+        self.GPS: str = "gps_channel"
 
 
 class NotificationPriority:
@@ -180,6 +186,9 @@ class PendingIntents:
         self.CANCEL: int = 13
         self.OPEN_APP: int = 14
         self.STOP_ALARM: int = 15
+        # New GPS intents
+        self.CANCEL_GPS: int = 21
+        self.SKIP_GPS_TARGET: int = 22
 
 
 class NotificationType:
@@ -204,6 +213,7 @@ class Settings:
         # GPS
         self.DEFAULT_LAT: float = 51.543368
         self.DEFAULT_LON: float = 3.603933
+        self.CACHE_MAX_FILES: int = 250
 
 
 class Screens:
@@ -218,7 +228,7 @@ class Screens:
         self.SELECT_ALARM = "SELECT_ALARM"
         self.SAVED_ALARMS = "SAVED_ALARMS"
         self.SETTINGS = "SETTINGS"
-        self.MAP = "MAP_SCREEN"
+        self.MAP = "MAP"
 
 
 class Trigger:

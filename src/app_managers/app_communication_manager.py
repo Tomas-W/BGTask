@@ -45,6 +45,8 @@ class AppCommunicationManager():
         self.package_name: str | None = None
         self.receiver: BroadcastReceiver | None = None
 
+        self.location_request_active: bool = False
+
         self._init_context()
         self._init_receiver()
 
@@ -136,6 +138,13 @@ class AppCommunicationManager():
         if not DM.validate_action(action):
             logger.error(f"Error sending action, invalid action: {action}")
             return
+        
+        # Prevent multiple requests
+        if action == DM.ACTION.GET_LOCATION_ONCE:
+            if self.location_request_active:
+                logger.debug("Error sending action, location request already active")
+                return
+            self.location_request_active = True
 
         try:
             if not self.context:
@@ -163,10 +172,6 @@ class AppCommunicationManager():
         """
         Send GPS monitoring action with target coordinates to service.
         """
-        if not DM.validate_action(DM.ACTION.START_LOCATION_MONITORING):
-            logger.error("Error sending GPS monitoring action, invalid action")
-            return
-
         try:
             if not self.context:
                 logger.error("Error sending GPS monitoring action, no context available")
@@ -287,28 +292,23 @@ class AppCommunicationManager():
     def _location_response_action(self, intent: Any) -> None:
         """Handles location response from service."""
         try:
+            self.location_request_active = False
+
             location_data = self._get_location_data_from_intent(intent)
-            
             if location_data.get("success"):
                 lat = location_data["latitude"]
                 lon = location_data["longitude"]
                 logger.info(f"Received location from service: {lat}, {lon}")
                 
-                # If map screen is active, update it
-                current_screen = self.app.screen_manager.current
-                if current_screen == DM.SCREEN.MAP:
-                    map_screen = self.app.get_screen(DM.SCREEN.MAP)
-                    Clock.schedule_once(lambda dt: map_screen.handle_location_response(lat, lon), 0)
+                map_screen = self.app.get_screen(DM.SCREEN.MAP)
+                Clock.schedule_once(lambda dt: map_screen.handle_location_response(lat, lon), 0)
                     
             else:
                 reason = location_data.get("reason", "unknown")
                 logger.warning(f"Service could not provide location: {reason}")
                 
-                # If map screen is active, notify of failure
-                current_screen = self.app.screen_manager.current
-                if current_screen == DM.SCREEN.MAP:
-                    map_screen = self.app.get_screen(DM.SCREEN.MAP)
-                    Clock.schedule_once(lambda dt: map_screen.handle_location_response(None, None), 0)
+                map_screen = self.app.get_screen(DM.SCREEN.MAP)
+                Clock.schedule_once(lambda dt: map_screen.handle_location_response(None, None), 0)
                     
         except Exception as e:
             logger.error(f"Error handling location response: {e}")

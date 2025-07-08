@@ -101,7 +101,7 @@ class TaskApp(App, EventDispatcher):
         super().__init__(**kwargs)        
         self.active_popup = None
         self._need_updates: str | None = None
-
+    
     def build(self):
         """
         Builds the App.
@@ -339,7 +339,16 @@ class TaskApp(App, EventDispatcher):
         self.screens[DM.SCREEN.MAP] = MapScreen(name=DM.SCREEN.MAP,
                                                    app=self)
         self.screen_manager.add_widget(self.screens[DM.SCREEN.MAP])
+        Clock.schedule_once(self._get_current_location, 0.1)
         DM.LOADED.MAP_SCREEN = True
+    
+    def _get_current_location(self, *args):
+        from src.utils.background_service import is_service_running
+        if is_service_running():
+            self.communication_manager.send_action(DM.ACTION.GET_LOCATION_ONCE)
+            logger.debug("Service is running, requesting current location")
+        else:
+            Clock.schedule_once(self._get_current_location, 0.3)
 
 
 if __name__ == "__main__":

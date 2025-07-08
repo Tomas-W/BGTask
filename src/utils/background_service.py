@@ -23,7 +23,8 @@ def is_service_running():
         # Check if heartbeat is recent
         timestamp = int(content)
         current_time = int(time.time())
-        return (current_time - timestamp) <= DM.SETTINGS.HEARTBEAT_SEDCONDS
+        # return (current_time - timestamp) <= DM.SETTINGS.HEARTBEAT_SEDCONDS
+        return (current_time - timestamp) <= 10
         
     except Exception as e:
         print(f"     Error checking service heartbeat: {str(e)}")

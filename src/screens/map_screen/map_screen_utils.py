@@ -11,15 +11,12 @@ from src.widgets.buttons import CancelButton, ConfirmButton, SettingsConfirmButt
 from managers.device.device_manager import DM
 from src.app_managers.permission_manager import PM
 
-from src.utils.wrappers import log_time
+from src.utils.wrappers import android_only, log_time
 from src.utils.logger import logger
 from src.settings import SIZE, STATE, SPACE
 
 
 class MapScreenUtils:
-
-    CACHE_MAX_FILES = 300
-
     def __init__(self):
         pass
 # ############ UI ############ #
@@ -39,32 +36,61 @@ class MapScreenUtils:
         DM.INITIALIZED.MAP_SCREEN = True
 
     def _create_map_layout(self):
-        """Adds the full-screen map."""
+        """Adds the full-screen map with error recovery."""
+        try:
+            self._create_mapview()
+        except Exception as e:
+            # Check if it's the SDL2 corruption error
+            if "SDL2" in str(e):
+                logger.warning("Map tile corruption detected, clearing cache and retrying...")
+                self.clear_map_cache()
+                # Retry map creation
+                try:
+                    self._create_mapview()
+                except Exception as retry_error:
+                    logger.error(f"Failed to create map even after cache clear: {retry_error}")
+                    # Fallback placeholder
+                    self._create_fallback_map()
+            else:
+                logger.error(f"Unexpected error creating map: {e}")
+                raise
+
+    def _create_mapview(self):
+        """Creates the actual MapView widget."""
         from kivy_garden.mapview import MapView, MapSource
 
         source = MapSource(
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            max_tiles=MapScreenUtils.CACHE_MAX_FILES,
+            max_tiles=DM.SETTINGS.CACHE_MAX_FILES,
             min_zoom=4,
             max_zoom=14,
             attribution="© OpenStreetMap contributors"
         )
 
-        # Start with default coordinates
         self.mapview = MapView(
             zoom=17, 
             lat=DM.SETTINGS.DEFAULT_LAT, 
             lon=DM.SETTINGS.DEFAULT_LON,
             size_hint=(1, 1), pos=(0, 0),
             map_source=source,
-            double_tap_zoom=True,
-            pause_on_action=True,
+            double_tap_zoom=False,
+            pause_on_action=False,
             snap_to_zoom=True
         )
         self.mapview.bind(on_touch_down=self._on_map_touch_down,
                           on_touch_up=self._on_map_touch_up)
 
         self.body.add_widget(self.mapview)
+
+    def _create_fallback_map(self):
+        """Creates a basic fallback when map fails completely."""
+        from kivy.uix.label import Label
+        fallback_label = Label(
+            text="Map temporarily unavailable\nRestart app to retry",
+            text_size=(None, None),
+            halign="center"
+        )
+        self.body.add_widget(fallback_label)
     
     def center_on_location(self, lat, lon):
         """Centers the map on the given location."""
@@ -78,7 +104,6 @@ class MapScreenUtils:
             size_hint=(1, None),
             height=SIZE.SETTINGS_BUTTON_HEIGHT,
             padding=[SPACE.SCREEN_PADDING_X, SPACE.SCREEN_PADDING_X],
-            # pos_hint={"x": 0, "top": 1}
             pos_hint={"x": 0, "top": 0.96}
         )
         # Button row
@@ -133,15 +158,8 @@ class MapScreenUtils:
         from kivy_garden.mapview import MapMarker
         return MapMarker(lat=lat, lon=lon)
     
-    def _cancel_pending_marker(self):
-        """Stops any scheduled marker event that hasn't executed yet."""
-        if self._pending_marker_ev is not None:
-            self._pending_marker_ev.cancel()
-            self._pending_marker_ev = None
-    
     def reset_marker_state(self):
         """Removes the current marker and resets the selected location."""
-        self._cancel_pending_marker()
         self.remove_current_marker()
         self.reset_marker_location()
         
@@ -165,12 +183,102 @@ class MapScreenUtils:
         self.selected_lat = None
         self.selected_lon = None
     
+# ############ GPS ############ #
+    @android_only
+    def _check_gps_availability(self) -> bool:
+        """
+        Check if GPS is available and can be used.
+        Returns True if GPS is available, False otherwise.
+        """
+        try:
+            # Import Android classes
+            from jnius import autoclass  # type: ignore
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Context = autoclass('android.content.Context')
+            LocationManager = autoclass('android.location.LocationManager')
+            
+            # Check if activity context is available
+            if not hasattr(PythonActivity, 'mActivity') or PythonActivity.mActivity is None:
+                logger.error("App GPS: Activity context not available")
+                return False
+            
+            # Get location manager from activity context
+            activity = PythonActivity.mActivity
+            location_manager = activity.getSystemService(Context.LOCATION_SERVICE)
+            
+            if location_manager is None:
+                logger.error("App GPS: Could not get LocationManager")
+                return False
+            
+            # Check if GPS provider is available
+            gps_enabled = location_manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            if not gps_enabled:
+                logger.warning("App GPS: GPS provider is disabled")
+                return False
+            
+            # Check if GPS provider exists
+            providers = location_manager.getAllProviders()
+            if not providers or LocationManager.GPS_PROVIDER not in providers.toArray():
+                logger.error("App GPS: GPS provider not available on device")
+                return False
+            
+            logger.info("App GPS: GPS is available and enabled")
+            # self._show_waiting_for_signal_popup()
+            return True
+            
+        except ImportError as e:
+            logger.error(f"App GPS: Android imports not available: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"App GPS: Error checking GPS availability: {e}")
+            return False
+
+    def _show_gps_unavailable_popup(self) -> None:
+        """Show popup when GPS is not available."""
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_confirmation_popup(
+            header="Cannot track location",
+            field_text="Enable GPS and reload screen.",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+    
+    def _show_waiting_for_signal_popup(self) -> None:
+        """Show popup when waiting for GPS signal."""
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_confirmation_popup(
+            header="Waiting for GPS signal",
+            field_text="Connecting to satellite...",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+        self.center_location_button.set_inactive_state()
+    
+    def _show_center_on_location_popup(self) -> None:
+        """Show popup when cannot center on location."""
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_confirmation_popup(
+            header="Cannot center on location",
+            field_text="Enable GPS and reload screen.",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+            
+    def _show_center_on_marker_popup(self) -> None:
+        """Show popup when no marker is set."""
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_confirmation_popup(
+            header="Cannot center on marker",
+            field_text="Place a marker and reload screen.",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+
 # ############ Misc ############ #
     def _request_location_permission(self):
         """Requests location permission if needed."""
         PM.validate_permission(PM.ACCESS_FINE_LOCATION)
-        # PM.validate_permission(PM.ACCESS_COARSE_LOCATION)
-    
+        
     @log_time("MapScreenUtils.clear_map_cache")
     def clear_map_cache(self):
         """Deletes all cached map tiles."""
@@ -197,11 +305,11 @@ class MapScreenUtils:
             cache_dir = self._get_cache_dir()
             png_files = glob.glob(os.path.join(cache_dir, "**", "*.png"), recursive=True)
             
-            if len(png_files) <= self.CACHE_MAX_FILES:
+            if len(png_files) <= DM.SETTINGS.CACHE_MAX_FILES:
                 return
             
             png_files.sort(key=lambda x: os.path.getmtime(x))
-            files_to_remove = len(png_files) - self.CACHE_MAX_FILES
+            files_to_remove = len(png_files) - DM.SETTINGS.CACHE_MAX_FILES
             removed_count = 0
             for png_file in png_files[:files_to_remove]:
                 try:

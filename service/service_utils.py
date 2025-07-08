@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from jnius import autoclass, PythonJavaClass, java_method  # type: ignore
 from managers.device.device_manager import DM
@@ -12,14 +12,18 @@ LocationManager = autoclass('android.location.LocationManager')
 PythonActivity = autoclass('org.kivy.android.PythonActivity')
 Looper = autoclass('android.os.Looper')
 
+if TYPE_CHECKING:
+    from service.service_gps_manager import ServiceGpsManager
+
 
 class LocationListener(PythonJavaClass):
     """Android location listener implementation for service use."""
     __javainterfaces__ = ['android/location/LocationListener']
     
-    def __init__(self, callback: Callable[[float, float], None]):
+    def __init__(self, callback: Callable[[float, float], None], gps_manager: 'ServiceGpsManager'):
         super().__init__()
         self.callback = callback
+        self.gps_manager = gps_manager
 
     @java_method('(Landroid/location/Location;)V')
     def onLocationChanged(self, location):
@@ -45,13 +49,16 @@ class LocationListener(PythonJavaClass):
     
     @java_method('(Ljava/lang/String;)V')
     def onProviderEnabled(self, provider):
-        """Called when provider is enabled."""
-        logger.debug(f"Location provider enabled: {provider}")
-
+        """Called when GPS provider is enabled."""
+        logger.info(f"Location provider enabled: {provider}")
+        if provider == "gps" and hasattr(self, 'gps_manager'):
+            # Pre-start location acquisition when GPS is enabled
+            self.gps_manager._pre_acquire_location()
+    
     @java_method('(Ljava/lang/String;)V')
     def onProviderDisabled(self, provider):
-        """Called when provider is disabled."""
-        logger.warning(f"Location provider disabled: {provider}")
+        """Called when GPS provider is disabled."""
+        logger.info(f"Location provider disabled: {provider}")
     
     @java_method('(Ljava/lang/String;ILandroid/os/Bundle;)V')
     def onStatusChanged(self, provider, status, extras):

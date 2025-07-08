@@ -1,6 +1,8 @@
 from functools import wraps
+from typing import Callable, TypeVar, ParamSpec
 
 from managers.device.device_manager import DM
+from src.utils.logger import logger
 from src.utils.timer import TIMER
 
 
@@ -50,6 +52,23 @@ def android_only_class(except_methods=None):
                 setattr(cls, name, android_only(method))
         return cls
     return decorator
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+def requires_gps(func: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Decorator that ensures GPS is initialized before executing GPS-dependent functions.
+    If GPS is not initialized, try to initialize it.
+    Returns None and shows a popup if GPS initialization fails.
+    """
+    @wraps(func)
+    def wrapper(self: "ServiceGpsManager", *args: P.args, **kwargs: P.kwargs) -> T | None: # type: ignore
+        if not self._ensure_gps_initialized():
+            logger.warning(f"GPS not initialized, cannot execute {func.__name__}")
+            return None
+        return func(self, *args, **kwargs)
+    return wrapper
 
 
 def disable_gc(func):
