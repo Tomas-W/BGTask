@@ -278,6 +278,7 @@ class MapScreenUtils:
     def _request_location_permission(self):
         """Requests location permission if needed."""
         PM.validate_permission(PM.ACCESS_FINE_LOCATION)
+        PM.validate_permission(PM.ACCESS_BACKGROUND_LOCATION)
         
     @log_time("MapScreenUtils.clear_map_cache")
     def clear_map_cache(self):

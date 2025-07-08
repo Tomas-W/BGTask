@@ -199,9 +199,9 @@ class MapScreen(BaseScreen, MapScreenUtils):
         if hasattr(self.mapview, "_trigger_update"):
             self.mapview._trigger_update(0)  # Immediate update
     
-    def _activate_center_location_button(self) -> None:
+    def _activate_center_location_button(self, *args) -> None:
         """Activates the center location button."""
         if hasattr(self, "center_location_button"):
             self.center_location_button.set_active_state()
         else:
-            Clock.schedule_once(self._activate_center_location_button, 0.1)
+            Clock.schedule_once(self._activate_center_location_button, 0.2)

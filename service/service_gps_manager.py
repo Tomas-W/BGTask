@@ -285,12 +285,12 @@ class ServiceGpsManager:
         if not self._monitoring_active:
             return
         
+        distance = self.get_distance_to_target()
         self._update_current_location(lat, lon)
-        self._update_notification_with_distance()
+        self._update_notification_with_distance(distance)
         
         # Check if within alert distance
         if self._check_alert_condition() and not self.target_reached:
-            distance = self.get_distance_to_target()
             logger.info(f"Service: Within alert distance! Distance: {distance:.2f} meters")
             self._trigger_location_alert()
             self.audio_manager.audio_player.play(self.gps_alarm_path)
@@ -298,7 +298,6 @@ class ServiceGpsManager:
             return
         
         # Log current distance
-        distance = self.get_distance_to_target()
         if distance:
             logger.debug(f"Service: Distance to target: {distance:.2f} meters")
         
@@ -388,10 +387,10 @@ class ServiceGpsManager:
             self._looper.quit()
             self._looper = None
 
-    def _update_notification_with_distance(self) -> None:
+    def _update_notification_with_distance(self, distance: float) -> None:
         """Update notification with current distance to target."""
         if self.service_manager and self._monitoring_active:
-            distance = self.get_distance_to_target()
+            # distance = self.get_distance_to_target()
             if distance is not None:
                 notification_manager = self.service_manager.notification_manager
                 notification_manager.show_gps_tracking_notification(

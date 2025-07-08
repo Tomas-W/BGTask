@@ -529,6 +529,7 @@ class ServiceNotificationManager:
 
             notification = builder.build()
             self.notification_manager.notify(self.gps_tracking_notification_id, notification)
+            self.gps_notification_ids.add(self.gps_tracking_notification_id)
             logger.debug(f"Updated GPS tracking notification: {distance_str} to {target_name}")
 
         except Exception as e:

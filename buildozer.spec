@@ -85,11 +85,12 @@ android.permissions =
     INTERNET,
     ACCESS_NETWORK_STATE,
     ACCESS_FINE_LOCATION,
-    ACCESS_COARSE_LOCATION
+    ACCESS_COARSE_LOCATION,
+    ACCESS_BACKGROUND_LOCATION
 
 # Service configuration
 services = BGTaskService:service/main.py:foreground:sticky:ongoing:persistent:boot_completed
-android.service_type = shortService
+android.service_type = location
 
 # Activity and runtime settings
 android.entrypoint = org.kivy.android.PythonActivity

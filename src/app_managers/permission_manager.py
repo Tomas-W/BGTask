@@ -28,6 +28,7 @@ class PermissionManager:
             self.SET_WALLPAPER = Permission.SET_WALLPAPER
             self.ACCESS_FINE_LOCATION = Permission.ACCESS_FINE_LOCATION
             self.ACCESS_COARSE_LOCATION = Permission.ACCESS_COARSE_LOCATION
+            self.ACCESS_BACKGROUND_LOCATION = Permission.ACCESS_BACKGROUND_LOCATION
         else:
             self.POST_NOTIFICATIONS = "POST_NOTIFICATIONS"
             self.RECORD_AUDIO = "RECORD_AUDIO"

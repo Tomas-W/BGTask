@@ -437,6 +437,7 @@ class ServiceCommunicationManager:
             target_id = intent.getStringExtra("target_id")
             logger.info(f"Handling GPS cancel action for target: {target_id}")
             self.service_manager.gps_manager.stop_location_monitoring()
+            self.notification_manager.cancel_gps_notifications()
             
         except Exception as e:
             logger.error(f"Error handling cancel GPS action: {e}")
