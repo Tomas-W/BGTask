@@ -51,6 +51,7 @@ class AppCommunicationManager():
         self._init_receiver()
 
         self.send_action(DM.ACTION.STOP_ALARM)
+        self.send_action(DM.ACTION.GET_LOCATION_ONCE)
     
     def _init_context(self) -> None:
         """Initializes the App context and package name."""

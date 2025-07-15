@@ -116,7 +116,13 @@ class MapScreen(BaseScreen, MapScreenUtils):
     def _on_center_location(self, instance) -> None:
         """Centers the map on the user's location."""
         if not self._check_gps_availability():
-            self._show_center_on_location_popup()
+            self._show_gps_unavailable_popup()
+            self.center_location_button.set_inactive_state()
+            return
+        
+        if not self.has_user_location:
+            self._show_waiting_for_signal_popup()
+            self.center_location_button.set_inactive_state()
             return
         
         self.center_on_user_location()

@@ -238,7 +238,7 @@ class MapScreenUtils:
         """Show popup when GPS is not available."""
         from managers.popups.popup_manager import POPUP
         POPUP.show_confirmation_popup(
-            header="Cannot track location",
+            header="GPS not enabled",
             field_text="Enable GPS and reload screen.",
             on_confirm=lambda: None,
             on_cancel=lambda: None
