@@ -213,7 +213,11 @@ class Settings:
         # GPS
         self.DEFAULT_LAT: float = 51.543368
         self.DEFAULT_LON: float = 3.603933
-        self.CACHE_MAX_FILES: int = 250
+        self.CACHE_MAX_FILES: int = 150
+        # MAP
+        self.MAP_START_ZOOM: int = 11
+        self.MAP_MAX_ZOOM: int = 16
+        self.MAP_MIN_ZOOM: int = 4
 
 
 class Screens:

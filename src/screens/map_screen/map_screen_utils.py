@@ -29,7 +29,7 @@ class MapScreenUtils:
         self.layout.remove_widget(self.scroll_container)
         self.layout.add_widget(self.body)
 
-        # Build screen UI
+        # Build UI
         self._create_map_layout()
         self._create_top_buttons()
         self._create_bottom_buttons()        
@@ -38,9 +38,10 @@ class MapScreenUtils:
     def _create_map_layout(self):
         """Adds the full-screen map with error recovery."""
         try:
+            self._validate_and_clean_cache()
             self._create_mapview()
         except Exception as e:
-            # Check if it's the SDL2 corruption error
+            # Check for SDL2 corruption error
             if "SDL2" in str(e):
                 logger.warning("Map tile corruption detected, clearing cache and retrying...")
                 self.clear_map_cache()
@@ -62,20 +63,20 @@ class MapScreenUtils:
         source = MapSource(
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
             max_tiles=DM.SETTINGS.CACHE_MAX_FILES,
-            min_zoom=4,
-            max_zoom=14,
+            min_zoom=DM.SETTINGS.MAP_MIN_ZOOM,
+            max_zoom=DM.SETTINGS.MAP_MAX_ZOOM,
             attribution="© OpenStreetMap contributors"
         )
 
         self.mapview = MapView(
-            zoom=17, 
+            zoom=DM.SETTINGS.MAP_START_ZOOM,
             lat=DM.SETTINGS.DEFAULT_LAT, 
             lon=DM.SETTINGS.DEFAULT_LON,
             size_hint=(1, 1), pos=(0, 0),
             map_source=source,
             double_tap_zoom=False,
             pause_on_action=False,
-            snap_to_zoom=True
+            snap_to_zoom=False
         )
         self.mapview.bind(on_touch_down=self._on_map_touch_down,
                           on_touch_up=self._on_map_touch_up)
@@ -269,7 +270,7 @@ class MapScreenUtils:
         from managers.popups.popup_manager import POPUP
         POPUP.show_confirmation_popup(
             header="Cannot center on marker",
-            field_text="Place a marker and reload screen.",
+            field_text="Place a marker and try again.",
             on_confirm=lambda: None,
             on_cancel=lambda: None
         )
@@ -279,6 +280,57 @@ class MapScreenUtils:
         """Requests location permission if needed."""
         PM.validate_permission(PM.ACCESS_FINE_LOCATION)
         PM.validate_permission(PM.ACCESS_BACKGROUND_LOCATION)
+    
+    @log_time("MapScreenUtils.validate_and_clean_cache")
+    def _validate_and_clean_cache(self):
+        """Validates cached tiles and removes corrupted ones."""
+        try:
+            cache_dir = self._get_cache_dir()
+            if not os.path.exists(cache_dir):
+                return
+            
+            png_files = glob.glob(os.path.join(cache_dir, "**", "*.png"), recursive=True)
+            corrupted_files = []
+            
+            for png_file in png_files:
+                if self._is_tile_corrupted(png_file):
+                    corrupted_files.append(png_file)
+            
+            # Remove corrupted files
+            for corrupted_file in corrupted_files:
+                try:
+                    os.remove(corrupted_file)
+                    logger.debug(f"Removed corrupted tile: {corrupted_file}")
+                except OSError:
+                    pass
+            
+            if corrupted_files:
+                logger.info(f"Cleaned {len(corrupted_files)} corrupted map tiles")
+                
+        except Exception as e:
+            logger.warning(f"Failed to validate cache: {e}")
+    
+    def _is_tile_corrupted(self, file_path: str) -> bool:
+        """Checks if a tile file is corrupted."""
+        try:
+            # Check file size (corrupted tiles are often 0 bytes or very small)
+            file_size = os.path.getsize(file_path)
+            if file_size < 100:  # PNG tiles should be at least 100 bytes
+                return True
+            
+            # Try to read the PNG header
+            with open(file_path, "rb") as f:
+                header = f.read(8)
+                # Valid PNG files start with this signature
+                png_signature = b"\x89PNG\r\n\x1a\n"
+                if header != png_signature:
+                    return True
+            
+            return False
+            
+        except Exception:
+            # If we can't read the file, consider it corrupted
+            return True
         
     @log_time("MapScreenUtils.clear_map_cache")
     def clear_map_cache(self):
@@ -294,7 +346,7 @@ class MapScreenUtils:
                     except OSError:
                         pass
                 
-                logger.info(f"Cleared {len(png_files)} cached map tiles on launch")
+                logger.info(f"Cleared {len(png_files)} cached map tiles")
         
         except Exception as e:
             logger.warning(f"Failed to clear map cache: {e}")

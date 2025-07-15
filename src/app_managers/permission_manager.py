@@ -35,6 +35,7 @@ class PermissionManager:
             self.SET_WALLPAPER = "SET_WALLPAPER"
             self.ACCESS_FINE_LOCATION = "ACCESS_FINE_LOCATION"
             self.ACCESS_COARSE_LOCATION = "ACCESS_COARSE_LOCATION"
+            self.ACCESS_BACKGROUND_LOCATION = "ACCESS_BACKGROUND_LOCATION"
 
         # Special case permissions, individual methods
         self.REQUEST_SCHEDULE_EXACT_ALARM: str = "REQUEST_SCHEDULE_EXACT_ALARM"
