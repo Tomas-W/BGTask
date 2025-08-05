@@ -60,7 +60,7 @@ class Paths(Dirs):
         self.DELETE_INACTIVE_IMG: Final[str] = os.path.join(self.IMG, "delete_inactive_64.png")
         # Task file
         self.TASK_FILE: Final[str] = os.path.join(self.ASSETS, "task_file.json")
-        self.TEST_FILE: Final[str] = os.path.join(self.ASSETS, "test_file.json")
+        self.GPS_FILE: Final[str] = os.path.join(self.ASSETS, "gps_file.json")
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
         # Service
@@ -121,7 +121,7 @@ class Actions:
         # GPS - Service & App
         self.GET_LOCATION_ONCE: Final[str] = "GET_LOCATION_ONCE"
         self.START_LOCATION_MONITORING: Final[str] = "START_LOCATION_MONITORING"
-        self.STOP_LOCATION_MONITORING: Final[str] = "STOP_LOCATION_MONITORING"
+        # self.STOP_LOCATION_MONITORING: Final[str] = "STOP_LOCATION_MONITORING"
         self.LOCATION_RESPONSE: Final[str] = "LOCATION_RESPONSE"
         self.CANCEL_GPS: Final[str] = "CANCEL_GPS"
         self.SKIP_GPS_TARGET: Final[str] = "SKIP_GPS_TARGET"
@@ -213,6 +213,7 @@ class Settings:
         # GPS
         self.DEFAULT_LAT: float = 51.543368
         self.DEFAULT_LON: float = 3.603933
+        self.DEFAULT_ALERT_DISTANCE: float = 300.0
         self.CACHE_MAX_FILES: int = 150
         # MAP
         self.MAP_START_ZOOM: int = 11

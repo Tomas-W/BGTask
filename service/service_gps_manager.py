@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 import time
@@ -122,9 +123,10 @@ class ServiceGpsManager:
         current_time = datetime.now()
         if self._current_lat and self._current_lon and self._last_update_time and (current_time - self._last_update_time).total_seconds() < 60:
             logger.info(f"Service: Using last known location: {self._current_lat}, {self._current_lon}")
+            self.save_current_location_to_file(self._current_lat, self._current_lon)
             return (self._current_lat, self._current_lon)
         
-        # Set flag to prevent any duplicate requests
+        # Prevent duplicate requests
         self._location_request_active = True
         
         try:
@@ -163,6 +165,7 @@ class ServiceGpsManager:
                 lat, lon = result["location"]
                 logger.info(f"Service: Got fresh location: {lat}, {lon}")
                 self._update_current_location(lat, lon)
+                self.save_current_location_to_file(lat, lon)
                 return result["location"]
 
             else:
@@ -245,17 +248,26 @@ class ServiceGpsManager:
             self._location_request_active = False
     
     @requires_gps
-    def start_location_monitoring(self, target_lat: float, target_lon: float, 
-                                alert_distance: float = None) -> bool:
+    def start_location_monitoring(self, targets: list[tuple[float, float]], 
+                                alert_distance: float = DM.SETTINGS.DEFAULT_ALERT_DISTANCE) -> bool:
         """
         Start monitoring location for distance alerts.
         Returns True if started successfully, False otherwise.
         """
-        logger.info(f"Service: Starting location monitoring for target: {target_lat}, {target_lon}")
+        logger.info(f"Service: Starting location monitoring for targets: {targets}")
         
         self.target_reached = False
-        self.set_target_location(target_lat, target_lon, alert_distance)
+        self.set_target_location(targets, alert_distance)
         self._monitoring_active = True
+
+        # Try to set notification immediately
+        current_location = self._get_current_location_from_file()
+        if current_location:
+            distance = self.calculate_distance(
+                current_location[0], current_location[1],
+                self._target_lat, self._target_lon
+            )
+            self._update_notification_with_distance(distance)
         
         # Start location updates
         success = self._start_location_service(self._on_location_update)
@@ -275,10 +287,6 @@ class ServiceGpsManager:
         self._target_lat = None
         self._target_lon = None
         self._last_known_location = None
-        
-        # Clean up GPS notifications
-        if self.service_manager:
-            self.service_manager.notification_manager.cancel_gps_notifications()
     
     def _on_location_update(self, lat: float, lon: float) -> None:
         """Handle location updates during monitoring."""
@@ -287,6 +295,7 @@ class ServiceGpsManager:
         
         distance = self.get_distance_to_target()
         self._update_current_location(lat, lon)
+        self.save_current_location_to_file(lat, lon)
         self._update_notification_with_distance(distance)
         
         # Check if within alert distance
@@ -444,14 +453,18 @@ class ServiceGpsManager:
         distance = self.calculate_distance(current_lat, current_lon, target_lat, target_lon)
         return distance <= alert_distance
 
-    def set_target_location(self, lat: float, lon: float, alert_distance: float = None) -> None:
+    def set_target_location(self, targets: list[tuple[float, float]], alert_distance: float = None) -> None:
         """Set the target location for monitoring."""
-        self._target_lat = lat
-        self._target_lon = lon
-
-        if alert_distance is not None:
+        self._targets = targets
+        
+        # Set first target as active target
+        if targets and len(targets) > 0:
+            self._target_lat, self._target_lon = targets[0]
+        
+        if alert_distance > 0:
             self._alert_distance = alert_distance
-        logger.info(f"Target location set: {lat}, {lon} with distance {self._alert_distance}m")
+        
+        logger.info(f"Target location set: {targets} with distance {self._alert_distance}m")
 
     def _update_current_location(self, lat: float, lon: float) -> None:
         """Update the current location."""
@@ -482,3 +495,84 @@ class ServiceGpsManager:
             self._current_lat, self._current_lon,
             self._target_lat, self._target_lon
         )
+    
+    def get_gps_data(self) -> dict[str, list[dict[str, float]] | float]:
+        """Returns GPS data dict from file."""
+        try:
+            with open(DM.PATH.GPS_FILE, "r") as f:
+                return json.load(f)
+        
+        except Exception as e:
+            logger.error(f"Error getting GPS targets: {e}")
+            return {
+                "targets": [],
+                "alert_distance": 0,
+                "current_location": None
+            }
+    
+    def _get_current_location_from_file(self) -> tuple[float, float] | None:
+        """Returns current location from file."""
+        try:
+            with open(DM.PATH.GPS_FILE, "r") as f:
+                data = json.load(f)
+                return tuple(data.get("current_location", None))
+        
+        except Exception as e:
+            logger.error(f"Error getting current location: {e}")
+            return None
+    
+    def save_current_location_to_file(self, lat: float, lon: float) -> None:
+        """Overwrites current location in file."""
+        try:
+            existing_data = {}
+            try:
+                with open(DM.PATH.GPS_FILE, "r") as f:
+                    existing_data = json.load(f)
+            
+            except FileNotFoundError:
+                pass
+            
+            existing_data["current_location"] = [lat, lon]
+            
+            with open(DM.PATH.GPS_FILE, "w") as f:
+                json.dump(existing_data, f, indent=4)
+            logger.debug(f"Updated current location: {lat}, {lon}")
+        
+        except Exception as e:
+            logger.error(f"Error saving current location: {e}")
+    
+    def _save_targets_and_distance(self, targets: list[tuple[float, float]], alert_distance: float) -> None:
+        """Overwrites GPS targets and alert distance in file."""
+        try:
+            existing_data = {}
+            try:
+                with open(DM.PATH.GPS_FILE, "r") as f:
+                    existing_data = json.load(f)
+            
+            except FileNotFoundError:
+                pass
+            
+            existing_data.update({
+                "targets": targets,
+                "alert_distance": alert_distance
+            })
+            
+            with open(DM.PATH.GPS_FILE, "w") as f:
+                json.dump(existing_data, f, indent=4)
+            logger.info(f"Saved GPS targets: {targets}, alert_distance: {alert_distance}")
+        
+        except Exception as e:
+            logger.error(f"Error saving GPS targets: {e}")
+    
+    def _reset_targets_and_distance(self) -> None:
+        """Resets GPS file to default values."""
+        try:
+            with open(DM.PATH.GPS_FILE, "w") as f:
+                json.dump({
+                    "targets": [],
+                    "alert_distance": 0
+                }, f, indent=4)
+            logger.info("Reset GPS file")
+        
+        except Exception as e:
+            logger.error(f"Error resetting GPS file: {e}")

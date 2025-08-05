@@ -200,13 +200,20 @@ class BackgroundService:
 
     def on_destroy(self) -> None:
         """Handles Service destruction."""
+        logger.info("DEBUG: Service on_destroy() called")
         try:
+            logger.info("DEBUG: Starting service cleanup")
             self.release_wake_lock()
             
-            # Clean up service manager
+            # Clean up ServiceManager - Tasks and GPS
             if self._service_manager:
+                logger.info("DEBUG: Cleaning up service manager")
                 self._service_manager._running = False
                 self._service_manager.cancel_alarm_and_notifications()
+                
+                logger.info("DEBUG: Calling GPS cleanup")
+                self._service_manager.gps_manager.stop_location_monitoring()
+                self._service_manager.notification_manager.cancel_gps_notifications()
                 self._service_manager = None
             
             # Schedule restart

@@ -169,7 +169,7 @@ class AppCommunicationManager():
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}")
 
-    def send_gps_monitoring_action(self, target_lat: float, target_lon: float, alert_distance: float = None) -> None:
+    def send_gps_monitoring_action(self, target_lat: float, target_lon: float, alert_distance: float = DM.SETTINGS.DEFAULT_ALERT_DISTANCE) -> None:
         """
         Send GPS monitoring action with target coordinates to service.
         """
@@ -188,8 +188,7 @@ class AppCommunicationManager():
             # Add GPS coordinates
             intent.putExtra("target_lat", AndroidString(str(target_lat)))
             intent.putExtra("target_lon", AndroidString(str(target_lon)))
-            if alert_distance is not None:
-                intent.putExtra("alert_distance", AndroidString(str(alert_distance)))
+            intent.putExtra("alert_distance", AndroidString(str(alert_distance)))
             
             self.context.sendBroadcast(intent)
             logger.debug(f"Sent GPS monitoring action for coordinates: {target_lat}, {target_lon}")
@@ -294,23 +293,27 @@ class AppCommunicationManager():
         """Handles location response from service."""
         try:
             self.location_request_active = False
-
             location_data = self._get_location_data_from_intent(intent)
             if location_data.get("success"):
                 lat = location_data["latitude"]
                 lon = location_data["longitude"]
                 logger.info(f"Received location from service: {lat}, {lon}")
                 
-                map_screen = self.app.get_screen(DM.SCREEN.MAP)
-                Clock.schedule_once(lambda dt: map_screen.handle_location_response(lat, lon), 0)
-                    
+                self._handle_map_update(lat, lon)
+            
             else:
                 reason = location_data.get("reason", "unknown")
                 logger.warning(f"Service could not provide location: {reason}")
-                
-                map_screen = self.app.get_screen(DM.SCREEN.MAP)
-                Clock.schedule_once(lambda dt: map_screen.handle_location_response(None, None), 0)
-                    
+        
         except Exception as e:
             logger.error(f"Error handling location response: {e}")
     
+    def _handle_map_update(self, lat: float, lon: float) -> None:
+        """Handles map update."""
+        map_screen = self.app.get_screen(DM.SCREEN.MAP)
+        if map_screen is None:
+            logger.debug("Map screen not initialized, recalling self")
+            Clock.schedule_once(lambda dt: self._handle_map_update(lat, lon), 0.3)
+            return
+        
+        Clock.schedule_once(lambda dt: map_screen.handle_location_response(lat, lon), 0)

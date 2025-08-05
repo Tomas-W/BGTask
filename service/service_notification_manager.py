@@ -386,17 +386,6 @@ class ServiceNotificationManager:
         except Exception as e:
             logger.error(f"Error cancelling all notifications: {e}")
     
-    # def cancel_current_notification(self) -> None:
-    #     """Cancels the current Task notification if it exists."""
-    #     if self.current_task_notification_id is not None:
-    #         try:
-    #             self.notification_manager.cancel(self.current_task_notification_id)
-    #             self.task_notification_ids.discard(self.current_task_notification_id)
-    #             self.current_task_notification_id = None
-            
-    #         except Exception as e:
-    #             logger.error(f"Error cancelling notification: {e}")
-    
     def remove_notification(self) -> None:
         """Removes the foreground notification."""
         try:
@@ -530,6 +519,7 @@ class ServiceNotificationManager:
             notification = builder.build()
             self.notification_manager.notify(self.gps_tracking_notification_id, notification)
             self.gps_notification_ids.add(self.gps_tracking_notification_id)
+            
             logger.debug(f"Updated GPS tracking notification: {distance_str} to {target_name}")
 
         except Exception as e:
@@ -586,16 +576,12 @@ class ServiceNotificationManager:
 
     def cancel_gps_notifications(self) -> None:
         """Cancels all GPS-related notifications."""
-        try:
-            for notification_id in self.gps_notification_ids:
-                try:
-                    self.notification_manager.cancel(notification_id)
-                except Exception as e:
-                    logger.error(f"Error cancelling notification {notification_id}: {e}")
-            
-            self.gps_notification_ids.clear()
-            self.current_gps_notification_id = None
-            logger.debug("Cancelled all GPS notifications")
-
-        except Exception as e:
-            logger.error(f"Error cancelling GPS notifications: {e}")
+        for notification_id in self.gps_notification_ids:
+            try:
+                self.notification_manager.cancel(notification_id)
+            except Exception as e:
+                logger.error(f"Error cancelling tracked notification {notification_id}: {e}")
+        
+        self.gps_notification_ids.clear()
+        self.current_gps_notification_id = None
+        logger.debug("Cancelled all GPS notifications")

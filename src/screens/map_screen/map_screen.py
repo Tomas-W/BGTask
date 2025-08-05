@@ -1,3 +1,4 @@
+import json
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from typing import TYPE_CHECKING
@@ -153,14 +154,56 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
     def _request_current_location(self) -> None:
-        """Requests current location from service."""
+        """Requests current location - either from file (if tracking) or from service."""
+        if self._is_gps_tracking_active():
+            logger.info("GPS tracking active, checking file for current location...")
+            self._get_location_from_file()
+        else:
+            logger.info("No GPS tracking, requesting location from service...")
+            self._request_location_from_service()
+
+    def _is_gps_tracking_active(self) -> bool:
+        """Check if GPS tracking is currently active by checking GPS file."""
+        try:
+            with open(DM.PATH.GPS_FILE, "r") as f:
+                data = json.load(f)
+                return (data.get("targets", []) and 
+                       data.get("alert_distance", 0) > 0)
+        except Exception:
+            return False
+
+    def _get_location_from_file(self) -> None:
+        """Try to get current location from GPS file."""
+        try:
+            import json
+            from managers.device.device_manager import DM
+            
+            with open(DM.PATH.GPS_FILE, "r") as f:
+                data = json.load(f)
+                current_location = data.get("current_location")
+                
+            if current_location and len(current_location) == 2:
+                lat, lon = current_location
+                logger.info(f"Got location from GPS file: {lat}, {lon}")
+                self.handle_location_response(lat, lon)
+            else:
+                logger.info("No current location in file yet, retrying in 1 second...")
+                Clock.schedule_once(lambda dt: self._get_location_from_file(), 1.0)
+                
+        except Exception as e:
+            logger.error(f"Error reading location from file: {e}")
+            # Fallback to service request
+            self._request_location_from_service()
+
+    def _request_location_from_service(self) -> None:
+        """Request location from service (normal flow)."""
         logger.info("Requesting current location from service...")
         self.communication_manager.send_action(DM.ACTION.GET_LOCATION_ONCE)
     
     def handle_location_response(self, lat: float | None, lon: float | None) -> None:
         """Handles location response from service."""
         if lat is not None and lon is not None:
-            logger.info(f"Map screen received location: {lat}, {lon}")
+            logger.info(f"Map screen received current location: {lat}, {lon}")
             self.user_lat = lat
             self.user_lon = lon
             self.has_user_location = True

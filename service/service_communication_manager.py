@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Any, TYPE_CHECKING
 
 from android.broadcast import BroadcastReceiver  # type: ignore
@@ -60,7 +62,7 @@ class ServiceCommunicationManager:
             DM.ACTION.REMOVE_TASK_NOTIFICATIONS,
             DM.ACTION.GET_LOCATION_ONCE,
             DM.ACTION.START_LOCATION_MONITORING,
-            DM.ACTION.STOP_LOCATION_MONITORING,
+            # DM.ACTION.STOP_LOCATION_MONITORING,
         ]
         self.boot_actions: list[str] = [
             DM.ACTION.BOOT_COMPLETED,
@@ -240,8 +242,8 @@ class ServiceCommunicationManager:
         elif pure_action == DM.ACTION.START_LOCATION_MONITORING:
             self._start_location_monitoring_action(intent)
         
-        elif pure_action == DM.ACTION.STOP_LOCATION_MONITORING:
-            self._stop_location_monitoring_action()
+        # elif pure_action == DM.ACTION.STOP_LOCATION_MONITORING:
+        #     self._stop_location_monitoring_action()
 
         return Service.START_STICKY
 
@@ -353,12 +355,13 @@ class ServiceCommunicationManager:
             if location:
                 lat, lon = location
                 self._send_location_response(True, lat, lon)
-                logger.info(f"Service: Sent location response: {lat}, {lon}")
+                logger.info(f"Sent location response: {lat}, {lon}")
             else:
                 self._send_location_response(False)
-                logger.warning("Service: Could not get location, sent failure response")
+                logger.warning("Could not get location, sent failure response")
+        
         except Exception as e:
-            logger.error(f"Service: Error handling location request: {e}")
+            logger.error(f"Error handling location request: {e}")
             self._send_location_response(False)
     
     def _start_location_monitoring_action(self, intent: Any) -> None:
@@ -370,38 +373,32 @@ class ServiceCommunicationManager:
             alert_distance_str = intent.getStringExtra("alert_distance")
             
             if not target_lat_str or not target_lon_str:
-                logger.error("Service: Missing target coordinates for location monitoring")
+                logger.error("Missing target coordinates for location monitoring")
                 return
             
             target_lat = float(target_lat_str)
             target_lon = float(target_lon_str)
-            alert_distance = float(alert_distance_str) if alert_distance_str else None
+            alert_distance = float(alert_distance_str) if alert_distance_str else DM.SETTINGS.DEFAULT_ALERT_DISTANCE
+
+            targets = [(target_lat, target_lon)]
+            self.gps_manager._save_targets_and_distance(targets, alert_distance)
             
-            logger.info(f"Service: Starting location monitoring for {target_lat}, {target_lon}")
-            success = self.gps_manager.start_location_monitoring(target_lat, target_lon, alert_distance)
+            logger.info(f"Starting location monitoring for {target_lat}, {target_lon}")
+            success = self.gps_manager.start_location_monitoring(targets, alert_distance)
             
             if success:
-                logger.info("Service: Location monitoring started successfully")
+                logger.info("Location monitoring started successfully")
             else:
-                logger.error("Service: Failed to start location monitoring")
+                logger.error("Failed to start location monitoring")
                 
         except Exception as e:
-            logger.error(f"Service: Error starting location monitoring: {e}")
-    
-    def _stop_location_monitoring_action(self) -> None:
-        """Handles request to stop location monitoring."""
-        try:
-            logger.info("Service: Stopping location monitoring")
-            self.gps_manager.stop_location_monitoring()
-            self.audio_manager.audio_player.stop()
-        except Exception as e:
-            logger.error(f"Service: Error stopping location monitoring: {e}")
+            logger.error(f"Error starting location monitoring: {e}")
     
     def _send_location_response(self, success: bool, lat: float = None, lon: float = None) -> None:
         """Sends location response back to app."""
         try:
             if not self.context:
-                logger.error("Service: No context available for location response")
+                logger.error("No context available for location response")
                 return
             
             intent = Intent()
@@ -417,10 +414,10 @@ class ServiceCommunicationManager:
                 intent.putExtra("success", AndroidString("false"))
             
             self.context.sendBroadcast(intent)
-            logger.debug(f"Service: Sent location response, success: {success}")
+            logger.debug(f"Sent location response, success: {success}")
             
         except Exception as e:
-            logger.error(f"Service: Error sending location response: {e}")
+            logger.error(f"Error sending location response: {e}")
     
     def _get_pure_action(self, intent: Any) -> str | None:
         """Extracts and returns the pure action from the intent, or None."""
@@ -437,6 +434,8 @@ class ServiceCommunicationManager:
             target_id = intent.getStringExtra("target_id")
             logger.info(f"Handling GPS cancel action for target: {target_id}")
             self.service_manager.gps_manager.stop_location_monitoring()
+            self.service_manager.gps_manager._reset_targets_and_distance()
+            self.audio_manager.audio_player.stop()
             self.notification_manager.cancel_gps_notifications()
             
         except Exception as e:
