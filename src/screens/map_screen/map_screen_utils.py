@@ -5,7 +5,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 
 from src.widgets.containers import CustomButtonRow, CustomSettingsButtonRow
-from src.widgets.buttons import CancelButton, ConfirmButton, SettingsConfirmButton
+from src.widgets.buttons import CancelButton, ConfirmButton, IconButton, SettingsConfirmButton
 
 
 from managers.device.device_manager import DM
@@ -32,6 +32,7 @@ class MapScreenUtils:
         # Build UI
         self._create_map_layout()
         self._create_top_buttons()
+        self._create_marker_buttons()
         self._create_bottom_buttons()        
         DM.INITIALIZED.MAP_SCREEN = True
 
@@ -127,6 +128,32 @@ class MapScreenUtils:
         self.center_location_button.bind(on_release=self._on_center_location)
         row.add_widget(self.center_location_button)
         self.block_touch.append(self.center_location_button)
+    
+    def _create_marker_buttons(self):
+        """Adds the add marker button."""
+        add_bar = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=SIZE.BUTTON_HEIGHT,
+            pos_hint={"x": 0.03, "y": 0.83}
+        )
+        self.add_marker_button = IconButton(icon_name="add_marker", color_state=STATE.INACTIVE)
+        self.add_marker_button.bind(on_release=self._on_add_marker)
+        add_bar.add_widget(self.add_marker_button)
+        self.block_touch.append(self.add_marker_button)
+        self.body.add_widget(add_bar)
+
+        remove_bar = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=SIZE.BUTTON_HEIGHT,
+            pos_hint={"x": 0.83, "y": 0.83}
+        )
+        self.remove_marker_button = IconButton(icon_name="remove_marker", color_state=STATE.INACTIVE)
+        self.remove_marker_button.bind(on_release=self._on_remove_marker)
+        remove_bar.add_widget(self.remove_marker_button)
+        self.block_touch.append(self.remove_marker_button)
+        self.body.add_widget(remove_bar)
     
     def _create_bottom_buttons(self):
         """Adds the cancel and select buttons."""

@@ -63,6 +63,9 @@ class Paths(Dirs):
         self.GPS_FILE: Final[str] = os.path.join(self.ASSETS, "gps_file.json")
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
+        # GPS
+        self.ADD_MARKER_IMG: Final[str] = os.path.join(self.IMG, "add_marker_64.png")
+        self.REMOVE_MARKER_IMG: Final[str] = os.path.join(self.IMG, "remove_marker_64.png")
         # Service
         self.SERVICE_TASK_FILE: Final[str] = self._get_storage_path(is_android, "app/src/assets/task_file.json")
         # Both

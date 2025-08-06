@@ -4,6 +4,7 @@ from kivy.uix.widget import Widget
 from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
+from src.settings import STATE
 from .map_screen_utils import MapScreenUtils
 
 from managers.device.device_manager import DM
@@ -35,11 +36,13 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.navigation_manager: "NavigationManager" = app.navigation_manager
         self.communication_manager: "AppCommunicationManager" = app.communication_manager
 
-        # Selection
+        # Markers
         self.current_marker: "Marker | None" = None
         self.selected_lat: float | None = None
         self.selected_lon: float | None = None
-        
+        self.markers: list["Marker"] = []
+        self.coordinates: list[tuple[float, float]] = []
+
         # Location state
         self.has_user_location: bool = False
         self.user_lat: float | None = None
@@ -86,7 +89,7 @@ class MapScreen(BaseScreen, MapScreenUtils):
         return False
     
     def _place_marker(self, pos: tuple[float, float]) -> None:
-        """Removes any previous marker and places a new one at the position."""
+        """Removes any previous, unsaved, marker and places a new one at the position."""
         # Reset
         self.reset_marker_state()
         # Place marker
@@ -98,14 +101,24 @@ class MapScreen(BaseScreen, MapScreenUtils):
         # Update button states
         self.select_button.set_active_state()
         self.center_marker_button.set_active_state()
+        self.add_marker_button.set_active_state()
+        self.remove_marker_button.set_active_state()
     
     def _on_center_marker(self, instance) -> None:
         """Centers the map on the current marker."""
-        if self.current_marker is None:
+        if self.current_marker is None and len(self.markers) == 0:
             self._show_center_on_marker_popup()
             return
         
-        self.center_on_marker()
+        if self.current_marker is None and len(self.markers) == 1:
+            self.center_on_marker()
+            return
+        
+        if self.current_marker is not None and len(self.markers) == 0:
+            self.center_on_marker()
+            return
+        
+        self.center_on_all_markers()
     
     def _on_center_location(self, instance) -> None:
         """Centers the map on the user's location."""
@@ -121,9 +134,57 @@ class MapScreen(BaseScreen, MapScreenUtils):
         
         self.center_on_user_location()
     
+    def _on_add_marker(self, instance) -> None:
+        """Adds a marker at the current location."""
+        if self.current_marker:
+            self.markers.append(self.current_marker)
+            self.coordinates.append((self.selected_lat, self.selected_lon))
+            self.current_marker = None
+            self.reset_marker_state()
+            if len(self.markers) > 0 or self.current_marker is not None:
+                self.center_marker_button.set_active_state()
+            else:
+                self.center_marker_button.set_inactive_state()
+            self.add_marker_button.set_inactive_state()
+            self.remove_marker_button.set_active_state()
+    
+    def _on_remove_marker(self, instance) -> None:
+        """Removes the next selected marker."""
+        if self.current_marker:
+            self.mapview.remove_marker(self.current_marker)
+            self.current_marker = None
+            if len(self.markers) == 0:
+                self.select_button.set_inactive_state()
+                self.center_marker_button.set_inactive_state()
+                self.remove_marker_button.set_inactive_state()
+                self.add_marker_button.set_inactive_state()
+            else:
+                self.remove_marker_button.set_active_state()
+                self.add_marker_button.set_active_state()
+            return
+        
+        if len(self.markers) == 0:
+            return
+        
+        removed_marker = self.markers.pop()
+        self.coordinates.pop()
+        self.mapview.remove_marker(removed_marker)
+
+        if len(self.markers) == 0:
+            self.remove_marker_button.set_inactive_state()
+            self.add_marker_button.set_active_state()
+            self.center_marker_button.set_inactive_state()
+            self.add_marker_button.set_inactive_state()
+            return
+    
     def _on_cancel(self, instance) -> None:
         """Resets marker and coordinates and navigates back to HomeScreen."""
         self.reset_marker_state()
+        for marker in self.markers:
+            self.mapview.remove_marker(marker)
+        
+        self.markers = []
+        self.coordinates = []
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
     def _on_select(self, instance) -> None:
@@ -143,7 +204,6 @@ class MapScreen(BaseScreen, MapScreenUtils):
         logger.info(f"Starting GPS monitoring for coordinates: {self.selected_lat}, {self.selected_lon}")
         self.communication_manager.send_gps_monitoring_action(self.selected_lat, self.selected_lon)
         
-        self.reset_marker_state()
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
     @android_only
@@ -209,8 +269,66 @@ class MapScreen(BaseScreen, MapScreenUtils):
     def center_on_marker(self) -> None:
         """Centers the map on the current marker."""
         if self.current_marker:
-            logger.info(f"Centering map on marker: {self.selected_lat}, {self.selected_lon}")
             self.mapview.center_on(self.selected_lat, self.selected_lon)
+        
+        else:
+            self.mapview.center_on(self.markers[0].lat, self.markers[0].lon)
+    
+    def center_on_all_markers(self) -> None:
+        """Centers the map to show all markers nicely fitted."""
+        lats = [marker.lat for marker in self.markers]
+        lons = [marker.lon for marker in self.markers]
+
+        if self.current_marker:
+            lats.append(self.current_marker.lat)
+            lons.append(self.current_marker.lon)
+        
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+        
+        # Center on the middle point
+        center_lat = (min_lat + max_lat) / 2
+        center_lon = (min_lon + max_lon) / 2
+        self.mapview.center_on(center_lat, center_lon)
+        
+        # Calculate zoom level to fit all markers
+        lat_span = max_lat - min_lat
+        lon_span = max_lon - min_lon
+        
+        # More granular zoom calculation for smoother transitions
+        max_span = max(lat_span, lon_span)
+        if max_span > 20:
+            zoom = 2
+        elif max_span > 10:
+            zoom = 3
+        elif max_span > 6:
+            zoom = 4
+        elif max_span > 4:
+            zoom = 5
+        elif max_span > 2:
+            zoom = 6
+        elif max_span > 1.2:
+            zoom = 7
+        elif max_span > 0.8:
+            zoom = 8
+        elif max_span > 0.5:
+            zoom = 9
+        elif max_span > 0.25:
+            zoom = 10
+        elif max_span > 0.1:
+            zoom = 11
+        elif max_span > 0.05:
+            zoom = 12
+        elif max_span > 0.025:
+            zoom = 13
+        elif max_span > 0.01:
+            zoom = 14
+        elif max_span > 0.005:
+            zoom = 15
+        else:
+            zoom = 16
+        
+        self.mapview.zoom = zoom
     
     def center_on_user_location(self) -> None:
         """Centers the map on the user's location."""
@@ -227,9 +345,13 @@ class MapScreen(BaseScreen, MapScreenUtils):
         if self.current_marker:
             self.select_button.set_active_state()
             self.center_marker_button.set_active_state()
+            self.add_marker_button.set_active_state()
+            self.remove_marker_button.set_active_state()
         else:
             self.select_button.set_inactive_state()
             self.center_marker_button.set_inactive_state()
+            self.add_marker_button.set_inactive_state()
+            self.remove_marker_button.set_inactive_state()
         
         self.limit_map_cache()
 
