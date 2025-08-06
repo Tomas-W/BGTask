@@ -7,7 +7,7 @@ from src.screens.base.base_screen import BaseScreen
 from .map_screen_utils import MapScreenUtils
 
 from managers.device.device_manager import DM
-
+from src.utils.wrappers import android_only
 from src.utils.logger import logger
 
 if TYPE_CHECKING:
@@ -61,14 +61,7 @@ class MapScreen(BaseScreen, MapScreenUtils):
         return False
 
     def _on_map_touch_up(self, instance, touch) -> bool:
-        """
-        Checks if the touch is a:
-        - Touch outside map -> ignore
-        - Mouse wheel events -> zoom
-        - Drag / scroll -> scroll
-        - Single tap -> place marker
-        """
-        # Touch outside map -> ignore
+        """Places marker on single taps, MapView handles pan and zoom."""
         if not self.mapview.collide_point(*touch.pos):
             return False
         
@@ -81,16 +74,16 @@ class MapScreen(BaseScreen, MapScreenUtils):
         if hasattr(touch, "button") and touch.button in ["scrollup", "scrolldown"]:
             return False
         
-        # Drag / scroll -> scroll
+        # Check movement to distinguish between tap and pan/zoom
         start = touch.ud.get("start_pos", touch.pos)
         movement = abs(start[0] - touch.pos[0]) + abs(start[1] - touch.pos[1])
-        if movement >= MapScreen.SCROLL_MOVEMENT_THRESHOLD:
-            return False
+        if movement < MapScreen.SCROLL_MOVEMENT_THRESHOLD:
+            # Tap -> place marker
+            self._place_marker(touch.pos)
+            return True
         
-        # Single tap -> place marker
-        self._place_marker(touch.pos)
-
-        return True 
+        # Pan/zoom -> MapView handles it
+        return False
     
     def _place_marker(self, pos: tuple[float, float]) -> None:
         """Removes any previous marker and places a new one at the position."""
@@ -153,6 +146,7 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.reset_marker_state()
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
+    @android_only
     def _request_current_location(self) -> None:
         """Requests current location - either from file (if tracking) or from service."""
         if self._is_gps_tracking_active():
@@ -175,9 +169,6 @@ class MapScreen(BaseScreen, MapScreenUtils):
     def _get_location_from_file(self) -> None:
         """Try to get current location from GPS file."""
         try:
-            import json
-            from managers.device.device_manager import DM
-            
             with open(DM.PATH.GPS_FILE, "r") as f:
                 data = json.load(f)
                 current_location = data.get("current_location")
