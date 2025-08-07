@@ -4,8 +4,7 @@ from kivy.uix.widget import Widget
 from typing import TYPE_CHECKING
 
 from src.screens.base.base_screen import BaseScreen
-from src.settings import STATE
-from .map_screen_utils import MapScreenUtils
+from .map_screen_utils import MapScreenUtils, MapScreenState, MAP_BUTTON_STATES
 
 from managers.device.device_manager import DM
 from src.utils.wrappers import android_only
@@ -56,6 +55,31 @@ class MapScreen(BaseScreen, MapScreenUtils):
         
         # Add location permission check
         self._request_location_permission()
+
+    @property
+    def screen_state(self) -> MapScreenState:
+        """Returns the current MapScreenState based on marker state"""
+        has_current = self.current_marker is not None
+        has_saved = len(self.markers) > 0
+        
+        if has_current and has_saved:
+            return MapScreenState.MIXED_MARKERS
+        elif has_current:
+            return MapScreenState.CURRENT_MARKER
+        elif has_saved:
+            return MapScreenState.SAVED_MARKERS
+        else:
+            return MapScreenState.EMPTY
+
+    def update_button_states(self) -> None:
+        """Update all button states based on current MapScreenState"""
+        current_state = self.screen_state
+        state_config = MAP_BUTTON_STATES[current_state]
+        
+        self.set_button_state(self.select_button, **state_config["select"])
+        self.set_button_state(self.center_marker_button, **state_config["center_marker"])
+        self.set_button_state(self.add_marker_button, **state_config["add_marker"])
+        self.set_button_state(self.remove_marker_button, **state_config["remove_marker"])
     
     def _on_map_touch_down(self, instance, touch) -> bool:
         """Saves the start position of the touch."""
@@ -90,19 +114,16 @@ class MapScreen(BaseScreen, MapScreenUtils):
     
     def _place_marker(self, pos: tuple[float, float]) -> None:
         """Removes any previous, unsaved, marker and places a new one at the position."""
-        # Reset
         self.reset_marker_state()
+
         # Place marker
         lat, lon = self.mapview.get_latlon_at(*pos)
         self.current_marker = self.get_marker(lat, lon)
         self.mapview.add_marker(self.current_marker)
         # Update coordinates
         self.selected_lat, self.selected_lon = lat, lon
-        # Update button states
-        self.select_button.set_active_state()
-        self.center_marker_button.set_active_state()
-        self.add_marker_button.set_active_state()
-        self.remove_marker_button.set_active_state()
+
+        self.update_button_states()
     
     def _on_center_marker(self, instance) -> None:
         """Centers the map on the current marker."""
@@ -135,32 +156,22 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.center_on_user_location()
     
     def _on_add_marker(self, instance) -> None:
-        """Adds a marker at the current location."""
+        """Creates, but not yet displays, a new marker for the user to place."""
         if self.current_marker:
             self.markers.append(self.current_marker)
             self.coordinates.append((self.selected_lat, self.selected_lon))
             self.current_marker = None
             self.reset_marker_state()
-            if len(self.markers) > 0 or self.current_marker is not None:
-                self.center_marker_button.set_active_state()
-            else:
-                self.center_marker_button.set_inactive_state()
-            self.add_marker_button.set_inactive_state()
-            self.remove_marker_button.set_active_state()
+            self.update_button_states()
     
     def _on_remove_marker(self, instance) -> None:
         """Removes the next selected marker."""
         if self.current_marker:
             self.mapview.remove_marker(self.current_marker)
             self.current_marker = None
-            if len(self.markers) == 0:
-                self.select_button.set_inactive_state()
-                self.center_marker_button.set_inactive_state()
-                self.remove_marker_button.set_inactive_state()
-                self.add_marker_button.set_inactive_state()
-            else:
-                self.remove_marker_button.set_active_state()
-                self.add_marker_button.set_active_state()
+            self.reset_marker_location()
+            
+            self.update_button_states()
             return
         
         if len(self.markers) == 0:
@@ -169,13 +180,8 @@ class MapScreen(BaseScreen, MapScreenUtils):
         removed_marker = self.markers.pop()
         self.coordinates.pop()
         self.mapview.remove_marker(removed_marker)
-
-        if len(self.markers) == 0:
-            self.remove_marker_button.set_inactive_state()
-            self.add_marker_button.set_active_state()
-            self.center_marker_button.set_inactive_state()
-            self.add_marker_button.set_inactive_state()
-            return
+        
+        self.update_button_states()
     
     def _on_cancel(self, instance) -> None:
         """Resets marker and coordinates and navigates back to HomeScreen."""
@@ -190,8 +196,11 @@ class MapScreen(BaseScreen, MapScreenUtils):
     def _on_select(self, instance) -> None:
         """Saves the selected coordinates and starts monitoring."""
         if self.selected_lat is None or self.selected_lon is None:
-            logger.warning("No location selected")
-            return
+            if len(self.markers) == 0:
+                self._show_no_location_selected_popup()
+                return
+            else:
+                self.selected_lat, self.selected_lon = self.markers[-1].lat, self.markers[-1].lon
         
         # Check if GPS is initialized
         if not self._check_gps_availability():
@@ -203,6 +212,12 @@ class MapScreen(BaseScreen, MapScreenUtils):
         # Send GPS monitoring request to service with selected coordinates
         logger.info(f"Starting GPS monitoring for coordinates: {self.selected_lat}, {self.selected_lon}")
         self.communication_manager.send_gps_monitoring_action(self.selected_lat, self.selected_lon)
+
+        # temp_name = "Tankstations"
+        # temp_distance = DM.SETTINGS.DEFAULT_ALERT_DISTANCE
+        # coordinates = self.coordinates
+        # coordinates.append((self.selected_lat, self.selected_lon))
+        # self.communication_manager.send_gps_monitoring_action(temp_name, temp_distance, coordinates)
         
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
     
@@ -342,16 +357,8 @@ class MapScreen(BaseScreen, MapScreenUtils):
         
         super().on_pre_enter()
         
-        if self.current_marker:
-            self.select_button.set_active_state()
-            self.center_marker_button.set_active_state()
-            self.add_marker_button.set_active_state()
-            self.remove_marker_button.set_active_state()
-        else:
-            self.select_button.set_inactive_state()
-            self.center_marker_button.set_inactive_state()
-            self.add_marker_button.set_inactive_state()
-            self.remove_marker_button.set_inactive_state()
+        
+        self.update_button_states()
         
         self.limit_map_cache()
 

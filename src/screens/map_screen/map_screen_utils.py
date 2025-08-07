@@ -1,6 +1,9 @@
 import os
 import glob
 
+from enum import Enum, auto
+from typing import Any
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 
@@ -14,6 +17,42 @@ from src.app_managers.permission_manager import PM
 from src.utils.wrappers import android_only, log_time
 from src.utils.logger import logger
 from src.settings import SIZE, STATE, SPACE
+
+
+class MapScreenState(Enum):
+    """Represents the possible states of the MapScreen"""
+    EMPTY = auto()              # No markers, no current selection
+    CURRENT_MARKER = auto()     # Has current marker (unsaved)
+    SAVED_MARKERS = auto()      # Has saved markers only
+    MIXED_MARKERS = auto()      # Has both current marker and saved markers
+
+
+MAP_BUTTON_STATES: dict[MapScreenState, dict[str, dict[str, Any]]] = {
+    MapScreenState.EMPTY: {
+        "select": {"active": False, "enabled": True},
+        "center_marker": {"active": False, "enabled": True},
+        "add_marker": {"active": False, "enabled": False},
+        "remove_marker": {"active": False, "enabled": False},
+    },
+    MapScreenState.CURRENT_MARKER: {
+        "select": {"active": True, "enabled": True},
+        "center_marker": {"active": True, "enabled": True},
+        "add_marker": {"active": True, "enabled": True},
+        "remove_marker": {"active": True, "enabled": True},
+    },
+    MapScreenState.SAVED_MARKERS: {
+        "select": {"active": True, "enabled": True},
+        "center_marker": {"active": True, "enabled": True},
+        "add_marker": {"active": False, "enabled": False},
+        "remove_marker": {"active": True, "enabled": True},
+    },
+    MapScreenState.MIXED_MARKERS: {
+        "select": {"active": True, "enabled": True},
+        "center_marker": {"active": True, "enabled": True},
+        "add_marker": {"active": True, "enabled": True},
+        "remove_marker": {"active": True, "enabled": True},
+    }
+}
 
 
 class MapScreenUtils:
@@ -298,6 +337,16 @@ class MapScreenUtils:
         POPUP.show_confirmation_popup(
             header="Cannot center on marker",
             field_text="Place a marker and try again.",
+            on_confirm=lambda: None,
+            on_cancel=lambda: None
+        )
+    
+    def _show_no_location_selected_popup(self) -> None:
+        """Show popup when no location is selected."""
+        from managers.popups.popup_manager import POPUP
+        POPUP.show_confirmation_popup(
+            header="No location selected",
+            field_text="Select a location and try again.",
             on_confirm=lambda: None,
             on_cancel=lambda: None
         )
