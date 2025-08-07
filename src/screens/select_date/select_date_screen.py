@@ -15,7 +15,7 @@ from managers.popups.popup_manager import POPUP
 
 from managers.device.device_manager import DM
 from src.utils.logger import logger
-from src.settings import SPACE, STATE, COL
+from src.settings import FONT, SPACE, STATE, COL
 
 if TYPE_CHECKING:
     from main import TaskApp
@@ -56,6 +56,7 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         # Select month label
         month_name = calendar.month_name[self.current_month]
         self.month_label = PartitionHeader(text=f"{month_name} {self.current_year}")
+        self.month_label.font_size = FONT.DEFAULT
         # Next month button
         self.next_month_button = SettingsButton(
             text=">",
