@@ -145,6 +145,7 @@ class TaskApp(App, EventDispatcher):
             self._init_select_date_screen: 0.15,
             self._init_select_alarm_screen: 0.05,
             self._init_map_screen: 0.05,
+            self._init_new_target_screen: 0.05,
             self._init_service_permissions: 0.05,
             self.check_need_to_start_service: 0.1,
             self._log_loading_times: 0,
@@ -231,6 +232,14 @@ class TaskApp(App, EventDispatcher):
         all_logs = TIMER.get_all_logs()
         for log in all_logs:
             logger.timing(log)
+    
+    def _get_current_location(self, *args):
+        from src.utils.background_service import is_service_running
+        if is_service_running():
+            self.communication_manager.send_action(DM.ACTION.GET_LOCATION_ONCE)
+            logger.debug("Service is running, requesting current location")
+        else:
+            Clock.schedule_once(self._get_current_location, 0.3)
     
     ###############################################
     ################### MANAGERS ##################
@@ -342,13 +351,13 @@ class TaskApp(App, EventDispatcher):
         Clock.schedule_once(self._get_current_location, 0.1)
         DM.LOADED.MAP_SCREEN = True
     
-    def _get_current_location(self, *args):
-        from src.utils.background_service import is_service_running
-        if is_service_running():
-            self.communication_manager.send_action(DM.ACTION.GET_LOCATION_ONCE)
-            logger.debug("Service is running, requesting current location")
-        else:
-            Clock.schedule_once(self._get_current_location, 0.3)
+    @log_time("NewTargetScreen")
+    def _init_new_target_screen(self, *args):
+        from src.screens.new_target.new_target_screen import NewTargetScreen
+        self.screens[DM.SCREEN.NEW_TARGET] = NewTargetScreen(name=DM.SCREEN.NEW_TARGET,
+                                                            app=self)
+        self.screen_manager.add_widget(self.screens[DM.SCREEN.NEW_TARGET])
+        DM.LOADED.NEW_TARGET_SCREEN = True
 
 
 if __name__ == "__main__":

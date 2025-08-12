@@ -26,7 +26,9 @@ class MapScreen(BaseScreen, MapScreenUtils):
     MapScreen displays a world map and:
     - Has a top bar with a back button, options button, and exit button
     - Allows navigating the world map
-    - Allows selecting a location and save its coordinates
+    - Allows selecting locations and saving their coordinates
+    - Allows selecting a target and saving its coordinates
+    - Allows centering the map on the current location and targets
     """
     
     def __init__(self, app: "TaskApp", **kwargs):
@@ -40,7 +42,7 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self.selected_lat: float | None = None
         self.selected_lon: float | None = None
         self.markers: list["Marker"] = []
-        self.coordinates: list[tuple[float, float]] = []
+        self.coordinates: list[float] = []
 
         # Location state
         self.has_user_location: bool = False
@@ -159,18 +161,18 @@ class MapScreen(BaseScreen, MapScreenUtils):
         """Creates, but not yet displays, a new marker for the user to place."""
         if self.current_marker:
             self.markers.append(self.current_marker)
-            self.coordinates.append((self.selected_lat, self.selected_lon))
+            self.coordinates.append(self.selected_lat)
+            self.coordinates.append(self.selected_lon)
             self.current_marker = None
             self.reset_marker_state()
             self.update_button_states()
-    
+
     def _on_remove_marker(self, instance) -> None:
         """Removes the next selected marker."""
         if self.current_marker:
             self.mapview.remove_marker(self.current_marker)
             self.current_marker = None
             self.reset_marker_location()
-            
             self.update_button_states()
             return
         
@@ -179,22 +181,18 @@ class MapScreen(BaseScreen, MapScreenUtils):
         
         removed_marker = self.markers.pop()
         self.coordinates.pop()
+        self.coordinates.pop()
         self.mapview.remove_marker(removed_marker)
         
         self.update_button_states()
-    
+        
     def _on_cancel(self, instance) -> None:
         """Resets marker and coordinates and navigates back to HomeScreen."""
-        self.reset_marker_state()
-        for marker in self.markers:
-            self.mapview.remove_marker(marker)
-        
-        self.markers = []
-        self.coordinates = []
-        self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
+        self.reset_map_state()
+        self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TARGET)
     
     def _on_select(self, instance) -> None:
-        """Saves the selected coordinates and starts monitoring."""
+        """Saves the selected coordinates and returns to NewTargetScreen."""
         if self.selected_lat is None or self.selected_lon is None:
             if len(self.markers) == 0:
                 self._show_no_location_selected_popup()
@@ -202,24 +200,15 @@ class MapScreen(BaseScreen, MapScreenUtils):
             else:
                 self.selected_lat, self.selected_lon = self.markers[-1].lat, self.markers[-1].lon
         
-        # Check if GPS is initialized
-        if not self._check_gps_availability():
-            self._show_gps_unavailable_popup()
-            return
-        
-        self.save_marker_location(self.selected_lat, self.selected_lon)
-        
-        # Send GPS monitoring request to service with selected coordinates
-        logger.info(f"Starting GPS monitoring for coordinates: {self.selected_lat}, {self.selected_lon}")
-        self.communication_manager.send_gps_monitoring_action(self.selected_lat, self.selected_lon)
+        coordinates = self.coordinates
+        coordinates.append(self.selected_lat)
+        coordinates.append(self.selected_lon)
+        self.app.get_screen(DM.SCREEN.NEW_TARGET).targets = coordinates
+        targs = self.app.get_screen(DM.SCREEN.NEW_TARGET).targets
+        logger.info(f"Targets: {targs}")
+        logger.info(f"Coordinates: {coordinates}")
 
-        # temp_name = "Tankstations"
-        # temp_distance = DM.SETTINGS.DEFAULT_ALERT_DISTANCE
-        # coordinates = self.coordinates
-        # coordinates.append((self.selected_lat, self.selected_lon))
-        # self.communication_manager.send_gps_monitoring_action(temp_name, temp_distance, coordinates)
-        
-        self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
+        self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TARGET)
     
     @android_only
     def _request_current_location(self) -> None:
@@ -273,7 +262,6 @@ class MapScreen(BaseScreen, MapScreenUtils):
             self.user_lat = lat
             self.user_lon = lon
             self.has_user_location = True
-            
             self._activate_center_location_button()
         
         else:
@@ -297,6 +285,9 @@ class MapScreen(BaseScreen, MapScreenUtils):
         if self.current_marker:
             lats.append(self.current_marker.lat)
             lons.append(self.current_marker.lon)
+        
+        if len(lats) == 0 or len(lons) == 0:
+            return
         
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
@@ -356,11 +347,25 @@ class MapScreen(BaseScreen, MapScreenUtils):
         self._request_current_location()
         
         super().on_pre_enter()
-        
+                
+        self.limit_map_cache()
+    
+    def on_enter(self) -> None:
+        """Called when the screen is entered."""
+        super().on_enter()
+
+        self.remove_current_marker()
+        self.remove_all_markers()
+
+        new_target_screen = self.app.get_screen(DM.SCREEN.NEW_TARGET)
+        if new_target_screen.targets:
+            self.coordinates = new_target_screen.targets
+            self.markers = [self.get_marker(self.coordinates[x], self.coordinates[x+1]) for x in range(0, len(self.coordinates), 2)]
+            for marker in self.markers:
+                self.mapview.add_marker(marker)
         
         self.update_button_states()
-        
-        self.limit_map_cache()
+        self.center_on_all_markers()
 
     def _on_map_view_change(self, instance, value) -> None:
         """Handles map view changes (zoom, pan, etc)."""

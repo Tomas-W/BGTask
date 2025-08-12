@@ -1,9 +1,8 @@
-import json
-import os
-from typing import Any, TYPE_CHECKING
+import time
 
 from android.broadcast import BroadcastReceiver  # type: ignore
 from jnius import autoclass                      # type: ignore
+from typing import Any, TYPE_CHECKING
 
 from managers.device.device_manager import DM
 
@@ -69,6 +68,9 @@ class ServiceCommunicationManager:
             DM.ACTION.RESTART_SERVICE,
         ]
         self.all_actions: list[str] = self.service_actions + self.app_actions + self.boot_actions
+
+        self.location_request_time: int = 0
+        self.location_request_timeout: int = 30
 
         self._init_context()
         self._init_receiver()
@@ -237,10 +239,15 @@ class ServiceCommunicationManager:
         
         # GPS actions
         elif pure_action == DM.ACTION.GET_LOCATION_ONCE:
-            self._get_location_once_action()
+            if time.time() - self.location_request_time < self.location_request_timeout:
+                logger.trace("Skipping location request, too recent")
+            else:
+                logger.trace("Processing location request")
+                self.location_request_time = time.time()
+                self._get_location_once_action()
         
         elif pure_action == DM.ACTION.START_LOCATION_MONITORING:
-            self._start_location_monitoring_action(intent)
+            self._start_location_monitoring_action()
         
         # elif pure_action == DM.ACTION.STOP_LOCATION_MONITORING:
         #     self._stop_location_monitoring_action()
@@ -354,6 +361,7 @@ class ServiceCommunicationManager:
             
             if location:
                 lat, lon = location
+                self.gps_manager.save_location_to_file(lat, lon)
                 self._send_location_response(True, lat, lon)
                 logger.info(f"Sent location response: {lat}, {lon}")
             else:
@@ -364,35 +372,13 @@ class ServiceCommunicationManager:
             logger.error(f"Error handling location request: {e}")
             self._send_location_response(False)
     
-    def _start_location_monitoring_action(self, intent: Any) -> None:
+    def _start_location_monitoring_action(self) -> None:
         """Handles request to start location monitoring."""
-        try:
-            # Extract target coordinates from intent
-            target_lat_str = intent.getStringExtra("target_lat")
-            target_lon_str = intent.getStringExtra("target_lon")
-            alert_distance_str = intent.getStringExtra("alert_distance")
-            
-            if not target_lat_str or not target_lon_str:
-                logger.error("Missing target coordinates for location monitoring")
-                return
-            
-            target_lat = float(target_lat_str)
-            target_lon = float(target_lon_str)
-            alert_distance = float(alert_distance_str) if alert_distance_str else DM.SETTINGS.DEFAULT_ALERT_DISTANCE
-
-            targets = [(target_lat, target_lon)]
-            self.gps_manager._save_targets_and_distance(targets, alert_distance)
-            
-            logger.info(f"Starting location monitoring for {target_lat}, {target_lon}")
-            success = self.gps_manager.start_location_monitoring(targets, alert_distance)
-            
-            if success:
-                logger.info("Location monitoring started successfully")
-            else:
-                logger.error("Failed to start location monitoring")
-                
-        except Exception as e:
-            logger.error(f"Error starting location monitoring: {e}")
+        success = self.gps_manager.start_location_monitoring()
+        if success:
+            logger.info("Location monitoring started successfully")
+        else:
+            logger.error("Failed to start location monitoring")
     
     def _send_location_response(self, success: bool, lat: float = None, lon: float = None) -> None:
         """Sends location response back to app."""
@@ -434,7 +420,7 @@ class ServiceCommunicationManager:
             target_id = intent.getStringExtra("target_id")
             logger.info(f"Handling GPS cancel action for target: {target_id}")
             self.service_manager.gps_manager.stop_location_monitoring()
-            self.service_manager.gps_manager._reset_targets_and_distance()
+            self.service_manager.gps_manager._reset_gps_file()
             self.audio_manager.audio_player.stop()
             self.notification_manager.cancel_gps_notifications()
             

@@ -69,7 +69,7 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
             current_selection=None,
             on_confirm=self._select_assistance,
             on_cancel=None,
-            options_list=[DM.SCREEN.NEW_TASK, DM.SCREEN.MAP]
+            options_list=[DM.SCREEN.NEW_TASK, DM.SCREEN.NEW_TARGET]
         )
     
     def _select_assistance(self, assistance: str) -> None:
@@ -77,9 +77,11 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         Selects the assistance.
         """
         if assistance == DM.SCREEN.NEW_TASK:
+            logger.info("Navigating to NewTaskScreen")
             self.navigate_to_new_task_screen()
-        elif assistance == DM.SCREEN.MAP:
-            self.navigate_to_map_screen()
+        elif assistance == DM.SCREEN.NEW_TARGET:
+            logger.info("Navigating to NewTargetScreen")
+            self.navigate_to_new_target_screen()
     
     def _init_content(self, *args) -> None:
         """
@@ -130,20 +132,16 @@ class HomeScreen(BaseScreen, HomeScreenUtils):
         self.deselect_task()
         self.navigation_manager.navigate_to(DM.SCREEN.WALLPAPER)
     
-    def navigate_to_map_screen(self, *args) -> None:
+    def navigate_to_new_target_screen(self, *args) -> None:
         """
-        Navigates to the MapScreen.
+        Navigates to the NewTargetScreen.
         """
-        if not DM.LOADED.MAP_SCREEN:
-            logger.error("MapScreen not ready - cannot navigate to it")
+        if not DM.LOADED.NEW_TARGET_SCREEN:
+            logger.error("NewTargetScreen not ready - cannot navigate to it")
             return
         
-        if not DM.INITIALIZED.MAP_SCREEN:
-            map_screen = self.app.screens.get(DM.SCREEN.MAP)
-            map_screen._init_map_content()
-                
         self.deselect_task()
-        self.navigation_manager.navigate_to(DM.SCREEN.MAP)
+        self.navigation_manager.navigate_to(DM.SCREEN.NEW_TARGET)
     
     def scroll_to_pos_on_date(self, pos: float, date: str) -> None:
         """

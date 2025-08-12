@@ -485,7 +485,9 @@ class ServiceNotificationManager:
             return
 
         # Format distance
-        if distance >= 1000:
+        if distance == -1:
+            distance_str = "calculating..."
+        elif distance >= 1000:
             distance_str = f"{distance / 1000:.1f} km"
         else:
             distance_str = f"{distance:.0f} m"

@@ -45,8 +45,6 @@ class AppCommunicationManager():
         self.package_name: str | None = None
         self.receiver: BroadcastReceiver | None = None
 
-        self.location_request_active: bool = False
-
         self._init_context()
         self._init_receiver()
 
@@ -115,6 +113,7 @@ class AppCommunicationManager():
                 
         except Exception as e:
             logger.error(f"Error in broadcast receiver callback: {e}")
+    
     def handle_action(self, pure_action: str, intent: Any) -> None:
         """
         Calls the appropriate method based on the action received from the receiver.
@@ -139,13 +138,6 @@ class AppCommunicationManager():
         if not DM.validate_action(action):
             logger.error(f"Error sending action, invalid action: {action}")
             return
-        
-        # Prevent multiple requests
-        if action == DM.ACTION.GET_LOCATION_ONCE:
-            if self.location_request_active:
-                logger.debug("Error sending action, location request already active")
-                return
-            self.location_request_active = True
 
         try:
             if not self.context:
@@ -169,7 +161,7 @@ class AppCommunicationManager():
         except Exception as e:
             logger.error(f"Error sending broadcast action: {e}")
 
-    def send_gps_monitoring_action(self, target_lat: float, target_lon: float, alert_distance: float = DM.SETTINGS.DEFAULT_ALERT_DISTANCE) -> None:
+    def send_gps_monitoring_action(self) -> None:
         """
         Send GPS monitoring action with target coordinates to service.
         """
@@ -185,13 +177,8 @@ class AppCommunicationManager():
             intent.putExtra(DM.ACTION_TARGET.TARGET,
                             AndroidString(DM.ACTION_TARGET.SERVICE))
             
-            # Add GPS coordinates
-            intent.putExtra("target_lat", AndroidString(str(target_lat)))
-            intent.putExtra("target_lon", AndroidString(str(target_lon)))
-            intent.putExtra("alert_distance", AndroidString(str(alert_distance)))
-            
             self.context.sendBroadcast(intent)
-            logger.debug(f"Sent GPS monitoring action for coordinates: {target_lat}, {target_lon}")
+            logger.debug(f"Sent GPS monitoring action")
         
         except Exception as e:
             logger.error(f"Error sending GPS monitoring action: {e}")
@@ -292,7 +279,6 @@ class AppCommunicationManager():
     def _location_response_action(self, intent: Any) -> None:
         """Handles location response from service."""
         try:
-            self.location_request_active = False
             location_data = self._get_location_data_from_intent(intent)
             if location_data.get("success"):
                 lat = location_data["latitude"]

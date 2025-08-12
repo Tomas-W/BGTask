@@ -61,6 +61,7 @@ class Paths(Dirs):
         # Task file
         self.TASK_FILE: Final[str] = os.path.join(self.ASSETS, "task_file.json")
         self.GPS_FILE: Final[str] = os.path.join(self.ASSETS, "gps_file.json")
+        self.TARGET_PRESET_FILE: Final[str] = os.path.join(self.ASSETS, "target_preset_file.json")
         # Screenshot
         self.SCREENSHOT_PATH: Final[str] = os.path.join(self.IMG, "bgtask_screenshot.png")
         # GPS
@@ -222,6 +223,9 @@ class Settings:
         self.MAP_START_ZOOM: int = 11
         self.MAP_MAX_ZOOM: int = 16
         self.MAP_MIN_ZOOM: int = 4
+        # Target
+        self.TARGET_NAME_MIN_LENGTH: int = 3
+        self.TARGET_MIN_DISTANCE: int = 100
 
 
 class Screens:
@@ -237,7 +241,7 @@ class Screens:
         self.SAVED_ALARMS = "SAVED_ALARMS"
         self.SETTINGS = "SETTINGS"
         self.MAP = "MAP"
-
+        self.NEW_TARGET = "NEW_TARGET"
 
 class Trigger:
     """
@@ -262,6 +266,7 @@ class Loaded:
         self.SAVED_ALARMS_SCREEN = False
         self.SETTINGS_SCREEN = False
         self.MAP_SCREEN = False
+        self.NEW_TARGET_SCREEN = False
 
         self.SCREEN_MANAGER = False
         self.NAVIGATION_MANAGER = False

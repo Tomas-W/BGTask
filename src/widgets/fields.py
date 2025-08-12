@@ -201,7 +201,7 @@ class TextField(BoxLayout):
         
     @text.setter
     def text(self, value):
-        self.text_input.text = value
+        self.text_input.text = str(value)
         
     @property
     def hint_text(self):
@@ -324,7 +324,7 @@ class InputField(BoxLayout):
         
     @text.setter
     def text(self, value):
-        self.text_input.text = value
+        self.text_input.text = str(value)
         
     @property
     def hint_text(self):

@@ -93,7 +93,8 @@ class ServiceManager:
         self.update_foreground_notification_info()
 
         # GPS check
-        self.check_for_active_gps_targets()
+        self.gps_manager.start_location_monitoring()  # Will skip if no GPS data found
+
 
         # Sync loop
         self.synchronize_loop_start()
@@ -273,22 +274,6 @@ class ServiceManager:
                 with_buttons=False
             )
     
-    def check_for_active_gps_targets(self) -> None:
-        """Checks for active GPS targets."""
-        data = self.gps_manager.get_gps_data()
-        
-        if data and data["targets"] and data["alert_distance"] > 0:
-            logger.trace("Active GPS targets found")
-            current_location = data.get("current_location")
-            current_location = tuple(current_location) if current_location else None
-            
-            self.gps_manager.start_location_monitoring(
-                data["targets"], 
-                data["alert_distance"],
-            )
-        else:
-            logger.trace("No active GPS targets found")
-
     def is_app_in_foreground(self) -> bool:
         """Returns True if App is running in the foreground."""
         try:

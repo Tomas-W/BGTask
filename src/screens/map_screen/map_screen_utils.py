@@ -62,6 +62,7 @@ class MapScreenUtils:
     @log_time("MapScreenUtils._init_content")
     def _init_map_content(self):
         """Initialises the screens UI."""
+        logger.info("Initialising map content")
         # Replace scroll container with FloatLayout
         # Allows for full-screen map
         self.body = FloatLayout(size_hint=(1, 1))
@@ -233,6 +234,28 @@ class MapScreenUtils:
         # Update button states
         self.select_button.set_inactive_state()
         self.center_marker_button.set_inactive_state()
+    
+    def reset_map_state(self):
+        """Removes all markers and coordinates."""
+        self.remove_current_marker()
+        self.remove_all_markers()
+        self.markers = []
+        self.current_marker = None
+        self.coordinates = []
+        self.selected_lat = None
+        self.selected_lon = None
+        
+        # Update button states
+        self.select_button.set_inactive_state()
+        self.center_marker_button.set_inactive_state()
+        self.add_marker_button.set_inactive_state()
+        self.remove_marker_button.set_inactive_state()
+    
+    def remove_all_markers(self):
+        """Removes all markers from the map."""
+        for marker in self.markers:
+            self.mapview.remove_marker(marker)
+        self.markers = []
 
     def remove_current_marker(self):
         """Removes the current marker from the map."""
@@ -240,10 +263,10 @@ class MapScreenUtils:
             self.mapview.remove_marker(self.current_marker)
             self.current_marker = None
     
-    def save_marker_location(self, lat: float, lon: float):
-        """Saves the selected location coordinates."""
-        self.selected_lat = lat
-        self.selected_lon = lon
+    # def save_marker_location(self, lat: float, lon: float):
+    #     """Saves the selected location coordinates."""
+    #     self.selected_lat = lat
+    #     self.selected_lon = lon
     
     def reset_marker_location(self):
         """Resets the selected location coordinates."""
