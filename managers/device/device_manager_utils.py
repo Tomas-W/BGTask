@@ -94,6 +94,8 @@ class Dates:
         self.MINUTE: Final[str] = "%M"                      # 30
         # Recording
         self.RECORDING: Final[str] = "%H_%M_%S"             # 14_30_45
+        # Target
+        self.TARGET: Final[str] = "%a %d %b %Y @ %H:%M"     # Thu 21 Mar 2024 @ 14:30
 
 
 class Extensions:

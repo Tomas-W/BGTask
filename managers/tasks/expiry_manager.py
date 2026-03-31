@@ -247,11 +247,13 @@ class ExpiryManager(TaskFileManager):
 
         # Load Tasks
         for tasks_data in task_data.values():
-            tasks = [Task.to_class(task_dict) for task_dict in tasks_data]
+            tasks = [Task.to_class(task_dict) for task_dict in tasks_data if not task_dict["message"].startswith("Track:")]
             # Make Task objects and filter by expired
             non_expired_tasks = [
                 task for task in tasks 
-                if not task.expired and not (self.expired_task and task.task_id == self.expired_task.task_id)
+                if not task.expired
+                and not (self.expired_task
+                and task.task_id == self.expired_task.task_id)
             ]
             active_tasks.extend(non_expired_tasks)
         

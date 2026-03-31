@@ -1,5 +1,6 @@
 import json
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from kivy.clock import Clock
 
@@ -36,6 +37,7 @@ class NewTargetScreen(BaseScreen):
         self.alert_distance: int | None = None
         self.targets: list[float] = []
         self.alarm_name: str | None = None
+        self.start_after: datetime | None = None
 
         self.top_bar.bar_title.set_text("New Target")
         self.scroll_container.container.spacing = SPACE.SPACE_M
@@ -101,6 +103,18 @@ class NewTargetScreen(BaseScreen):
         # Add to Scroll container
         self.scroll_container.container.add_widget(self.alarm_partition)
 
+        self.start_after_partition = Partition()
+        self.start_after_partition.spacing = SPACE.SPACE_XS
+        # Select
+        self.start_after_button = ConfirmButton(text="Start After", color_state=STATE.ACTIVE)
+        self.start_after_button.bind(on_release=lambda instance: self.navigation_manager.navigate_to(DM.SCREEN.SELECT_DATE))
+        self.start_after_partition.add_widget(self.start_after_button)
+        # Display
+        self.start_after_field = SettingsField(text="", width=1, color_state=STATE.INACTIVE)
+        self.start_after_partition.add_widget(self.start_after_field)
+        # Add to Scroll container
+        self.scroll_container.container.add_widget(self.start_after_partition)
+
         self.confirm_partition = Partition()
         self.confirm_partition.spacing = SPACE.SPACE_XS
         self.button_row = CustomButtonRow()
@@ -121,6 +135,7 @@ class NewTargetScreen(BaseScreen):
         super().on_pre_enter()
 
         self.update_target_field()
+        self.update_start_after_field()
         self.update_button_states()
     
     def on_enter(self) -> None:
@@ -189,7 +204,7 @@ class NewTargetScreen(BaseScreen):
             new_preset = {
                     "alert_distance": self.alert_distance,
                     "targets": self.targets,
-                    "alarm_name": self.alarm_name
+                    "alarm_name": self.alarm_name,
             }
             try:
                 with open(DM.PATH.TARGET_PRESET_FILE, "r") as f:
@@ -281,38 +296,48 @@ class NewTargetScreen(BaseScreen):
         self.update_button_states()
 
     def _start_tracking_target(self, instance) -> None:
-        logger.info(f"Starting GPS monitoring:")
-        logger.info(f"Target name: {self.target_name}")
-        logger.info(f"Alert distance: {self.alert_distance}")
-        logger.info(f"Targets: {self.targets}")
-        logger.info(f"Alarm name: {self.alarm_name}")
-
+        success = False
         try:
             with open(DM.PATH.GPS_FILE, "w") as f:
                 data = {
                     "name": self.target_name,
                     "alert_distance": self.alert_distance,
                     "targets": self.targets,
-                    "alarm_name": self.alarm_name
+                    "alarm_name": self.alarm_name,
+                    "start_after": self.start_after.isoformat() if self.start_after else None
                 }
                 json.dump(data, f, indent=4)
 
                 self.communication_manager.send_gps_monitoring_action()
+
+                name = f"Track: {self.target_name}"
+                alert_distance = f"Alert distance: {self.alert_distance}m"
+                targets = f"Targets: {len(self.targets)//2}"
+                alarm = f"Alarm: {self.alarm_name}"
+                message = f"{name}\n{alert_distance}\n{targets}\n{alarm}"
+                self.task_manager.add_task(
+                    timestamp=self.start_after,
+                    message=message,
+                    alarm_name=self.audio_manager.selected_alarm_name,
+                    sound=self.audio_manager.selected_sound,
+                    vibrate=self.audio_manager.selected_vibrate,
+                )
+                success = True
         
         except Exception as e:
             logger.error(f"Error saving target: {e}")
-
-        # Send GPS monitoring request to service with selected coordinates
-        # lat, lon = self.targets[0]
-        # logger.info(f"Starting GPS monitoring for coordinates: {lat}, {lon}")
-        # self.communication_manager.send_gps_monitoring_action(lat, lon)
-
-        # temp_name = "Tankstations"
-        # temp_distance = DM.SETTINGS.DEFAULT_ALERT_DISTANCE
-        # coordinates = self.coordinates
-        # coordinates.append((self.selected_lat, self.selected_lon))
-        # self.communication_manager.send_gps_monitoring_action(temp_name, temp_distance, coordinates)
-
+        
+        finally:
+            if success:
+                self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
+            else:
+                POPUP.show_confirmation_popup(
+                    header="Error starting GPS monitoring",
+                    field_text="Try again or restart app",
+                    on_confirm=lambda: None,
+                    on_cancel=lambda: None
+                )
+    
     def _cancel_tracking_target(self, instance) -> None:
         self._reset_fields()
         self.navigation_manager.navigate_back_to(DM.SCREEN.HOME)
@@ -370,6 +395,10 @@ class NewTargetScreen(BaseScreen):
             else:
                 self.target_field.set_text(f"{len(self.targets)//2} targets")
     
+    def update_start_after_field(self) -> None:
+        if self.start_after:
+            self.start_after_field.set_text(self.start_after.strftime(DM.DATE.TARGET))
+    
     def update_button_states(self) -> None:
         if all([
             self.target_name,
@@ -388,11 +417,13 @@ class NewTargetScreen(BaseScreen):
         self.alert_distance = None
         self.targets = []
         self.alarm_name = None
+        self.start_after = None
 
         self.target_name_field.set_text("")
         self.alert_distance_field.set_text("")
         self.target_field.set_text("")
         self.alarm_field.set_text("")
+        self.start_after_field.set_text("")
 
         self.update_button_states()
         self.update_target_field()

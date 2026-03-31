@@ -81,7 +81,7 @@ class NewTaskScreen(BaseScreen):
         self.select_alarm_partition.add_widget(self.vibrate_display_field)
         # Add to Scroll container
         self.scroll_container.container.add_widget(self.select_alarm_partition)
-
+        
         # Confirmation partition
         self.confirmation_partition = Partition()
         # Button row

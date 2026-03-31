@@ -11,13 +11,11 @@
         ],
         "alarm_name": "tanken"
     },
-    "fff": {
-        "alert_distance": 300,
+    "Test": {
+        "alert_distance": 100,
         "targets": [
-            52.52,
-            13.409,
-            51.51,
-            13.409
+            51.546710,
+            3.512877
         ],
         "alarm_name": "tanken"
     },

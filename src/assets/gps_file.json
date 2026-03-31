@@ -1,2 +1,10 @@
 {
+    "name": "Test",
+    "alert_distance": 100,
+    "targets": [
+        51.54671,
+        3.512877
+    ],
+    "alarm_name": "tanken",
+    "start_after": "2025-09-12T13:39:00"
 }

@@ -199,6 +199,12 @@ class SelectDateScreen(BaseScreen, SelectDateUtils):
         
         if not self.update_task_manager_time():
             return
+        
+        if self.app.navigation_manager.history[-2] == DM.SCREEN.NEW_TARGET:
+            start_moment = datetime.combine(self.task_manager.selected_date, self.task_manager.selected_time).replace(second=0, microsecond=0)
+            self.app.get_screen(DM.SCREEN.NEW_TARGET).start_after = start_moment
+            self.navigation_manager.navigate_back_to(DM.SCREEN.NEW_TARGET)
+            return
 
         if self.check_date_is_taken():
             return

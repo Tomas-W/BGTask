@@ -54,6 +54,7 @@ class ServiceNotificationManager:
         self.current_gps_notification_id: int | None = None
         self.gps_tracking_notification_id: int = ServiceNotificationManager.GPS_TRACKING_NOTIFICATION_ID
         self.gps_notification_ids: set[int] = set()
+        self._showed_tracking_notification: bool = False
         
         self._init_foreground_channel()
         self._init_tasks_channel()
@@ -479,6 +480,10 @@ class ServiceNotificationManager:
     def show_gps_tracking_notification(self, distance: float, target_name: str = "target", 
                                      target_id: str = "current", has_next_target: bool = False) -> None:
         """Shows/updates the ongoing GPS tracking notification."""
+        if self._showed_tracking_notification:
+            return
+        
+        self._showed_tracking_notification = True
         icon_resource = self._get_icon_resource()
         if icon_resource is None:
             logger.error("No valid icon found, cannot show GPS tracking notification")

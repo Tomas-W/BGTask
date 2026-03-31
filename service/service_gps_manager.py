@@ -60,10 +60,11 @@ class ServiceGpsManager:
         self._location_request_active: bool = False
 
         # Tracking state
-        self.gps_tracking_name: str | None = "Tanken"
+        self.gps_tracking_name: str | None = None
         self.gps_target_id: str | None = "0"
         self.gps_alarm_name: str | None = None
         self.target_reached: bool = False
+        self.gps_start_after: datetime | None = None
         
         self._initialize_gps()
         
@@ -256,20 +257,42 @@ class ServiceGpsManager:
             self._location_request_active = False
     
     @requires_gps
-    def start_location_monitoring(self) -> bool:
+    def start_location_monitoring(self) -> bool | None:
         """
         Start monitoring location for distance alerts.
         Returns True if started successfully, False otherwise.
         """
         data = self.get_gps_data()
-        if not data:
+        if not data or data == {}:
             logger.error("Service: No GPS data found, skipping location monitoring")
             return False
         
-        self.gps_tracking_name = data["name"]
-        self._targets = data["targets"]
-        self._alert_distance = data["alert_distance"]
-        self.gps_alarm_name = data["alarm_name"]
+        try:
+            self.gps_tracking_name = data["name"]
+            self._targets = data["targets"]
+            self._alert_distance = data["alert_distance"]
+            self.gps_alarm_name = data["alarm_name"]
+
+            raw = data.get("start_after")
+            if isinstance(raw, str) and raw:
+                try:
+                    self.gps_start_after = datetime.fromisoformat(raw)
+                except ValueError:
+                    logger.error(f"Service: Start after conversion failed: {raw}")
+                    self.gps_start_after = None
+            else:
+                logger.error(f"Service: Start after is not a string: {raw}")
+                self.gps_start_after = None
+        
+        except Exception as e:
+            logger.error(f"Service: Error extracting GPS data: {e}")
+            return False
+        
+        if self.gps_start_after and self.gps_start_after > datetime.now():
+            logger.info(f"Service: Start after: {self.gps_start_after}, postponing location monitoring")
+            return None
+        else:
+            logger.info(f"Service: Start after: {self.gps_start_after} & Now: {datetime.now()}")
 
         logger.info(f"Service: Starting location monitoring for {self.gps_tracking_name}: {self._targets}")
         
@@ -308,6 +331,15 @@ class ServiceGpsManager:
         self._target_lat = None
         self._target_lon = None
         self._last_known_location = None
+
+        self.gps_tracking_name: str | None = None
+        self.gps_target_id: str | None = None
+        self.gps_alarm_name: str | None = None
+        self.target_reached: bool = True
+        self.gps_start_after: datetime | None = None
+
+        self.target_reached = True
+        self._reset_gps_file()
     
     def _on_location_update(self, lat: float, lon: float) -> None:
         """Handle location updates during monitoring."""
@@ -322,8 +354,8 @@ class ServiceGpsManager:
         if self._check_alert_condition() and not self.target_reached:
             logger.info(f"Service: Within alert distance! Distance: {distance:.2f} meters")
             self._trigger_location_alert()
-            self.audio_manager.audio_player.play(self.audio_manager.get_alarm_path(self.gps_alarm_name))
-            self.target_reached = True
+            self.audio_manager.audio_player.play(self.audio_manager.get_audio_path(self.gps_alarm_name))
+            # self.target_reached = True
             return
         
         # Log current distance
@@ -500,7 +532,7 @@ class ServiceGpsManager:
         if alert_distance > DM.SETTINGS.DEFAULT_ALERT_DISTANCE:
             self._alert_distance = alert_distance
         
-        logger.info(f"Target location set: {len(targets)} targets with distance {self._alert_distance}m")
+        logger.info(f"Target location set: {len(targets)/2} targets with distance {self._alert_distance}m")
         return True
 
     def _update_current_location(self, lat: float, lon: float) -> None:
@@ -608,7 +640,8 @@ class ServiceGpsManager:
                     "name": None,
                     "targets": None,
                     "alert_distance": 0,
-                    "alarm_name": None
+                    "alarm_name": None,
+                    "start_after": None
                 }, f, indent=4)
             logger.info("Reset GPS file")
         

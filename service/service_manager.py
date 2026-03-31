@@ -29,6 +29,7 @@ class ServiceManager:
     FORCE_FOREGROUND_NOTIFICATION_TICK = 6   # = 60 seconds
     LOOP_SYNC_TICK = 360                     # = 1 hour
     EXPIRY_LOG_TICK = 3                      # = 30 seconds
+    GPS_START_AFTER_TICK = 6                 # = 1 minutes
 
     MAX_LOOP_DEVIATION = 4                   # = 4 seconds
 
@@ -69,6 +70,7 @@ class ServiceManager:
         self.heartbeat_tick: int = 0
         self.foreground_notification_tick: int = 0
         self.expiry_log_tick: int = 0
+        self.gps_start_after_tick: int = 0
 
         # Loop timing
         self._last_loop_time: float = 0
@@ -112,6 +114,8 @@ class ServiceManager:
 
                 self.force_foreground_notification()             # 60 seconds
 
+                self.check_gps_start_after()                     # 1 minutes
+
                 # ############### RUNS IN FOREGROUND ########
                 if self.is_app_in_foreground():
                     self._in_foreground = True
@@ -122,6 +126,7 @@ class ServiceManager:
                 # ############### RUNS IN BACKGROUND ########
                 else:
                     self.log_expiry_tasks()                      # 30 seconds
+                    # self.check_gps_start_after()                     # 2 minutes
 
                     if self.expiry_manager.current_task is not None:
                         self.check_task_expiry()                 # 10 seconds
@@ -142,6 +147,7 @@ class ServiceManager:
         self.heartbeat_tick += 1
         self.foreground_notification_tick += 1
         self.expiry_log_tick += 1
+        self.gps_start_after_tick += 1
 
     def _update_loop_time(self) -> None:
         """Updates the loop time."""
@@ -273,6 +279,18 @@ class ServiceManager:
                 message,
                 with_buttons=False
             )
+    
+    def check_gps_start_after(self) -> None:
+        """Checks if the GPS start after has been reached."""
+        if self.gps_start_after_tick >= ServiceManager.GPS_START_AFTER_TICK:
+            self.gps_start_after_tick = 0
+            logger.info("check_gps_start_after reached tick")
+            
+            if not self.gps_manager._monitoring_active and self.gps_manager.gps_tracking_name:
+                logger.info("_monitoring_active is False, starting location monitoring")
+                self.gps_manager.start_location_monitoring()  # Will skip if no GPS data found
+            else:
+                logger.info("_monitoring_active is True, skipping location monitoring")
     
     def is_app_in_foreground(self) -> bool:
         """Returns True if App is running in the foreground."""

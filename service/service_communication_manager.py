@@ -372,10 +372,12 @@ class ServiceCommunicationManager:
             logger.error(f"Error handling location request: {e}")
             self._send_location_response(False)
     
-    def _start_location_monitoring_action(self) -> None:
+    def _start_location_monitoring_action(self, future: bool = False) -> None:
         """Handles request to start location monitoring."""
         success = self.gps_manager.start_location_monitoring()
-        if success:
+        if success is None:
+            logger.info("Location monitoring skipped, start after not reached")
+        elif success:
             logger.info("Location monitoring started successfully")
         else:
             logger.error("Failed to start location monitoring")
@@ -420,7 +422,6 @@ class ServiceCommunicationManager:
             target_id = intent.getStringExtra("target_id")
             logger.info(f"Handling GPS cancel action for target: {target_id}")
             self.service_manager.gps_manager.stop_location_monitoring()
-            self.service_manager.gps_manager._reset_gps_file()
             self.audio_manager.audio_player.stop()
             self.notification_manager.cancel_gps_notifications()
             
